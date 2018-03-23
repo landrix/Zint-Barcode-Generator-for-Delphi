@@ -1,0 +1,69 @@
+package libZint;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'Zint Library'}
+{$LIBSUFFIX '120'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl,
+  vcl;
+
+contains
+  zint in '..\..\zint.pas',
+  zint_2of5 in '..\..\zint_2of5.pas',
+  zint_auspost in '..\..\zint_auspost.pas',
+  zint_aztec in '..\..\zint_aztec.pas',
+  zint_code in '..\..\zint_code.pas',
+  zint_code1 in '..\..\zint_code1.pas',
+  zint_code16k in '..\..\zint_code16k.pas',
+  zint_code49 in '..\..\zint_code49.pas',
+  zint_code128 in '..\..\zint_code128.pas',
+  zint_common in '..\..\zint_common.pas',
+  zint_composite in '..\..\zint_composite.pas',
+  zint_dmatrix in '..\..\zint_dmatrix.pas',
+  zint_gb2312 in '..\..\zint_gb2312.pas',
+  zint_gridmtx in '..\..\zint_gridmtx.pas',
+  zint_gs1 in '..\..\zint_gs1.pas',
+  zint_helper in '..\..\zint_helper.pas',
+  zint_imail in '..\..\zint_imail.pas',
+  zint_large in '..\..\zint_large.pas',
+  zint_maxicode in '..\..\zint_maxicode.pas',
+  zint_medical in '..\..\zint_medical.pas',
+  zint_pdf417 in '..\..\zint_pdf417.pas',
+  zint_plessey in '..\..\zint_plessey.pas',
+  zint_postal in '..\..\zint_postal.pas',
+  zint_qr in '..\..\zint_qr.pas',
+  zint_reedsol in '..\..\zint_reedsol.pas',
+  zint_render_bmp in '..\..\zint_render_bmp.pas',
+  zint_render_canvas in '..\..\zint_render_canvas.pas',
+  zint_render_svg in '..\..\zint_render_svg.pas',
+  zint_render_wmf in '..\..\zint_render_wmf.pas',
+  zint_rss in '..\..\zint_rss.pas',
+  zint_sjis in '..\..\zint_sjis.pas',
+  zint_telepen in '..\..\zint_telepen.pas',
+  zint_upcean in '..\..\zint_upcean.pas';
+
+end.

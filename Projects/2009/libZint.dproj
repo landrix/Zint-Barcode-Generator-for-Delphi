@@ -1,0 +1,143 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{94BC71D6-2CF2-4EC4-BE68-64F9C512C865}</ProjectGuid>
+			<MainSource>libZint.dpk</MainSource>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+			<ProjectVersion>12.0</ProjectVersion>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Basis' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<GenPackage>true</GenPackage>
+			<RuntimeOnlyPackage>true</RuntimeOnlyPackage>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
+			<DllSuffix>120</DllSuffix>
+			<GenDll>true</GenDll>
+			<DCC_Description>Zint Library</DCC_Description>
+			<DCC_DependencyCheckOutputName>C:\Users\Public\Documents\RAD Studio\6.0\Bpl\libZint120.bpl</DCC_DependencyCheckOutputName>
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_Platform>x86</DCC_Platform>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="libZint.dpk">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="rtl.dcp"/>
+			<DCCReference Include="vcl.dcp"/>
+			<DCCReference Include="..\..\zint.pas"/>
+			<DCCReference Include="..\..\zint_2of5.pas"/>
+			<DCCReference Include="..\..\zint_auspost.pas"/>
+			<DCCReference Include="..\..\zint_aztec.pas"/>
+			<DCCReference Include="..\..\zint_code.pas"/>
+			<DCCReference Include="..\..\zint_code1.pas"/>
+			<DCCReference Include="..\..\zint_code16k.pas"/>
+			<DCCReference Include="..\..\zint_code49.pas"/>
+			<DCCReference Include="..\..\zint_code128.pas"/>
+			<DCCReference Include="..\..\zint_common.pas"/>
+			<DCCReference Include="..\..\zint_composite.pas"/>
+			<DCCReference Include="..\..\zint_dmatrix.pas"/>
+			<DCCReference Include="..\..\zint_gb2312.pas"/>
+			<DCCReference Include="..\..\zint_gridmtx.pas"/>
+			<DCCReference Include="..\..\zint_gs1.pas"/>
+			<DCCReference Include="..\..\zint_helper.pas"/>
+			<DCCReference Include="..\..\zint_imail.pas"/>
+			<DCCReference Include="..\..\zint_large.pas"/>
+			<DCCReference Include="..\..\zint_maxicode.pas"/>
+			<DCCReference Include="..\..\zint_medical.pas"/>
+			<DCCReference Include="..\..\zint_pdf417.pas"/>
+			<DCCReference Include="..\..\zint_plessey.pas"/>
+			<DCCReference Include="..\..\zint_postal.pas"/>
+			<DCCReference Include="..\..\zint_qr.pas"/>
+			<DCCReference Include="..\..\zint_reedsol.pas"/>
+			<DCCReference Include="..\..\zint_render_bmp.pas"/>
+			<DCCReference Include="..\..\zint_render_canvas.pas"/>
+			<DCCReference Include="..\..\zint_render_svg.pas"/>
+			<DCCReference Include="..\..\zint_render_wmf.pas"/>
+			<DCCReference Include="..\..\zint_rss.pas"/>
+			<DCCReference Include="..\..\zint_sjis.pas"/>
+			<DCCReference Include="..\..\zint_telepen.pas"/>
+			<DCCReference Include="..\..\zint_upcean.pas"/>
+			<BuildConfiguration Include="Basis">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType>Package</Borland.ProjectType>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">libZint.dpk</Source>
+					</Source>
+					<Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
+						<VersionInfo Name="MajorVer">1</VersionInfo>
+						<VersionInfo Name="MinorVer">0</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Build">0</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">1031</VersionInfo>
+						<VersionInfo Name="CodePage">1252</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="FileDescription"/>
+						<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName"/>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName"/>
+						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+					<Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k120.bpl">Microsoft Office 2000 Beispiele für gekapselte Komponenten für Automation Server</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclofficexp120.bpl">Microsoft Office XP Beispiele für gekapselte Komponenten für Automation Server</Excluded_Packages>
+					</Excluded_Packages>
+				</Delphi.Personality>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>

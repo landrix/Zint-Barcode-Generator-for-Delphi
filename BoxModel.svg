@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="BoxModel.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="292.677"
+     inkscape:cy="836.50428"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1058"
+     inkscape:window-x="-8"
+     inkscape:window-y="1072"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:29.23625183px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans Bold"
+       x="107.77893"
+       y="38.41394"
+       id="text2985"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2987"
+         x="107.77893"
+         y="38.41394">TZintCustomRenderTarget-Box-Model</tspan></text>
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1.25000000000000000;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:2.50000000000000000, 2.50000000000000000;stroke-dashoffset:0"
+       id="rect2989"
+       width="695.27649"
+       height="383.60776"
+       x="19.883949"
+       y="79.059509" />
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="344.79285"
+       y="93.630318"
+       id="text3753"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3755"
+         x="344.79285"
+         y="93.630318">Margin</tspan></text>
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:1.30624998;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="rect3792"
+       width="643.20868"
+       height="340.35141"
+       x="45.917854"
+       y="99.686455" />
+    <rect
+       y="121.74962"
+       x="67.62394"
+       height="304.08228"
+       width="599.79651"
+       id="rect3909"
+       style="fill:#fffe9d;fill-opacity:1;stroke:#000000;stroke-width:1.60423922999999990;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:3.20847843000000000, 3.20847843000000000;stroke-dashoffset:0" />
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Sans"
+       x="344.59735"
+       y="114.68079"
+       id="text3753-4"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3755-0"
+         x="344.59735"
+         y="114.68079">Border</tspan></text>
+    <rect
+       style="fill:#fffeff;fill-opacity:1;stroke:#000000;stroke-width:1.23377347;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:2.4675468, 2.4675468;stroke-dashoffset:0"
+       id="rect3817"
+       width="573.7384"
+       height="188.02415"
+       x="80.652992"
+       y="145.13582" />
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="340.20932"
+       y="136.82365"
+       id="text3753-9"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="340.20932"
+         y="136.82365"
+         id="tspan3840">Padding</tspan></text>
+    <rect
+       style="fill:#ff7bff;fill-opacity:1;stroke:#000000;stroke-width:1.21625686000000010;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:2.43251369000000000, 2.43251369000000000;stroke-dashoffset:0"
+       id="rect3817-8"
+       width="523.18384"
+       height="138.89813"
+       x="105.93027"
+       y="172.19882" />
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="328.98947"
+       y="165.3951"
+       id="text3753-9-8"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="328.98947"
+         y="165.3951"
+         id="tspan3883">Whitespace</tspan></text>
+    <rect
+       y="333.97208"
+       x="80.489265"
+       height="68.351639"
+       width="574.06586"
+       id="rect3905"
+       style="fill:#98ffff;fill-opacity:1;stroke:#000000;stroke-width:1.25000000000000000;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:2.50000000000000000, 2.50000000000000000;stroke-dashoffset:0" />
+    <rect
+       style="fill:#fffeff;fill-opacity:1;stroke:#000000;stroke-width:1.19663763;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:2.39327529, 2.39327529;stroke-dashoffset:0"
+       id="rect3907"
+       width="527.1427"
+       height="30.714172"
+       x="103.95084"
+       y="353.86224" />
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="339.64453"
+       y="246.86862"
+       id="text3753-9-8-5"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="339.64453"
+         y="246.86862"
+         id="tspan3883-5">Barcode</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="327.849"
+       y="347.58292"
+       id="text3753-9-8-5-1"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="327.849"
+         y="347.58292"
+         id="tspan3883-5-7">Textspacing</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:14.82947159px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="352.97513"
+       y="374.44006"
+       id="text3753-9-8-5-11"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="352.97513"
+         y="374.44006"
+         id="tspan3883-5-5">Text</tspan></text>
+  </g>
+</svg>
