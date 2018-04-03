@@ -252,7 +252,10 @@ type
     property Mode : TmcMode read GetMode write SetMode;
   end;
 
-  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144, dms8x18, dms8x32, dms12x26, dms12x36, dms16x36, dms16x48);
+//  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144, dms8x18, dms8x32, dms12x26, dms12x36, dms16x36, dms16x48);
+  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144,
+              dmr8x18, dmr8x32, dmr12x26, dmr12x36, dmr16x36, dmr16x48,
+              dmre8x48, dmre8x64, dmre12x64, dmre16x64, dmre24x48, dmre24x64, dmre26x40, dmre26x48, dmre26x64);
 
   { TZintDatamatrixOptions }
 
@@ -782,6 +785,7 @@ const
   SJIS_MODE = 4;
 
   DM_SQUARE = 100;
+  DM_DMRE   = 101;
 
   ZWARN_INVALID_OPTION = 2;
   ZERROR_TOO_LONG = 5;
@@ -1400,12 +1404,21 @@ begin
     22 : Result := dms120x120;
     23 : Result := dms132x132;
     24 : Result := dms144x144;
-    25 : Result := dms8x18;
-    26 : Result := dms8x32;
-    27 : Result := dms12x26;
-    28 : Result := dms12x36;
-    29 : Result := dms16x36;
-    30 : Result := dms16x48;
+    25 : Result := dmr8x18;
+    26 : Result := dmr8x32;
+    27 : Result := dmr12x26;
+    28 : Result := dmr12x36;
+    29 : Result := dmr16x36;
+    30 : Result := dmr16x48;
+    31 : Result := dmre8x48;
+    32 : Result := dmre8x64;
+    33 : Result := dmre12x64;
+    34 : Result := dmre16x64;
+    35 : Result := dmre24x48;
+    36 : Result := dmre24x64;
+    37 : Result := dmre26x40;
+    38 : Result := dmre26x48;
+    39 : Result := dmre26x64;
     else
       Result := dmsAuto;
   end;
@@ -1448,12 +1461,21 @@ begin
     dms120x120 : FSymbol.option_2 := 22;
     dms132x132 : FSymbol.option_2 := 23;
     dms144x144 : FSymbol.option_2 := 24;
-    dms8x18 : FSymbol.option_2 := 25;
-    dms8x32 : FSymbol.option_2 := 26;
-    dms12x26 : FSymbol.option_2 := 27;
-    dms12x36 : FSymbol.option_2 := 28;
-    dms16x36 : FSymbol.option_2 := 29;
-    dms16x48 : FSymbol.option_2 := 30;
+    dmr8x18 : FSymbol.option_2 := 25;
+    dmr8x32 : FSymbol.option_2 := 26;
+    dmr12x26 : FSymbol.option_2 := 27;
+    dmr12x36 : FSymbol.option_2 := 28;
+    dmr16x36 : FSymbol.option_2 := 29;
+    dmr16x48 : FSymbol.option_2 := 30;
+    dmre8x48 : FSymbol.option_2 := 31;
+    dmre8x64 : FSymbol.option_2 := 32;
+    dmre12x64 : FSymbol.option_2 := 33;
+    dmre16x64 : FSymbol.option_2 := 34;
+    dmre24x48 : FSymbol.option_2 := 35;
+    dmre24x64 : FSymbol.option_2 := 36;
+    dmre26x40 : FSymbol.option_2 := 37;
+    dmre26x48 : FSymbol.option_2 := 38;
+    dmre26x64 : FSymbol.option_2 := 39;
   end;
   Changed;
 end;
