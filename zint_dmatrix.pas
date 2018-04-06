@@ -24,6 +24,11 @@ uses
 
 function dmatrix(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 
+  {fs 02/04/2018 added DMRE sizes}
+const
+  NbOfSymbols = 39;
+
+
 implementation
 
 uses
@@ -38,8 +43,6 @@ const
   DM_X12 = 4;
   DM_EDIFACT = 5;
   DM_BASE256 = 6;
-
-  NbOfSymbols = 39;
 
 c40_shift : array[0..127] of Integer = (
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -66,6 +69,7 @@ text_value : array[0..127] of Integer = (
 	22,23,24,25,26,0,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,27,28,29,30,31 );
 
 intsymbol : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	0,1,3,5,7,8,10,12,13,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,2,4,6,9,11,14 );
 
      0, {  1: 10x10 ,  3}  1, {  2: 12x12 ,  5}  3, {  3: 14x14 ,  8}  5, {  4: 16x16 , 12}
@@ -82,8 +86,8 @@ intsymbol : array[0..NbOfSymbols - 1] of NativeInt = (
 
 
 
-// Is the current code a DMRE code ?
-// This is the case, if intsymbol index >= 30
+  {fs 02/04/2018 Is the current code a DMRE code ?
+  This is the case, if intsymbol index >= 30 }
 
 isDMRE : array[0..NbOfSymbols - 1] of Boolean = (
     { 0} False, {  10x10 ,3 } False, { 12x12 , 5 } False, {  8x18 , 5 } False, { 14x14 , 8 }
@@ -98,7 +102,9 @@ isDMRE : array[0..NbOfSymbols - 1] of Boolean = (
     {36} False, {120x120 ,1050} False, {132x132,1304}False  {144x144,1558}
     );
 
+
 matrixH : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	10, 12, 8, 14, 8, 16, 12, 18, 20, 12, 22, 16, 24, 26, 16, 32, 36, 40, 44, 48,
 //	52, 64, 72, 80, 88, 96, 104, 120, 132, 144 );
     { 0} 10, { 10x10 , 3 } 12, { 12x12 , 5 } 8, {   8x18 , 5 } 14, { 14x14 , 8 }
@@ -115,6 +121,7 @@ matrixH : array[0..NbOfSymbols - 1] of NativeInt = (
 
 
 matrixW : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	10, 12, 18, 14, 32, 16, 26, 18, 20, 36, 22, 36, 24, 26, 48, 32, 36, 40, 44,
 //	48, 52, 64, 72, 80, 88, 96, 104, 120, 132, 144 );
     { 0} 10, { 10x10 } 12, { 12x12 } 18, {  8x18 } 14, { 14x14 }
@@ -128,8 +135,10 @@ matrixW : array[0..NbOfSymbols - 1] of NativeInt = (
     {32} 80, { 80x80 } 88, { 88x88 } 96, { 96x96 } 104,{104x104}
     {36} 120,{120x120}132, {132x132}144  {144x144}
     );
+
 
 matrixFH : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	10, 12, 8, 14, 8, 16, 12, 18, 20, 12, 22, 16, 24, 26, 16, 16, 18, 20, 22, 24,
 //	26, 16, 18, 20, 22, 24, 26, 20, 22, 24 );
     { 0} 10, { 10x10 } 12, { 12x12 } 8, {   8x18 } 14, { 14x14 }
@@ -145,6 +154,7 @@ matrixFH : array[0..NbOfSymbols - 1] of NativeInt = (
     );
 
 matrixFW : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	10, 12, 18, 14, 16, 16, 26, 18, 20, 18, 22, 18, 24, 26, 24, 16, 18, 20, 22,
 //	24, 26, 16, 18, 20, 22, 24, 26, 20, 22, 24 );
     { 0} 10, { 10x10 } 12, { 12x12 } 18, {  8x18 } 14, { 14x14 }
@@ -161,6 +171,7 @@ matrixFW : array[0..NbOfSymbols - 1] of NativeInt = (
 
 
 matrixbytes : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	3, 5, 5, 8, 10, 12, 16, 18, 22, 22, 30, 32, 36, 44, 49, 62, 86, 114, 144,
 //	174, 204, 280, 368, 456, 576, 696, 816, 1050, 1304, 1558 );
     { 0}   3, { 10x10 }   5, { 12x12 }   5, {  8x18 }   8, { 14x14 }
@@ -177,6 +188,7 @@ matrixbytes : array[0..NbOfSymbols - 1] of NativeInt = (
 
 
 matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	3, 5, 5, 8, 10, 12, 16, 18, 22, 22, 30, 32, 36, 44, 49, 62, 86, 114, 144,
 //	174, 102, 140, 92, 114, 144, 174, 136, 175, 163, 156 );
     { 0}   3, { 10x10 }   5, { 12x12 }   5, {  8x18 }   8, { 14x14 }
@@ -193,6 +205,7 @@ matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
 
 
 matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	5, 7, 7, 10, 11, 12, 14, 14, 18, 18, 20, 24, 24, 28, 28, 36, 42, 48, 56, 68,
 //	42, 56, 36, 48, 56, 68, 56, 68, 62, 62 );
     { 0}  5, { 10x10 }  7, { 12x12 }  7, {  8x18 } 10, { 14x14 }
@@ -568,6 +581,12 @@ begin
   next_mode := DM_ASCII;
 
   if (symbol.input_mode = GS1_MODE) then gs1 := 1 else gs1 := 0;
+
+  // manual GS1 encoding with raw data
+  if (gs1=0) and (source[0]=232 { FNC1 }) then begin
+    Inc(sp);
+    gs1 := 1;
+  end;
 
   if (gs1 <> 0) then
   begin
@@ -1055,6 +1074,7 @@ begin
       error_number := ZWARN_INVALID_OPTION;
     end;
   end
+  {fs 02/04/2018 added DMRE}
   else if symbol.option_3 <> DM_DMRE then
     { Skip DMRE symbols }
     while isDMRE[calcsize] do
@@ -1149,7 +1169,6 @@ begin
   symbol.width := W;
 
   result := error_number;
-  exit;
 end;
 
 function dmatrix(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
@@ -1166,7 +1185,7 @@ begin
     error_number := ZERROR_INVALID_OPTION;
   end;
 
-  result := error_number; exit;
+  result := error_number;
 end;
 
 
