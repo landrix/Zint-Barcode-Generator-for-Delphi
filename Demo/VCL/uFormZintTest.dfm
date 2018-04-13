@@ -21,7 +21,7 @@ object Form46: TForm46
     Left = 3
     Top = 231
     Width = 771
-    Height = 259
+    Height = 256
     Align = alClient
     AutoSize = True
     Center = True
@@ -35,7 +35,7 @@ object Form46: TForm46
   object lblError: TLabel
     AlignWithMargins = True
     Left = 3
-    Top = 496
+    Top = 493
     Width = 771
     Height = 13
     Align = alBottom

@@ -361,7 +361,7 @@ var
   check_digit, count, separator_row : Integer;
   widths : TArrayOfInteger;
 begin
-  error_number := 0;
+  //error_number := 0;
   SetLength(accum, 112);
   SetLength(left_reg, 112);
   SetLength(right_reg, 112);
@@ -675,7 +675,7 @@ begin
     symbol.rows := symbol.rows + 1;
 
     count := 0;
-    check_digit := 0;
+    //check_digit := 0;
 
     { Calculate check digit from Annex A and place human readable text }
     ustrcpy(symbol.text, '(01)');
@@ -950,7 +950,7 @@ var
   separator_row : Integer;
   widths : TArrayOfInteger;
 begin
-  error_number := 0;
+  //error_number := 0;
   SetLength(accum, 112);
   SetLength(left_reg, 112);
   SetLength(right_reg, 112);
@@ -1247,7 +1247,7 @@ begin
 
   { Calculate check digit from Annex A and place human readable text }
 
-  check_digit := 0;
+  //check_digit := 0;
   count := 0;
 
   ustrcpy(symbol.text, '(01)');
@@ -1417,13 +1417,13 @@ var
   group : TArrayOfChar;
   group_val : Integer;
 begin
-  last_mode := ISOIEC;
+  //last_mode := ISOIEC;
   SetLength(general_field, strlen(source) + 1);
   SetLength(general_field_type, strlen(source) + 1);
   SetLength(padstring, 40);
 
   read_posn := 0;
-  value := 0;
+  //value := 0;
 
   { Decide whether a compressed data field is required and if so what
   method to use - method 2 := no compressed data field }

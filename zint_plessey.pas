@@ -45,7 +45,7 @@ var
   j : Integer;
 begin
   SetLength(dest, 1024);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 65) then
   begin

@@ -288,7 +288,7 @@ begin
 
     if (byte_count <= best_count) then
     begin
-      best_count := Trunc(byte_count);
+      //best_count := Trunc(byte_count);
       best_scheme := C1_BYTE;
     end;
   end
@@ -308,7 +308,7 @@ begin
       end
       else
       begin
-        done := 0;
+        //done := 0;
         if (c40_count = edi_count) then
         begin
           if (dq4bi(source, sourcelen, position) <> 0) then
@@ -367,7 +367,7 @@ begin
   byte_start := 0;
   sp := 0;
   tp := 0;
-  latch := 0;
+  //latch := 0;
   Fill(c40_buffer, 6, 0);
   c40_p := 0;
   Fill(text_buffer, 6, 0);
@@ -538,7 +538,7 @@ begin
 
     if (current_mode = C1_C40) then
     begin { Step C - C40 encodation }
-      done := 0; latch := 0;
+      done := 0; //latch := 0;
 
       next_mode := C1_C40;
       if (c40_p = 0) then
@@ -649,7 +649,7 @@ begin
 
     if (current_mode = C1_TEXT) then
     begin { Step D - Text encodation }
-      done := 0; latch := 0;
+      done := 0; //latch := 0;
 
       next_mode := C1_TEXT;
       if (text_p = 0) then
@@ -758,7 +758,7 @@ begin
 
     if (current_mode = C1_EDI) then
     begin { Step E - EDI Encodation }
-      value := 0; latch := 0;
+      value := 0; //latch := 0;
 
       next_mode := C1_EDI;
       if (edi_p = 0) then

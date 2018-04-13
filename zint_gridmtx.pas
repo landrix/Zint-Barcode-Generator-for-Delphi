@@ -466,7 +466,7 @@ begin
 
   if (number_count <= best_count) then
   begin
-    best_count := number_count;
+    //best_count := number_count;
     best_mode := GM_NUMBER;
   end;
 
@@ -532,7 +532,7 @@ begin
 
   sp := 0;
   current_mode := 0;
-  last_mode := 0;
+  //last_mode := 0;
   number_pad_posn := 0;
 
   if (reader <> 0) then

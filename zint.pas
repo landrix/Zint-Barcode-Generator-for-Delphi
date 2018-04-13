@@ -252,10 +252,13 @@ type
     property Mode : TmcMode read GetMode write SetMode;
   end;
 
-//  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144, dms8x18, dms8x32, dms12x26, dms12x36, dms16x36, dms16x48);
-  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144,
-              dmr8x18, dmr8x32, dmr12x26, dmr12x36, dmr16x36, dmr16x48,
-              dmre8x48, dmre8x64, dmre12x64, dmre16x64, dmre24x48, dmre24x64, dmre26x40, dmre26x48, dmre26x64);
+  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20,
+             dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44,
+             dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96,
+             dms104x104, dms120x120, dms132x132, dms144x144,dmr8x18, dmr8x32,
+             dmr12x26, dmr12x36, dmr16x36, dmr16x48,
+             dmre8x48, dmre8x64, dmre12x64, dmre16x64, dmre24x48, dmre24x64,
+             dmre26x40, dmre26x48, dmre26x64);
 
   { TZintDatamatrixOptions }
 
@@ -907,6 +910,7 @@ begin
     zsCHANNEL : Result := BARCODE_CHANNEL;
     zsCODEONE : Result := BARCODE_CODEONE;
     zsGRIDMATRIX : Result := BARCODE_GRIDMATRIX;
+    else raise Exception.Create('unknown barcode IntToSymbology');
   end;
 end;
 
@@ -997,7 +1001,7 @@ begin
     BARCODE_CHANNEL : Result := zsCHANNEL;
     BARCODE_CODEONE : Result := zsCODEONE;
     BARCODE_GRIDMATRIX : Result := zsGRIDMATRIX;
-
+    else raise Exception.Create('unknown barcode IntToSymbology');
   end;
 end;
 

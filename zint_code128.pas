@@ -194,7 +194,7 @@ begin
       end;
 			if ((current = SHIFTB) and (last = LATCHC)) then
       begin
-        list[1][i] := LATCHB; current := LATCHB;
+        list[1][i] := LATCHB; //current := LATCHB;
       end;
 		end; { Rule 2 is implimented elsewhere, Rule 6 is implied }
 	end;
@@ -530,7 +530,7 @@ begin
 		end;
 	end;
 	Inc(bar_characters);
-	last_set := _set[0];
+	//last_set := _set[0];
 
 	if(fset[0] = 'F') then
   begin

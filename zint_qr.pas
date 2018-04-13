@@ -322,7 +322,7 @@ var
   current_binlen, current_bytes : Integer;
   toggle, percent : Integer;
   binary : TArrayOfChar;
-  jis , j: Integer;
+  jis: Integer;
   msb, lsb, prod : Integer;
   _byte : Integer;
   count : Integer;
@@ -431,8 +431,8 @@ begin
               i := 0;
               while ( i < short_data_block_length ) do
               begin
-                first := 0;
-                second := 0;
+                //first := 0;
+                //second := 0;
 
                 if(percent = 0) then
                 begin
@@ -542,9 +542,9 @@ begin
               i := 0;
               while ( i < short_data_block_length ) do
               begin
-                first := 0;
-                second := 0;
-                third := 0;
+                //first := 0;
+                //second := 0;
+                //third := 0;
 
                 first := posn(NEON, Chr(jisdata[position + i]));
                 count := 1;
@@ -1494,8 +1494,8 @@ begin
             i := 0;
             while ( i < short_data_block_length ) do
             begin
-              first := 0;
-              second := 0;
+              //first := 0;
+              //second := 0;
 
               first := posn(RHODIUM, Chr(jisdata[position + i]));
               count := 1;
@@ -1539,9 +1539,9 @@ begin
             i := 0;
             while ( i < short_data_block_length ) do
             begin
-               first := 0;
-               second := 0;
-               third := 0;
+               //first := 0;
+               //second := 0;
+               //third := 0;
 
               first := posn(NEON, Chr(jisdata[position + i]));
               count := 1;

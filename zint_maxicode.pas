@@ -700,7 +700,7 @@ function maxicode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer
 var
   i, j, block, bit, mode, countrycode, service, lp : Integer;
   bit_pattern : TArrayOfInteger;
-  internal_error, eclen, error_number : Integer;
+  internal_error, eclen : Integer;
   postcode, countrystr, servicestr : TArrayOfChar;
   local_source : TArrayOfChar;
   maxi_codeword : TGlobalmaxi_codeword;
@@ -709,7 +709,7 @@ begin
   SetLength(postcode, 12);
   SetLength(countrystr, 4);
   SetLength(servicestr, 4);
-  countrycode := 0; service :=0; lp := 0;
+  {countrycode := 0; }{service :=0;} lp := 0;
   internal_error := 0;
   SetLength(bit_pattern, 7);
 

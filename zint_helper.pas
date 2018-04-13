@@ -89,8 +89,6 @@ begin
 end;
 
 function ArrayOfCharToArrayOfByte(const AArray: TArrayOfChar): TArrayOfByte;
-var
-  i : Integer;
 begin
   SetLength(Result, strlen(AArray) + 1);
   ArrayCopy(Result, AArray);

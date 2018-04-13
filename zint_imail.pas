@@ -334,7 +334,7 @@ begin
   SetLength(bit_pattern, 13);
   SetLength(bar_map, 130);
 
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 32) then
   begin

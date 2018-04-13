@@ -213,12 +213,11 @@ begin
 end;
 
 procedure TForm46.FormDestroy(Sender: TObject);
-var
-  i : Integer;
+//var
+//  i : Integer;
 begin
  // for i := PageControl1.PageCount-1 downto 0 do
  //   PageControl1.Pages[i].Free;
-    
   FSymbol.Free;
 end;
 

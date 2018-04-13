@@ -274,7 +274,7 @@ begin
 
 	{ Resolve AI data - put resulting string in 'reduced' }
   j := 0;
-	last_ai := 0;
+	//last_ai := 0;
 	ai_latch := 1;
 	for i := 0 to src_len - 1 do
   begin

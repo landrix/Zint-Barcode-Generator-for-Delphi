@@ -97,7 +97,7 @@ var
 begin
   SetLength(dest, 1024);
   SetLength(checkstr, 3);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 121) then
   begin
@@ -182,7 +182,7 @@ var
 begin
   SetLength(dest, 755);
   SetLength(localstr, 2); FillChar(localstr[0], Length(localstr), #0);
-  error_number := 0;
+  //error_number := 0;
   counter := 0;
 
   if ((symbol.option_2 < 0) or (symbol.option_2 > 1)) then
@@ -292,7 +292,7 @@ var
   localstr : TArrayOfChar;
 begin
   SetLength(localstr, 10);
-  error_number := 0;
+  //error_number := 0;
 
   count := 0;
   if (_length > 6) then
@@ -343,7 +343,7 @@ var
   error_number : Integer;
 begin
   SetLength(buffer, 150); buffer[0] := 0;
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 74) then
   begin
@@ -561,7 +561,7 @@ begin
   SetLength(S, 11);
   SetLength(B, 11);
   SetLength(pattern, 30);
-  error_number := 0;
+  //error_number := 0;
   range := 0;
   SetLength(hrt, 9);
 

@@ -482,7 +482,7 @@ begin
     if (isx12(source[sp]) <> 0) then x12_count := x12_count + (2.0 / 3.0) else x12_count := x12_count + 4.0;
 
     { step (p) }
-    done := 0;
+    //done := 0;
     if ((source[sp] >= ord(' ')) and (source[sp] <= ord('^'))) then edf_count := edf_count + (3.0 / 4.0) else edf_count := edf_count + 6.0;
     if ((gs1 <> 0) and (source[sp] = ord('['))) then edf_count := edf_count + 6.0;
     if (sp >= (sourcelen - 5)) then edf_count := edf_count + 6.0; { MMmmm fudge! }
@@ -522,7 +522,7 @@ begin
 
   if (c40_count <= best_count) then
   begin
-    best_count := c40_count;
+    //best_count := c40_count;
     best_scheme := DM_C40;
   end;
 

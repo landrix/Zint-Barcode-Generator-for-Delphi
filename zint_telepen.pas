@@ -75,7 +75,7 @@ begin
     begin
       { Cannot encode extended ASCII }
       strcpy(symbol.errtxt, 'Invalid characters in input data');
-      result := ZERROR_INVALID_DATA;
+      //result := ZERROR_INVALID_DATA;
     end;
     concat(dest, TeleTable[source[i]]);
     Inc(count, source[i]);
@@ -97,7 +97,8 @@ begin
       symbol.text[i] := source[i];
   end;
   symbol.text[src_len] := 0;
-  result := error_number; exit;
+  result := error_number;
+  exit;
 end;
 
 function telepen_num(symbol : zint_symbol; const source : TArrayOfByte; src_len : Integer) : Integer;
@@ -110,7 +111,7 @@ begin
   temp_length := src_len;
   SetLength(dest, 1024);
   SetLength(temp, 64);
-  error_number := 0;
+  //error_number := 0;
   count := 0;
 
   if (temp_length > 60) then

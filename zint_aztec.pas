@@ -1571,7 +1571,7 @@ var
 begin
   SetLength(binary_string, 28);
   input_value := 0;
-  error_number := 0;
+  //error_number := 0;
   SetLength(data_codewords, 3);
   SetLength(ecc_codewords, 6);
 
