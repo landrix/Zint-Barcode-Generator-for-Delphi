@@ -172,7 +172,7 @@ begin
     for k := Globals.rlen - 1 downto 1 do
     begin
       if (m <> 0) and (Globals.rspoly[k] <> 0) then
-        res[k] := res[k - 1] xor Globals.alog[(Globals.logt[m] + Globals.logt[Globals.rspoly[k]]) mod Globals.logmod]
+        res[k] := res[k - 1] xor Cardinal(Globals.alog[(Globals.logt[m] + Globals.logt[Globals.rspoly[k]]) mod Globals.logmod])
       else
         res[k] := res[k - 1];
     end;
