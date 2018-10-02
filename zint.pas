@@ -1869,6 +1869,10 @@ procedure TZintSymbol.Clear;
 var
   i, j : Integer;
 begin
+	whitespace_width := 0;
+  border_width := 0;
+  output_options := 0;
+
 	for i := 0 to rows - 1 do
 		for j := 0 to width - 1 do
 			unset_module(Self, i, j);
