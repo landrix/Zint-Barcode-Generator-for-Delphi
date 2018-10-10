@@ -254,14 +254,19 @@ type
 
 //  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144, dms8x18, dms8x32, dms12x26, dms12x36, dms16x36, dms16x48);
   {fs 02/04/2018 added DMRE sizes}
-  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144,
-              dmr8x18, dmr8x32, dmr12x26, dmr12x36, dmr16x36, dmr16x48,
-              dmre8x48, dmre8x64, dmre12x64, dmre16x64, dmre24x48, dmre24x64, dmre26x40, dmre26x48, dmre26x64);
+  TdmSize = ({0}dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32,
+              {11}dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104,
+              {22}dms120x120, dms132x132, dms144x144,
+              {25}dmr8x18, dmr8x32, dmr12x26, dmr12x36, dmr16x36, dmr16x48,
+              {31}dmre8x48, dmre8x64, dmre12x64, dmre16x64, dmre24x48, dmre24x64, dmre26x40, dmre26x48, dmre26x64);
 
   { TZintDatamatrixOptions }
 
   TZintDatamatrixOptions = class(TCustomZintSymbolOptions)
-  protected
+  private
+    {fs 30/08/2018  added ForceRectangle}
+    function GetForceRectangle: Boolean;
+    procedure SetForceRectangle(const AValue: Boolean);
     function GetForceSquare: Boolean;
     function GetSize: TdmSize;
     procedure SetForceSquare(AValue: Boolean);
@@ -269,6 +274,8 @@ type
   published
     property Size : TdmSize read GetSize write SetSize default dmsAuto;
     property ForceSquare : Boolean read GetForceSquare write SetForceSquare default false;
+    {fs 30/08/2018  added ForceRectangle}
+    property ForceRectangle : Boolean read GetForceRectangle write SetForceRectangle default false;
   end;
 
   TqrECCLevel = (qreAuto, qreLevelL, qreLevelM, qreLevelQ, qreLevelH);
@@ -786,7 +793,11 @@ const
   SJIS_MODE = 4;
 
   DM_SQUARE = 100;
+  {fs 02/04/2018 added DMRE}
   DM_DMRE   = 101;
+  DM_DMRE_Index   = 31;
+  {fs 30/08/2018 added option to force Rectangle representation}
+  DM_RECT   = 102;
 
   ZWARN_INVALID_OPTION = 2;
   ZERROR_TOO_LONG = 5;
@@ -1373,6 +1384,11 @@ end;
 
 { TZintDatamatrixOptions }
 
+function TZintDatamatrixOptions.GetForceRectangle: Boolean;
+begin
+  Result := FSymbol.option_3 = DM_RECT;
+end;
+
 function TZintDatamatrixOptions.GetForceSquare: Boolean;
 begin
   Result := FSymbol.option_3 = DM_SQUARE;
@@ -1380,104 +1396,37 @@ end;
 
 function TZintDatamatrixOptions.GetSize: TdmSize;
 begin
-  case FSymbol.option_2 of
-    1 : Result := dms10x10;
-    2 : Result := dms12x12;
-    3 : Result := dms14x14;
-    4 : Result := dms16x16;
-    5 : Result := dms18x18;
-    6 : Result := dms20x20;
-    7 : Result := dms22x22;
-    8 : Result := dms24x24;
-    9 : Result := dms26x26;
-    10 : Result := dms32x32;
-    11 : Result := dms36x36;
-    12 : Result := dms40x40;
-    13 : Result := dms44x44;
-    14 : Result := dms48x48;
-    15 : Result := dms52x52;
-    16 : Result := dms64x64;
-    17 : Result := dms72x72;
-    18 : Result := dms80x80;
-    19 : Result := dms88x88;
-    20 : Result := dms96x96;
-    21 : Result := dms104x104;
-    22 : Result := dms120x120;
-    23 : Result := dms132x132;
-    24 : Result := dms144x144;
-    25 : Result := dmr8x18;
-    26 : Result := dmr8x32;
-    27 : Result := dmr12x26;
-    28 : Result := dmr12x36;
-    29 : Result := dmr16x36;
-    30 : Result := dmr16x48;
-    31 : Result := dmre8x48;
-    32 : Result := dmre8x64;
-    33 : Result := dmre12x64;
-    34 : Result := dmre16x64;
-    35 : Result := dmre24x48;
-    36 : Result := dmre24x64;
-    37 : Result := dmre26x40;
-    38 : Result := dmre26x48;
-    39 : Result := dmre26x64;
-    else
-      Result := dmsAuto;
-  end;
+  {fs 31/08/2018 removing case }
+  Result := TdmSize(FSymbol.option_2);
+end;
+
+procedure TZintDatamatrixOptions.SetForceRectangle(const AValue: Boolean);
+begin
+  if AValue then
+    FSymbol.option_3 := DM_RECT
+  else if (FSymbol.option_3 <> DM_SQUARE) and (FSymbol.option_2 < DM_DMRE_Index) then
+    FSymbol.option_3 := DEFAULTVALUE_OPTION_3;
+  Changed;
 end;
 
 procedure TZintDatamatrixOptions.SetForceSquare(AValue: Boolean);
 begin
   if AValue then
     FSymbol.option_3 := DM_SQUARE
-  else
+  else if (FSymbol.option_3 <> DM_RECT) and (FSymbol.option_2 < DM_DMRE_Index) then
     FSymbol.option_3 := DEFAULTVALUE_OPTION_3;
   Changed;
 end;
 
 procedure TZintDatamatrixOptions.SetSize(AValue: TdmSize);
 begin
-  case AValue of
-    dmsAuto : FSymbol.option_2 := DEFAULTVALUE_OPTION_2;
-    dms10x10 : FSymbol.option_2 := 1;
-    dms12x12 : FSymbol.option_2 := 2;
-    dms14x14 : FSymbol.option_2 := 3;
-    dms16x16 : FSymbol.option_2 := 4;
-    dms18x18 : FSymbol.option_2 := 5;
-    dms20x20 : FSymbol.option_2 := 6;
-    dms22x22 : FSymbol.option_2 := 7;
-    dms24x24 : FSymbol.option_2 := 8;
-    dms26x26 : FSymbol.option_2 := 9;
-    dms32x32 : FSymbol.option_2 := 10;
-    dms36x36 : FSymbol.option_2 := 11;
-    dms40x40 : FSymbol.option_2 := 12;
-    dms44x44 : FSymbol.option_2 := 13;
-    dms48x48 : FSymbol.option_2 := 14;
-    dms52x52 : FSymbol.option_2 := 15;
-    dms64x64 : FSymbol.option_2 := 16;
-    dms72x72 : FSymbol.option_2 := 17;
-    dms80x80 : FSymbol.option_2 := 18;
-    dms88x88 : FSymbol.option_2 := 19;
-    dms96x96 : FSymbol.option_2 := 20;
-    dms104x104 : FSymbol.option_2 := 21;
-    dms120x120 : FSymbol.option_2 := 22;
-    dms132x132 : FSymbol.option_2 := 23;
-    dms144x144 : FSymbol.option_2 := 24;
-    dmr8x18 : FSymbol.option_2 := 25;
-    dmr8x32 : FSymbol.option_2 := 26;
-    dmr12x26 : FSymbol.option_2 := 27;
-    dmr12x36 : FSymbol.option_2 := 28;
-    dmr16x36 : FSymbol.option_2 := 29;
-    dmr16x48 : FSymbol.option_2 := 30;
-    dmre8x48 : FSymbol.option_2 := 31;
-    dmre8x64 : FSymbol.option_2 := 32;
-    dmre12x64 : FSymbol.option_2 := 33;
-    dmre16x64 : FSymbol.option_2 := 34;
-    dmre24x48 : FSymbol.option_2 := 35;
-    dmre24x64 : FSymbol.option_2 := 36;
-    dmre26x40 : FSymbol.option_2 := 37;
-    dmre26x48 : FSymbol.option_2 := 38;
-    dmre26x64 : FSymbol.option_2 := 39;
-  end;
+  {fs 31/08/2018 removing case }
+  FSymbol.option_2 := Ord(AValue);
+  if FSymbol.option_2 >= DM_DMRE_Index then
+    FSymbol.option_3 := DM_DMRE
+  else
+    FSymbol.option_3 := DEFAULTVALUE_OPTION_3;
+
   Changed;
 end;
 

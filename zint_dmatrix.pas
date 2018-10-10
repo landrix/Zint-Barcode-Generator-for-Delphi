@@ -102,6 +102,22 @@ isDMRE : array[0..NbOfSymbols - 1] of Boolean = (
     {36} False, {120x120 ,1050} False, {132x132,1304}False  {144x144,1558}
     );
 
+  {fs 02/04/2018 Is the current code a rectangle code ?
+  This is the case, if intsymbol index 25 >= < 30 }
+
+isRectangle : array[0..NbOfSymbols - 1] of Boolean = (
+    { 0} False, {  10x10 ,3 } False, { 12x12 , 5 } True, {  8x18 , 5 } False, { 14x14 , 8 }
+    { 4} True, {  8x32 ,10 } False, { 16x16 ,12 } True, { 12x26 ,16 } False, { 18x18 ,18 }
+    { 8} False, {  8x48 ,18 } False, { 20x20 ,22 } True, { 12x36 ,22 } False, {  8x64 ,24 }
+    {12} False, { 22x22 ,30 } True, { 16x36 ,32 } False, { 24x24 ,36 } False, { 12x64 ,43 }
+    {16} False, { 26x26 ,44 } True, { 16x48 ,49 } False, { 32x32 ,62 } False, { 16x64 ,62 }
+    {20} False, { 26x40 , 70} False, { 24x48 ,80 } False, { 36x36 ,86 } False, { 26x48 ,90 }
+    {24} False, { 24x64 ,108} False, { 40x40 ,114} False, { 26x64 ,118} False, { 44x44 ,144}
+    {28} False, { 48x48 ,174 } False, { 52x52,204 } False, { 64x64,280 } False, { 72x72,368 }
+    {32} False, { 80x80 ,456 } False, { 88x88,576 } False, { 96x96,696 } False, {104x104,816}
+    {36} False, {120x120 ,1050} False, {132x132,1304}False  {144x144,1558}
+    );
+
 
 matrixH : array[0..NbOfSymbols - 1] of NativeInt = (
   {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
@@ -220,7 +236,9 @@ matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
     {36} 68, {120x120} 62, {132x132} 62 {144x144}
     );
 
-
+{$UNDEF RANGEON} {disable possible /d switch}
+{$IFOPT R+}{$DEFINE RANGEON}{$ENDIF} {save initial switch state}
+{$R-}
 procedure ecc200placementbit(var _array : TArrayOfInteger; NR : Integer; NC : Integer; r : Integer; c : Integer; p : Integer; b : Byte);
 begin
   if (r < 0) then
@@ -235,6 +253,8 @@ begin
   end;
   _array[r * NC + c] := (p shl 3) + Ord(b);
 end;
+{$IFDEF RANGEON} {$R+} {$ENDIF}
+
 
 procedure ecc200placementblock(var _array : TArrayOfInteger; NR : Integer; NC : Integer; r : Integer; c : Integer; p : Integer);
 begin
@@ -539,7 +559,7 @@ begin
     best_scheme := DM_C40;
   end;
 
-  result := best_scheme; exit;
+  result := best_scheme;
 end;
 
 function dm200encode(symbol : zint_symbol; source : TArrayOfByte; var target : TArrayOfByte; var last_mode : Integer; _length : Integer) : Integer;
@@ -607,6 +627,32 @@ begin
       concat(binary, ' ');
     end;
   end;
+
+  {* ECI ?????}
+
+  // Check for Macro05/Macro06
+  //     "[)>[RS]05[GS]...[RS][EOT]"  -> CW 236
+  //     "[)>[RS]06[GS]...[RS][EOT]"  -> CW 237
+  if (tp = 0) and (sp = 0) and (inputlen > 9)
+           and (source[0] = Ord('[')) and (source[1] = Ord(')')) and (source[2] = Ord('>'))
+           and (source[3] = $1e {RS}) and (source[4] = Ord('0'))
+           and ((source[5] = Ord('5')) or (source[5] = Ord('6')))
+           and (source[6] = $1d {GS})
+           and (source[inputlen - 2] = $1e {RS}) and (source[inputlen - 1] = $4 {EOT}) then begin
+
+//           and (source[0] = Ord('[')) and (source[1] = Ord(')')) and (source[2] = Ord('>'))
+//           and (source[3] = $1e {RS}) and (source[4] = Ord('0'))
+//           and ((source[5] = Ord('5')) or (source[5] = Ord('6')))
+//           and (source[6] = $1d {GS})
+//           and (source[inputlen - 2] = $1e {RS}) and (source[inputlen - 1] = $4 {EOT}) then begin
+      inc(tp);
+      concat(binary, ' ');
+      {* Remove macro characters from input string *}
+      sp := 7;
+      Dec(inputlen, 2);
+//      *length_p -= 2;
+  end;
+
 
   while (sp < inputlen) do
   begin
@@ -784,7 +830,7 @@ begin
       value := 0;
 
       next_mode := DM_X12;
-      if (text_p = 0) then
+      if (x12_p {fs 31/08/2018 text_p???} = 0) then
         next_mode := look_ahead_test(source, inputlen, sp, current_mode, gs1);
 
       if (next_mode <> DM_X12) then
@@ -977,7 +1023,7 @@ begin
   end;
 
   last_mode := current_mode;
-  result := tp; exit;
+  result := tp;
 end;
 
 procedure add_tail(var target : TArrayOfByte; tp : Integer; tail_length : Integer; last_mode : Integer);
@@ -1058,16 +1104,8 @@ begin
 
   if (symbol.option_3 = DM_SQUARE) then
   begin
-    { Force to use square symbol }
-    case calcsize of
-      2,
-      4,
-      6,
-      9,
-      11,
-      14:
-        Inc(calcsize);
-    end;
+    { fs 30/08/2018  Skip rectangular symbols in square only mode }
+    while (calcsize < NbOfSymbols) and (matrixH[calcsize] <> matrixW[calcsize]) do Inc(calcsize);
 
     if (optionsize <> -1) then begin
       strcpy(symbol.errtxt, '521: Can not force square symbols when symbol size is selected');
@@ -1075,9 +1113,12 @@ begin
     end;
   end
   {fs 02/04/2018 added DMRE}
+  else if symbol.option_3 = DM_RECT then
+    { fs 30/08/2018  force the use of rectangular symbols }
+    while (calcsize < NbOfSymbols) and (not isRectangle[calcsize]) do Inc(calcsize)
   else if symbol.option_3 <> DM_DMRE then
     { Skip DMRE symbols }
-    while isDMRE[calcsize] do
+    while (calcsize < NbOfSymbols) and isDMRE[calcsize] do
       Inc(calcsize);
 
   symbolsize := optionsize;
