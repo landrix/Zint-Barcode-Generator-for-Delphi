@@ -307,6 +307,9 @@ begin
   lookup(ASet_string, ATable, Ord(AData), ADest);
 end;
 
+{$UNDEF RANGEON} {disable possible /d switch}
+{$IFOPT R+}{$DEFINE RANGEON}{$ENDIF} {save initial switch state}
+{$R-}
 function module_is_set(symbol : zint_symbol; y_coord : Integer; x_coord : Integer) : Integer;
 begin
   result := (Ord(symbol.encoded_data[y_coord][x_coord div 7]) shr (x_coord mod 7)) and 1;
@@ -322,6 +325,7 @@ procedure unset_module(symbol : zint_symbol; y_coord : Integer; x_coord : Intege
 begin
 	symbol.encoded_data[y_coord][x_coord div 7] := ((symbol.encoded_data[y_coord][x_coord div 7]) and (not (1 shl (x_coord mod 7))));
 end;
+{$IFDEF RANGEON} {$R+} {$ENDIF}
 
 { Expands from a width pattern to a bit pattern */ }
 procedure expand(symbol : zint_symbol; data : TArrayOfChar);
@@ -478,7 +482,7 @@ begin
 		end;
 		if(next = -1) then
     begin
-			strcpy(symbol.errtxt, 'error: Invalid character in input string (only Latin-1 characters supported)');
+			strcpy(symbol.errtxt, 'Invalid character in input string (only Latin-1 characters supported)');
 			result := ZERROR_INVALID_DATA; exit;
     end;
 		i := next;
