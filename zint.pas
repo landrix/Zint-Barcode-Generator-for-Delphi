@@ -356,6 +356,7 @@ type
     option_2 : Integer;
     option_3 : Integer;
     input_mode : Integer;
+    eci: integer;
     text : TArrayOfByte;
     rows : Integer;
     width : Integer;
@@ -1797,6 +1798,7 @@ begin
     option_2 := SourceZS.option_2;
     option_3 := SourceZS.option_3;
     input_mode := SourceZS.input_mode;
+    eci := SourceZS.eci;
     text := SourceZS.text;
     rows := SourceZS.rows;
     width := SourceZS.width;
@@ -1824,6 +1826,7 @@ begin
 
 	rows := 0;
 	width := 0;
+  eci := 0;
 	ustrcpy(text, '');
 	strcpy(errtxt, '');
 end;
@@ -1918,7 +1921,7 @@ begin
     b := e.GetBytes(AData);
     SetLength(b, Length(b) + 1);
     b[High(b)] := 0;
-  {$ELSE}            
+  {$ELSE}
     b := StrToArrayOfByte(UTF8Encode(AData));
   {$ENDIF}
   end

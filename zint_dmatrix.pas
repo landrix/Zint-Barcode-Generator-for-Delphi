@@ -32,11 +32,12 @@ const
 implementation
 
 uses
-  SysUtils, zint_reedsol, zint_common;
+  System.SysUtils, System.Math, zint_reedsol, zint_common;
 
 const
   MAXBARCODE = 3116;
 
+  DM_NULL = 0;
   DM_ASCII = 1;
   DM_C40 = 2;
   DM_TEXT = 3;
@@ -203,6 +204,7 @@ matrixbytes : array[0..NbOfSymbols - 1] of NativeInt = (
     );
 
 
+// Total Data Codewords
 matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
   {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	3, 5, 5, 8, 10, 12, 16, 18, 22, 22, 30, 32, 36, 44, 49, 62, 86, 114, 144,
@@ -219,9 +221,8 @@ matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
     {36} 175, {120x120} 163, {132x132} 156 { 144x144}
     );
 
-
-matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
+matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	5, 7, 7, 10, 11, 12, 14, 14, 18, 18, 20, 24, 24, 28, 28, 36, 42, 48, 56, 68,
 //	42, 56, 36, 48, 56, 68, 56, 68, 62, 62 );
     { 0}  5, { 10x10 }  7, { 12x12 }  7, {  8x18 } 10, { 14x14 }
@@ -235,6 +236,7 @@ matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
     {32} 48, { 80x80 } 56, { 88x88 } 68, { 96x96 } 56, {104x104}
     {36} 68, {120x120} 62, {132x132} 62 {144x144}
     );
+
 
 {$UNDEF RANGEON} {disable possible /d switch}
 {$IFOPT R+}{$DEFINE RANGEON}{$ENDIF} {save initial switch state}
@@ -419,16 +421,16 @@ begin
   rs_free(RSGlobals);
 end;
 
-function isx12(source : Byte) : Integer;
+function isx12(const source : Byte) : Boolean;
 begin
-  if (source = 13) then begin result := 1; exit; end;
-  if (source = 42) then begin result := 1; exit; end;
-  if (source = 62) then begin result := 1; exit; end;
-  if (source = 32) then begin result := 1; exit; end;
-  if ((source >= ord('0')) and (source <= ord('9'))) then begin result := 1; exit; end;
-  if ((source >= ord('A')) and (source <= ord('Z'))) then begin result := 1; exit; end;
+  if (source = 13) then begin result := True; exit; end;
+  if (source = 42) then begin result := True; exit; end;
+  if (source = 62) then begin result := True; exit; end;
+  if (source = 32) then begin result := True; exit; end;
+  if ((source >= ord('0')) and (source <= ord('9'))) then begin result := True; exit; end;
+  if ((source >= ord('A')) and (source <= ord('Z'))) then begin result := True; exit; end;
 
-  result := 0; exit;
+  result := False;
 end;
 
 procedure dminsert(var binary_string : TArrayOfChar; posn : Integer; newbit : Char);
@@ -454,17 +456,164 @@ begin
   binary_stream[posn] := newbit;
 end;
 
-function look_ahead_test(source : TArrayOfByte; sourcelen : Integer; position : Integer; current_mode : Integer; gs1 : Integer) : Integer;
-{ A custom version of the 'look ahead test' from Annex P }
-{ This version is deliberately very reluctant to end a data stream with EDIFACT encoding }
+function p_r_6_2_1(var InputData: TArrayOfByte; const Position, Sourcelen: NativeInt): NativeInt;
 var
-  ascii_count, c40_count, text_count, x12_count, edf_count, b256_count, best_count : Single;
-  sp, done, best_scheme : Integer;
-  reduced_char : Byte;
+  i: NativeInt;
+  NonX12Position: NativeInt;
+  SpecialX12Position: NativeInt;
 begin
+
+    {* Annex P section (r)(6)(ii)(I)
+       "If one of the three X12 terminator/separator characters first
+        occurs in the yet to be processed data before a non-X12 character..."
+     *}
+
+  NonX12Position := 0;
+  SpecialX12Position := 0;
+  Result := 0;
+
+  for I := Position to SourceLen - 1 do begin
+    if (nonX12Position = 0) and (not isX12(inputData[i])) then
+      nonX12Position := i;
+
+    if (specialX12Position = 0) and
+              ((inputData[i] = 13) or
+              (inputData[i] = Ord('*')) or
+              (inputData[i] = Ord('>'))) then
+      specialX12Position := i;
+
+    if (nonX12Position <> 0) and (specialX12Position <> 0) and (specialX12Position < nonX12Position) then
+      Result := 1;
+  end;
+end;
+
+
+//function look_ahead_test(source : TArrayOfByte; sourcelen : Integer; position : Integer; current_mode : Integer; gs1 : Integer) : Integer;
+//{ A custom version of the 'look ahead test' from Annex P }
+//{ This version is deliberately very reluctant to end a data stream with EDIFACT encoding }
+//var
+//  ascii_count, c40_count, text_count, x12_count, edf_count, b256_count, best_count : Single;
+//  sp, done, best_scheme : Integer;
+//  reduced_char : Byte;
+//begin
+//  { step (j) }
+//  if (current_mode = DM_ASCII) then
+//  begin
+//    ascii_count := 0.0;
+//    c40_count := 1.0;
+//    text_count := 1.0;
+//    x12_count := 1.0;
+//    edf_count := 1.0;
+//    b256_count := 1.25;
+//  end
+//  else
+//  begin
+//    ascii_count := 1.0;
+//    c40_count := 2.0;
+//    text_count := 2.0;
+//    x12_count := 2.0;
+//    edf_count := 2.0;
+//    b256_count := 2.25;
+//  end;
+//
+//  case current_mode of
+//    DM_C40: c40_count := 0.0;
+//    DM_TEXT: text_count := 0.0;
+//    DM_X12: x12_count := 0.0;
+//    DM_EDIFACT: edf_count := 0.0;
+//    DM_BASE256: b256_count := 0.0;
+//  end;
+//
+//  sp := position;
+//  while (sp <= sourcelen) and (sp <= (position + 8)) do
+//  begin
+//    if (source[sp] <= 127) then reduced_char := source[sp] else reduced_char := Ord(source[sp]) - 127;
+//
+//    if ((source[sp] >= ord('0')) and (source[sp] <= Ord('9'))) then ascii_count := ascii_count + 0.5 else ascii_count := ascii_count + 1.0;
+//    if (source[sp] > 127) then ascii_count := ascii_count+ 1.0;
+//
+//    done := 0;
+//    if (reduced_char = ord(' ')) then begin c40_count := c40_count+ (2.0 / 3.0); done := 1; end;
+//    if ((reduced_char >= ord('0')) and (reduced_char <= ord('9'))) then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
+//    if ((reduced_char >= ord('A')) and (reduced_char <= ord('Z'))) then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
+//    if (source[sp] > 127) then c40_count := c40_count + (4.0 / 3.0);
+//    if (done = 0) then c40_count := c40_count + (4.0 / 3.0);
+//
+//    done := 0;
+//    if (reduced_char = ord(' ')) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
+//    if ((reduced_char >= ord('0')) and (reduced_char <= ord('9'))) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
+//    if ((reduced_char >= ord('a')) and (reduced_char <= ord('z'))) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
+//    if (source[sp] > 127) then text_count := text_count + (4.0 / 3.0);
+//    if (done = 0) then text_count := text_count + (4.0 / 3.0);
+//
+//    if (isx12(source[sp]) <> 0) then x12_count := x12_count + (2.0 / 3.0) else x12_count := x12_count + 4.0;
+//
+//    { step (p) }
+//    done := 0;
+//    if ((source[sp] >= ord(' ')) and (source[sp] <= ord('^'))) then edf_count := edf_count + (3.0 / 4.0) else edf_count := edf_count + 6.0;
+//    if ((gs1 <> 0) and (source[sp] = ord('['))) then edf_count := edf_count + 6.0;
+//    if (sp >= (sourcelen - 5)) then edf_count := edf_count + 6.0; { MMmmm fudge! }
+//
+//    { step (q) }
+//    if ((gs1 <> 0) and (source[sp] = ord('['))) then b256_count := b256_count + 4.0 else b256_count := b256_count + 1.0;
+//
+//    Inc(sp);
+//  end;
+//
+//  best_count := ascii_count;
+//  best_scheme := DM_ASCII;
+//
+//  if (b256_count <= best_count) then
+//  begin
+//    best_count := b256_count;
+//    best_scheme := DM_BASE256;
+//  end;
+//
+//  if (edf_count <= best_count) then
+//  begin
+//    best_count := edf_count;
+//    best_scheme := DM_EDIFACT;
+//  end;
+//
+//  if (text_count <= best_count) then
+//  begin
+//    best_count := text_count;
+//    best_scheme := DM_TEXT;
+//  end;
+//
+//  if (x12_count <= best_count) then
+//  begin
+//    best_count := x12_count;
+//    best_scheme := DM_X12;
+//  end;
+//
+//  if (c40_count <= best_count) then
+//  begin
+//    best_count := c40_count;
+//    best_scheme := DM_C40;
+//  end;
+//
+//  result := best_scheme;
+//end;
+
+{ A custom version of the 'look ahead test' from Annex P }
+function look_ahead_test(var InputData : TArrayOfByte; sourcelen : Integer; position : Integer; current_mode : Integer; gs1 : Integer): Integer;
+var
+  ascii_count,
+  c40_count,
+  text_count,
+  x12_count,
+  edf_count,
+  b256_count,
+  best_count: Double;
+  best_scheme : integer;
+  sp          : integer;
+  stiction: Double;
+begin
+  stiction := 1.0 / 24.0 { smallest change to act on, to get around floating point inaccuracies } ;
+  best_scheme := DM_NULL;
   { step (j) }
-  if (current_mode = DM_ASCII) then
-  begin
+  if current_mode = DM_ASCII then begin
     ascii_count := 0.0;
     c40_count := 1.0;
     text_count := 1.0;
@@ -472,8 +621,7 @@ begin
     edf_count := 1.0;
     b256_count := 1.25;
   end
-  else
-  begin
+  else begin
     ascii_count := 1.0;
     c40_count := 2.0;
     text_count := 2.0;
@@ -483,98 +631,188 @@ begin
   end;
 
   case current_mode of
-    DM_C40: c40_count := 0.0;
-    DM_TEXT: text_count := 0.0;
-    DM_X12: x12_count := 0.0;
-    DM_EDIFACT: edf_count := 0.0;
-    DM_BASE256: b256_count := 0.0;
+    DM_C40:  c40_count := 0.0;
+    DM_TEXT:  text_count := 0.0;
+    DM_X12:  x12_count := 0.0;
+    DM_EDIFACT:  edf_count := 0.0;
+    DM_BASE256:  b256_count := 0.0;
   end;
 
   sp := position;
-  while (sp <= sourcelen) and (sp <= (position + 8)) do
-  begin
-    if (source[sp] <= 127) then reduced_char := source[sp] else reduced_char := Ord(source[sp]) - 127;
 
-    if ((source[sp] >= ord('0')) and (source[sp] <= Ord('9'))) then ascii_count := ascii_count + 0.5 else ascii_count := ascii_count + 1.0;
-    if (source[sp] > 127) then ascii_count := ascii_count+ 1.0;
+  Repeat
+    if sp = sourcelen then begin
+        { At the end of data ... step (k) }
+        ascii_count := ceil(ascii_count);
+        b256_count := ceil(b256_count);
+        edf_count := ceil(edf_count);
+        text_count := ceil(text_count);
+        x12_count := ceil(x12_count);
+        c40_count := ceil(c40_count);
+        best_count := c40_count;
+        best_scheme := DM_C40; // (k)(7)
 
-    done := 0;
-    if (reduced_char = ord(' ')) then begin c40_count := c40_count+ (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= ord('0')) and (reduced_char <= ord('9'))) then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= ord('A')) and (reduced_char <= ord('Z'))) then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] > 127) then c40_count := c40_count + (4.0 / 3.0);
-    if (done = 0) then c40_count := c40_count + (4.0 / 3.0);
+        if x12_count < (best_count - stiction) then begin
+            best_count := x12_count;
+            best_scheme := DM_X12; // (k)(6)
+        end;
+        if text_count < (best_count - stiction) then begin
+            best_count := text_count;
+            best_scheme := DM_TEXT; // (k)(5)
+        end;
+        if edf_count < (best_count - stiction) then begin
+            best_count := edf_count;
+            best_scheme := DM_EDIFACT; // (k)(4)
+        end;
+        if b256_count < (best_count - stiction) then begin
+            best_count := b256_count;
+            best_scheme := DM_BASE256; // (k)(3)
+        end;
+        if ascii_count <= (best_count + stiction) then begin
+            best_scheme := DM_ASCII; // (k)(2)
+        end;
+    end
+    else begin
+        { ascii ... step (l) }
+        if (inputData[sp] >= Ord('0')) and (inputData[sp] <= Ord('9')) then
+            ascii_count  := ascii_count + 0.5
+        else begin
+          if inputData[sp] > 127 then
+            ascii_count := ceil(ascii_count) + 2.0 // (l)(2)
+          else
+            ascii_count := ceil(ascii_count) + 1.0; // (l)(3)
+        end;
 
-    done := 0;
-    if (reduced_char = ord(' ')) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= ord('0')) and (reduced_char <= ord('9'))) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= ord('a')) and (reduced_char <= ord('z'))) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] > 127) then text_count := text_count + (4.0 / 3.0);
-    if (done = 0) then text_count := text_count + (4.0 / 3.0);
+        { c40 ... step (m) }
+        if (inputData[sp] = 32 {' '}) or
+                (((inputData[sp] >= Ord('0')) and (inputData[sp] <= Ord('9')))  or
+                ((inputData[sp] >= Ord('A'))  and  (inputData[sp] <= Ord('Z')))) then
+            c40_count  := c40_count + (2.0 / 3.0)
+        else begin
+            if inputData[sp] > 127 then
+                c40_count  := c40_count + (8.0 / 3.0)
+            else
+                c40_count  := c40_count + (4.0 / 3.0)
+        end;
 
-    if (isx12(source[sp]) <> 0) then x12_count := x12_count + (2.0 / 3.0) else x12_count := x12_count + 4.0;
+        { text ... step (n) }
+        if (inputData[sp] = 32 {' '}) or
+                (((inputData[sp] >= Ord('0'))  and  (inputData[sp] <= Ord('9')))  or
+                ((inputData[sp] >= Ord('a'))  and  (inputData[sp] <= Ord('z')))) then
+            text_count  := text_count + (2.0 / 3.0)
+         else begin
+            if inputData[sp] > 127 then
+                text_count  := text_count + (8.0 / 3.0)
+            else
+                text_count  := text_count + (4.0 / 3.0);
+        end;
 
-    { step (p) }
-    done := 0;
-    if ((source[sp] >= ord(' ')) and (source[sp] <= ord('^'))) then edf_count := edf_count + (3.0 / 4.0) else edf_count := edf_count + 6.0;
-    if ((gs1 <> 0) and (source[sp] = ord('['))) then edf_count := edf_count + 6.0;
-    if (sp >= (sourcelen - 5)) then edf_count := edf_count + 6.0; { MMmmm fudge! }
+        { x12 ... step (o) }
+        if isX12(inputData[sp]) then
+            x12_count  := x12_count + (2.0 / 3.0)
+        else begin
+            if inputData[sp] > 127 then
+                x12_count  := x12_count + (13.0 / 3.0)
+            else
+                x12_count  := x12_count + (10.0 / 3.0);
+        end;
 
-    { step (q) }
-    if ((gs1 <> 0) and (source[sp] = ord('['))) then b256_count := b256_count + 4.0 else b256_count := b256_count + 1.0;
+        { edifact ... step (p) }
+        if (inputData[sp] >= 32 {' '}) and (inputData[sp] <= Ord('^')) then
+            edf_count  := edf_count + (3.0 / 4.0)
+        else begin
+            if inputData[sp] > 127 then
+                edf_count  := edf_count + 17.0  // (p)(2)  > Value changed from ISO
+            else
+                edf_count  := edf_count + 13.0; // (p)(3)  > Value changed from ISO
+        end;
 
+        if (gs1 = 1) and (inputData[sp] = Ord('[')) then
+            edf_count  := edf_count + 13.0;  // > Value changed from ISO
+
+        { base 256 ... step (q) }
+        if (gs1 = 1) and (inputData[sp] = Ord('[')) then
+            b256_count  := b256_count + 4.0   // (q)(1)
+        else
+            b256_count  := b256_count + 1.0;  // (q)(2)
+    end;
+
+    if sp > (position + 3) then begin
+        { 4 data characters processed ... step (r) }
+        { step (r)(6) }
+        if (c40_count + 1.0 < ascii_count - stiction) and
+                (c40_count + 1.0 < b256_count - stiction) and
+                (c40_count + 1.0 < edf_count - stiction) and
+                (c40_count + 1.0 < text_count - stiction) then begin
+
+            if c40_count < (x12_count - stiction) then
+                best_scheme := DM_C40;
+
+            if (c40_count >= x12_count - stiction)
+                     and  (c40_count <= x12_count + stiction) then begin
+                if p_r_6_2_1(inputData, sp, sourcelen) = 1 then
+                    // Test (r)(6)(ii)(i)
+                  best_scheme := DM_X12
+                else
+                  best_scheme := DM_C40;
+            end;
+        end;
+
+        { step (r)(5) }
+        if (x12_count + 1.0 < ascii_count - stiction) and
+                (x12_count + 1.0 < b256_count - stiction) and
+                (x12_count + 1.0 < edf_count - stiction) and
+                (x12_count + 1.0 < text_count - stiction) and
+                (x12_count + 1.0 < c40_count - stiction) then
+            best_scheme := DM_X12;
+
+        { step (r)(4) }
+        if (text_count + 1.0 < ascii_count - stiction) and
+                (text_count + 1.0 < b256_count - stiction) and
+                (text_count + 1.0 < edf_count - stiction) and
+                (text_count + 1.0 < x12_count - stiction) and
+                (text_count + 1.0 < c40_count - stiction) then
+            best_scheme := DM_TEXT;
+
+        { step (r)(3) }
+        if (edf_count + 1.0 < ascii_count - stiction) and
+                (edf_count + 1.0 < b256_count - stiction) and
+                (edf_count + 1.0 < text_count - stiction) and
+                (edf_count + 1.0 < x12_count - stiction) and
+                (edf_count + 1.0 < c40_count - stiction) then
+            best_scheme := DM_EDIFACT;
+
+        { step (r)(2) }
+        if (b256_count + 1.0 <= ascii_count + stiction) or
+                (b256_count + 1.0 < edf_count - stiction) and
+                (b256_count + 1.0 < text_count - stiction) and
+                (b256_count + 1.0 < x12_count - stiction) and
+                (b256_count + 1.0 < c40_count - stiction) then
+            best_scheme := DM_BASE256;
+
+        { step (r)(1) }
+        if (ascii_count + 1.0 <= b256_count + stiction) and
+                (ascii_count + 1.0 <= edf_count + stiction) and
+                (ascii_count + 1.0 <= text_count + stiction) and
+                (ascii_count + 1.0 <= x12_count + stiction) and
+                (ascii_count + 1.0 <= c40_count + stiction) then
+            best_scheme := DM_ASCII;
+    end;
     Inc(sp);
-  end;
 
-  best_count := ascii_count;
-  best_scheme := DM_ASCII;
-
-  if (b256_count <= best_count) then
-  begin
-    best_count := b256_count;
-    best_scheme := DM_BASE256;
-  end;
-
-  if (edf_count <= best_count) then
-  begin
-    best_count := edf_count;
-    best_scheme := DM_EDIFACT;
-  end;
-
-  if (text_count <= best_count) then
-  begin
-    best_count := text_count;
-    best_scheme := DM_TEXT;
-  end;
-
-  if (x12_count <= best_count) then
-  begin
-    best_count := x12_count;
-    best_scheme := DM_X12;
-  end;
-
-  if (c40_count <= best_count) then
-  begin
-    best_count := c40_count;
-    best_scheme := DM_C40;
-  end;
-
-  result := best_scheme;
+  Until (best_scheme <> DM_NULL); // step (s)
+  Result := best_scheme;
 end;
 
-function dm200encode(symbol : zint_symbol; source : TArrayOfByte; var target : TArrayOfByte; var last_mode : Integer; _length : Integer) : Integer;
+
+function dm200encode(symbol : zint_symbol; source : TArrayOfByte; var target : TArrayOfByte; var last_mode : Integer; _length : Integer;
+                      process_Buffer: TArrayOfInteger; var process_p: integer) : Integer;
 { Encodes data using ASCII, C40, Text, X12, EDIFACT or Base 256 modes as appropriate }
 { Supports encoding FNC1 in supporting systems }
 var
   sp, tp, i, gs1 : Integer;
   current_mode, next_mode : Integer;
   inputlen : Integer;
-  c40_buffer,
-  text_buffer,
-  x12_buffer : array[0..5] of Integer;
-  c40_p, text_p, x12_p : Integer;
-  edifact_buffer : array[0..7] of Integer;
-  edifact_p : Integer;
   binary : TArrayOfChar;
   shift_set, value : Integer;
   iv : Integer;
@@ -586,14 +824,9 @@ begin
 
   sp := 0;
   tp := 0;
-  FillChar(c40_buffer[0], Length(c40_buffer), 0);
-  c40_p := 0;
-  FillChar(text_buffer[0], Length(text_buffer), 0);
-  text_p := 0;
-  FillChar(x12_buffer[0], Length(x12_buffer), 0);
-  x12_p := 0;
-  FillChar(edifact_buffer[0], Length(edifact_buffer), 0);
-  edifact_p := 0;
+  FillChar(process_Buffer[0], SizeOf(process_Buffer), 0);
+  process_p := 0;
+
   strcpy(binary, '');
 
   { step (a) }
@@ -628,7 +861,29 @@ begin
     end;
   end;
 
-  {* ECI ?????}
+  if symbol.eci > 3 then begin
+      { Encode ECI numbers according to Table 6 }
+      target[tp] := 241;   // ECI Character
+      Inc(tp);
+      if symbol.eci <= 126 then begin
+          target[tp] := symbol.eci + 1;
+          Inc(tp);
+      end;
+      if (symbol.eci >= 127) and (symbol.eci <= 16382) then  begin
+          target[tp] := ((symbol.eci - 127) div 254) + 128;
+          Inc(tp);
+          target[tp] := ((symbol.eci - 127) mod 254) + 1;
+          Inc(tp);
+      end;
+      if symbol.eci >= 16383 then begin
+          target[tp] := ((symbol.eci - 16383) div 64516) + 192;
+          Inc(tp);
+          target[tp] := (((symbol.eci - 16383) div 254) mod 254) + 1;
+          Inc(tp);
+          target[tp] := ((symbol.eci - 16383) mod 254) + 1;
+          Inc(tp);
+      end;
+  end;
 
   // Check for Macro05/Macro06
   //     "[)>[RS]05[GS]...[RS][EOT]"  -> CW 236
@@ -653,8 +908,7 @@ begin
 //      *length_p -= 2;
   end;
 
-
-  while (sp < inputlen) do
+  while (sp < inputlen) do
   begin
 
     current_mode := next_mode;
@@ -664,7 +918,7 @@ begin
     begin
       next_mode := DM_ASCII;
 
-      if (((sp + 1) <= inputlen) and (istwodigits(source, sp) <> 0)) then
+      if (((sp + 1) <{=} inputlen) and (istwodigits(source, sp) <> 0)) then
       begin
         target[tp] := (10 * StrToInt(Chr(source[sp]))) + StrToInt(Chr(source[sp + 1])) + 130;
         Inc(tp); concat(binary, ' ');
@@ -712,7 +966,7 @@ begin
     if (current_mode = DM_C40) then
     begin
       next_mode := DM_C40;
-      if (c40_p = 0) then
+      if (process_p = 0) then
         next_mode := look_ahead_test(source, inputlen, sp, current_mode, gs1);
 
       if (next_mode <> DM_C40) then
@@ -724,8 +978,8 @@ begin
       begin
         if (source[sp] > 127) then
         begin
-          c40_buffer[c40_p] := 1; Inc(c40_p);
-          c40_buffer[c40_p] := 30; Inc(c40_p); { Upper Shift }
+          process_buffer[process_p] := 1; Inc(process_p);
+          process_buffer[process_p] := 30; Inc(process_p); { Upper Shift }
           shift_set := c40_shift[Ord(source[sp]) - 128];
           value := c40_value[Ord(source[sp]) - 128];
         end
@@ -743,24 +997,24 @@ begin
 
         if (shift_set <> 0) then
         begin
-          c40_buffer[c40_p] := shift_set - 1; Inc(c40_p);
+          process_buffer[process_p] := shift_set - 1; Inc(process_p);
         end;
-        c40_buffer[c40_p] := value; Inc(c40_p);
+        process_buffer[process_p] := value; Inc(process_p);
 
-        if (c40_p >= 3) then
+        if (process_p >= 3) then
         begin
-          iv := (1600 * c40_buffer[0]) + (40 * c40_buffer[1]) + (c40_buffer[2]) + 1;
+          iv := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + (process_buffer[2]) + 1;
           target[tp] := iv div 256; Inc(tp);
           target[tp] := iv mod 256; Inc(tp);
           concat(binary, '  ');
 
-          c40_buffer[0] := c40_buffer[3];
-          c40_buffer[1] := c40_buffer[4];
-          c40_buffer[2] := c40_buffer[5];
-          c40_buffer[3] := 0;
-          c40_buffer[4] := 0;
-          c40_buffer[5] := 0;
-          Dec(c40_p, 3);
+          process_buffer[0] := process_buffer[3];
+          process_buffer[1] := process_buffer[4];
+          process_buffer[2] := process_buffer[5];
+          process_buffer[3] := 0;
+          process_buffer[4] := 0;
+          process_buffer[5] := 0;
+          Dec(process_p, 3);
         end;
         Inc(sp);
       end;
@@ -770,7 +1024,7 @@ begin
     if (current_mode = DM_TEXT) then
     begin
       next_mode := DM_TEXT;
-      if (text_p = 0) then
+      if (process_p = 0) then
         next_mode := look_ahead_test(source, inputlen, sp, current_mode, gs1);
 
       if (next_mode <> DM_TEXT) then
@@ -782,8 +1036,8 @@ begin
       begin
         if (source[sp] > 127) then
         begin
-          text_buffer[text_p] := 1; Inc(text_p);
-          text_buffer[text_p] := 30; Inc(text_p); { Upper Shift }
+          process_buffer[process_p] := 1; Inc(process_p);
+          process_buffer[process_p] := 30; Inc(process_p); { Upper Shift }
           shift_set := text_shift[Ord(source[sp]) - 128];
           value := text_value[Ord(source[sp]) - 128];
         end
@@ -801,24 +1055,24 @@ begin
 
         if (shift_set <> 0) then
         begin
-          text_buffer[text_p] := shift_set - 1; Inc(text_p);
+          process_buffer[process_p] := shift_set - 1; Inc(process_p);
         end;
-        text_buffer[text_p] := value; Inc(text_p);
+        process_buffer[process_p] := value; Inc(process_p);
 
-        if (text_p >= 3) then
+        if (process_p >= 3) then
         begin
-          iv := (1600 * text_buffer[0]) + (40 * text_buffer[1]) + (text_buffer[2]) + 1;
+          iv := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + (process_buffer[2]) + 1;
           target[tp] := iv div 256; Inc(tp);
           target[tp] := iv mod 256; Inc(tp);
           concat(binary, '  ');
 
-          text_buffer[0] := text_buffer[3];
-          text_buffer[1] := text_buffer[4];
-          text_buffer[2] := text_buffer[5];
-          text_buffer[3] := 0;
-          text_buffer[4] := 0;
-          text_buffer[5] := 0;
-          Dec(text_p, 3);
+          process_buffer[0] := process_buffer[3];
+          process_buffer[1] := process_buffer[4];
+          process_buffer[2] := process_buffer[5];
+          process_buffer[3] := 0;
+          process_buffer[4] := 0;
+          process_buffer[5] := 0;
+          Dec(process_p, 3);
         end;
         Inc(sp);
       end;
@@ -830,7 +1084,7 @@ begin
       value := 0;
 
       next_mode := DM_X12;
-      if (x12_p {fs 31/08/2018 text_p???} = 0) then
+      if (process_p {fs 31/08/2018 text_p???} = 0) then
         next_mode := look_ahead_test(source, inputlen, sp, current_mode, gs1);
 
       if (next_mode <> DM_X12) then
@@ -847,22 +1101,22 @@ begin
         if ((source[sp] >= ord('0')) and (source[sp] <= ord('9'))) then value := (Ord(source[sp]) - Ord('0')) + 4;
         if ((source[sp] >= ord('A')) and (source[sp] <= ord('Z'))) then value := (Ord(source[sp]) - Ord('A')) + 14;
 
-        x12_buffer[x12_p] := value; Inc(x12_p);
+        process_buffer[process_p] := value; Inc(process_p);
 
-        if (x12_p >= 3) then
+        if (process_p >= 3) then
         begin
-          iv := (1600 * x12_buffer[0]) + (40 * x12_buffer[1]) + (x12_buffer[2]) + 1;
+          iv := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + (process_buffer[2]) + 1;
           target[tp] := iv div 256; Inc(tp);
           target[tp] := iv mod 256; Inc(tp);
           concat(binary, '  ');
 
-          x12_buffer[0] := x12_buffer[3];
-          x12_buffer[1] := x12_buffer[4];
-          x12_buffer[2] := x12_buffer[5];
-          x12_buffer[3] := 0;
-          x12_buffer[4] := 0;
-          x12_buffer[5] := 0;
-          Dec(x12_p, 3);
+          process_buffer[0] := process_buffer[3];
+          process_buffer[1] := process_buffer[4];
+          process_buffer[2] := process_buffer[5];
+          process_buffer[3] := 0;
+          process_buffer[4] := 0;
+          process_buffer[5] := 0;
+          Dec(process_p, 3);
         end;
         Inc(sp);
       end;
@@ -874,12 +1128,12 @@ begin
       value := 0;
 
       next_mode := DM_EDIFACT;
-      if (edifact_p = 3) then
+      if (process_p = 3) then
         next_mode := look_ahead_test(source, inputlen, sp, current_mode, gs1);
 
       if (next_mode <> DM_EDIFACT) then
       begin
-        edifact_buffer[edifact_p] := 31; Inc(edifact_p);
+        process_buffer[process_p] := 31; Inc(process_p);
         next_mode := DM_ASCII;
       end
       else
@@ -887,26 +1141,26 @@ begin
         if ((source[sp] >= ord('@')) and (source[sp] <= ord('^'))) then value := Ord(source[sp]) - Ord('@');
         if ((source[sp] >= ord(' ')) and (source[sp] <= ord('?'))) then value := Ord(source[sp]);
 
-        edifact_buffer[edifact_p] := value; Inc(edifact_p);
+        process_buffer[process_p] := value; Inc(process_p);
         Inc(sp);
       end;
 
-      if (edifact_p >= 4) then
+      if (process_p >= 4) then
       begin
-        target[tp] := (edifact_buffer[0] shl 2) + ((edifact_buffer[1] and $30) shr 4); Inc(tp);
-        target[tp] := ((edifact_buffer[1] and $0f) shl 4) + ((edifact_buffer[2] and $3c) shr 2); Inc(tp);
-        target[tp] := ((edifact_buffer[2] and $03) shl 6) + edifact_buffer[3]; Inc(tp);
+        target[tp] := (process_buffer[0] shl 2) + ((process_buffer[1] and $30) shr 4); Inc(tp);
+        target[tp] := ((process_buffer[1] and $0f) shl 4) + ((process_buffer[2] and $3c) shr 2); Inc(tp);
+        target[tp] := ((process_buffer[2] and $03) shl 6) + process_buffer[3]; Inc(tp);
         concat(binary, '   ');
 
-        edifact_buffer[0] := edifact_buffer[4];
-        edifact_buffer[1] := edifact_buffer[5];
-        edifact_buffer[2] := edifact_buffer[6];
-        edifact_buffer[3] := edifact_buffer[7];
-        edifact_buffer[4] := 0;
-        edifact_buffer[5] := 0;
-        edifact_buffer[6] := 0;
-        edifact_buffer[7] := 0;
-        Dec(edifact_p, 4);
+        process_buffer[0] := process_buffer[4];
+        process_buffer[1] := process_buffer[5];
+        process_buffer[2] := process_buffer[6];
+        process_buffer[3] := process_buffer[7];
+        process_buffer[4] := 0;
+        process_buffer[5] := 0;
+        process_buffer[6] := 0;
+        process_buffer[7] := 0;
+        Dec(process_p, 4);
       end;
     end;
 
@@ -933,54 +1187,6 @@ begin
 
   end; { while }
 
-  { Empty buffers }
-  if (c40_p = 2) then
-  begin
-    target[tp] := 254; Inc(tp); { unlatch }
-    target[tp] := Ord(source[inputlen - 2]) + 1; Inc(tp);
-    target[tp] := Ord(source[inputlen - 1]) + 1; Inc(tp);
-    concat(binary, '   ');
-    current_mode := DM_ASCII;
-  end;
-  if (c40_p = 1) then
-  begin
-    target[tp] := 254; Inc(tp); { unlatch }
-    target[tp] := Ord(source[inputlen - 1]) + 1; Inc(tp);
-    concat(binary, '  ');
-    current_mode := DM_ASCII;
-  end;
-
-  if (text_p = 2) then
-  begin
-    target[tp] := 254; Inc(tp); { unlatch }
-    target[tp] := Ord(source[inputlen - 2]) + 1; Inc(tp);
-    target[tp] := Ord(source[inputlen - 1]) + 1; Inc(tp);
-    concat(binary, '   ');
-    current_mode := DM_ASCII;
-  end;
-  if (text_p = 1) then
-  begin
-    target[tp] := 254; Inc(tp); { unlatch }
-    target[tp] := Ord(source[inputlen - 1]) + 1; Inc(tp);
-    concat(binary, '  ');
-    current_mode := DM_ASCII;
-  end;
-
-  if (x12_p = 2) then
-  begin
-    target[tp] := 254; Inc(tp); { unlatch }
-    target[tp] := Ord(source[inputlen - 2]) + 1; Inc(tp);
-    target[tp] := Ord(source[inputlen - 1]) + 1; Inc(tp);
-    concat(binary, '   ');
-    current_mode := DM_ASCII;
-  end;
-  if (x12_p = 1) then
-  begin
-    target[tp] := 254; Inc(tp); { unlatch }
-    target[tp] := Ord(source[inputlen - 1]) + 1; Inc(tp);
-    concat(binary, '  ');
-    current_mode := DM_ASCII;
-  end;
 
   { Add length and randomising algorithm to b256 }
   i := 0;
@@ -1026,21 +1232,11 @@ begin
   result := tp;
 end;
 
-procedure add_tail(var target : TArrayOfByte; tp : Integer; tail_length : Integer; last_mode : Integer);
+procedure add_tail(var target : TArrayOfByte; tp : Integer; tail_length : Integer {; last_mode : Integer});
 { adds unlatch and pad bits }
 var
-  i, prn, temp : Integer;
+  i, prn, temp : NativeInt;
 begin
-  case last_mode of
-    DM_C40,
-    DM_TEXT,
-    DM_X12:
-    begin
-      target[tp] := 254; Inc(tp); { Unlatch }
-      Dec(tail_length);
-    end;
-  end;
-
   for i := tail_length downto 1 do
   begin
     if (i = tail_length) then
@@ -1051,16 +1247,123 @@ begin
     begin
       prn := ((149 * (tp + 1)) mod 253) + 1;
       temp := 129 + prn;
-      if (temp <= 254) then
-      begin
+      if (temp <= 254) then begin
         target[tp] := temp; Inc(tp);
       end
-      else
-      begin
+      else begin
         target[tp] := temp - 254; Inc(tp);
       end;
     end;
   end;
+end;
+
+function dm200encode_remainder(var target: TArrayOfByte; target_length: integer; const source: TArrayOfByte; const inputlen: integer;
+                        const last_mode: integer; const process_Buffer: TArrayOfInteger; const process_p: integer; const symbols_left: integer): Integer;
+var
+  intValue,
+  i        : NativeInt;
+begin
+    case last_mode of
+        DM_C40,
+        DM_TEXT: begin
+            if process_p = 1 then // 1 data character left to encode.
+            begin
+                if symbols_left > 1 then  begin
+                    target[target_length] := 254;
+                    Inc(target_length); // Unlatch and encode remaining data in ascii.
+                end;
+                target[target_length] := source[inputlen - 1] + 1;
+                Inc(target_length);
+            end
+            else if (process_p = 2) then begin   // 2 data characters left to encode.
+                // Pad with shift 1 value (0) and encode as double.
+                intValue := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + 1;
+                target[target_length] := intValue div 256;
+                Inc(target_length);
+                target[target_length] := intValue Mod 256;
+                Inc(target_length);
+                if symbols_left > 2 then begin
+                    target[target_length] := 254;
+                    Inc(target_length);
+                end;
+            end
+            else begin
+                if symbols_left > 0 then begin
+                    target[target_length] := 254;
+                    Inc(target_length);
+                end;
+            end;
+        end;
+
+        DM_X12: begin
+            if (symbols_left = process_p) and (process_p = 1) then  begin
+                // Unlatch not required!
+                target[target_length] := source[inputlen - 1] + 1;
+                Inc(target_length);
+            end
+            else begin
+                target[target_length] := (254);
+                Inc(target_length); // Unlatch.
+                if process_p = 1 then begin
+                    target[target_length] := source[inputlen - 1] + 1;
+                    Inc(target_length);
+                end;
+
+                if process_p = 2 then begin
+                    target[target_length] := source[inputlen - 2] + 1;
+                    Inc(target_length);
+                    target[target_length] := source[inputlen - 1] + 1;
+                    Inc(target_length);
+                end;
+            end;
+        end;
+
+        DM_EDIFACT: begin
+          if symbols_left <= 2 then // Unlatch not required!
+          begin
+              if process_p = 1 then  begin
+                  target[target_length] := source[inputlen - 1] + 1;
+                  Inc(target_length);
+              end;
+              if process_p = 2 then begin
+                  target[target_length] := source[inputlen - 2] + 1;
+                  Inc(target_length);
+                  target[target_length] := source[inputlen - 1] + 1;
+                  Inc(target_length);
+              end;
+          end
+          else begin
+              // Append edifact unlatch value (31) and empty buffer
+              if process_p = 0 then begin
+                  target[target_length] := (31 shl 2);
+                  Inc(target_length);
+              end;
+              if process_p = 1 then begin
+                  target[target_length] := (process_buffer[0] shl 2) + ((31 and $30) shr 4);
+                  Inc(target_length);
+                  target[target_length] := (31 and $0f) shl 4;
+                  Inc(target_length);
+              end;
+              if process_p = 2 then begin
+                  target[target_length] := (process_buffer[0] shl 2) + ((process_buffer[1] and $30) shr  4);
+                  Inc(target_length);
+                  target[target_length] := ((process_buffer[1] and $0f)  shl  4) + ((31 and $3c) shr 2);
+                  Inc(target_length);
+                  target[target_length] := (31 and $03) shl 6;
+                  Inc(target_length);
+              end;
+              if process_p = 3 then begin
+                  target[target_length] := (process_buffer[0] shl 2) + ((process_buffer[1] and $30) shr 4);
+                  Inc(target_length);
+                  target[target_length] := ((process_buffer[1] and $0f) shl 4) + ((process_buffer[2] and $3c) shr 2);
+                  Inc(target_length);
+                  target[target_length] := ((process_buffer[2] and $03) shl 6) + 31;
+                  Inc(target_length);
+              end;
+          end;
+        end;
+    end;
+    Result := target_length;
 end;
 
 function data_matrix_200(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
@@ -1068,8 +1371,13 @@ var
   skew : Integer;
   binary : TArrayOfByte;
   binlen : Integer;
+  inputlen: Integer;
+
+  process_buffer: TArrayOfInteger;    // holds remaining data to finalised
+  process_p: integer;  // number of characters left to finalise
   symbolsize, optionsize, calcsize : Integer;
   taillength, error_number : Integer;
+  symbols_left: integer;
   H, W, FH, FW, datablock, bytes, rsblock : Integer;
   last_mode : Integer;
   grid : TArrayOfByte;
@@ -1081,8 +1389,10 @@ begin
   skew := 0;
   error_number := 0;
 
+  inputlen := _length;
   SetLength(binary, 2200);
-  binlen := dm200encode(symbol, source, binary, last_mode, _length);
+  SetLength(process_buffer, 8);
+  binlen := dm200encode(symbol, source, binary, last_mode, _length, process_buffer, process_p);
 
   if (binlen = 0) then
   begin
@@ -1098,7 +1408,7 @@ begin
   calcsize := NbOfSymbols - 1;
   for i := NbOfSymbols - 1 downto 0 do
   begin
-    if (matrixbytes[i] >= binlen) then
+    if (matrixbytes[i] >= binlen + process_p) then
       calcsize := i;
   end;
 
@@ -1128,9 +1438,19 @@ begin
     if (optionsize <> -1) then
     begin
       { flag an error }
-      error_number := ZWARN_INVALID_OPTION;
+      error_number := ZERROR_TOO_LONG;
       strcpy(symbol.errtxt, 'Data does not fit in selected symbol size');
     end;
+  end;
+
+
+  // Now we know the symbol size we can handle the remaining data in the process buffer.
+  symbols_left := matrixbytes[symbolsize] - binlen;
+  binlen := dm200encode_remainder(binary, binlen, source, inputlen, last_mode, process_buffer, process_p, symbols_left);
+
+  if (binlen > matrixbytes[symbolsize]) then begin
+      error_number := ZERROR_TOO_LONG;
+      strcpy(symbol.errtxt, 'Data too long to fit in symbol');
   end;
 
   H := matrixH[symbolsize];
@@ -1144,9 +1464,7 @@ begin
   taillength := bytes - binlen;
 
   if (taillength <> 0) then
-  begin
-    add_tail(TArrayOfByte(binary), binlen, taillength, last_mode);
-  end;
+    add_tail(TArrayOfByte(binary), binlen, taillength{, last_mode});
 
   // ecc code
   if (symbolsize = NbOfSymbols - 1) then skew := 1;
