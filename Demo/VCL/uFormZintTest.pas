@@ -31,13 +31,8 @@ type
     TabSheet2: TTabSheet;
     TabSheet3: TTabSheet;
     TabSheet4: TTabSheet;
-    fboMargin: TFrameBorderOptions;
     TabSheet5: TTabSheet;
     TabSheet6: TTabSheet;
-    fboPadding: TFrameBorderOptions;
-    fboTextSpacing: TFrameBorderOptions;
-    fboBorder: TFrameBorderOptions;
-    fboWhitespace: TFrameBorderOptions;
     comHAlign: TComboBox;
     Label1: TLabel;
     comVAlign: TComboBox;
@@ -61,7 +56,13 @@ type
     procedure btSVGClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-    FSymbol : TZintSymbol; 
+    fboMargin: TFrameBorderOptions;
+    fboPadding: TFrameBorderOptions;
+    fboTextSpacing: TFrameBorderOptions;
+    fboBorder: TFrameBorderOptions;
+    fboWhitespace: TFrameBorderOptions;
+  private
+    FSymbol : TZintSymbol;
     procedure GenBarcode;
     function GenSymbol: TZintSymbol;
     procedure ProcessSymbol(ASymbol: TZintSymbol);
@@ -205,20 +206,35 @@ begin
 
   ProcessSymbol(FSymbol);
 
+  fboMargin := TFrameBorderOptions.Create(self);
+  fboMargin.Parent := TabSheet2;
+  fboMargin.Name := 'fboMargin';
+  fboMargin.Align := alClient;
   fboMargin.OnChange:=edDataChange;
+  fboPadding := TFrameBorderOptions.Create(self);
+  fboPadding.Parent := TabSheet3;
+  fboPadding.Name := 'fboPadding';
+  fboPadding.Align := alClient;
   fboPadding.OnChange:=edDataChange;
-  fboTextSpacing.OnChange:=edDataChange;
+  fboBorder := TFrameBorderOptions.Create(self);
+  fboBorder.Parent := TabSheet4;
+  fboBorder.Name := 'fboBorder';
+  fboBorder.Align := alClient;
   fboBorder.OnChange:=edDataChange;
+  fboTextSpacing := TFrameBorderOptions.Create(self);
+  fboTextSpacing.Parent := TabSheet5;
+  fboTextSpacing.Name := 'fboTextSpacing';
+  fboTextSpacing.Align := alClient;
+  fboTextSpacing.OnChange:=edDataChange;
+  fboWhitespace := TFrameBorderOptions.Create(self);
+  fboWhitespace.Parent := TabSheet6;
+  fboWhitespace.Name := 'fboWhitespace';
+  fboWhitespace.Align := alClient;
   fboWhitespace.OnChange:=edDataChange;
 end;
 
 procedure TForm46.FormDestroy(Sender: TObject);
-var
-  i : Integer;
 begin
- // for i := PageControl1.PageCount-1 downto 0 do
- //   PageControl1.Pages[i].Free;
-    
   FSymbol.Free;
 end;
 

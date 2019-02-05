@@ -60,7 +60,7 @@ begin
   Fill(inter, 18, #0);
   SetLength(dest, 64);
 
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 6) then
   begin
@@ -169,7 +169,7 @@ var
   error_number : Integer;
 begin
   SetLength(height_pattern, 200);
-  error_number := 0;
+  //error_number := 0;
   strcpy(height_pattern, '');
 
   if (_length > 8) then
@@ -221,7 +221,7 @@ const
   CODABAR_DELIMITERS : array[0..7] of Char = ('A', 'B', 'C', 'D', 'T', 'N', '*', 'E');
 begin
   SetLength(dest, 512);
-  error_number := 0;
+  //error_number := 0;
   strcpy(dest, '');
 
   SetLength(local_source, Length(source));
@@ -316,7 +316,7 @@ begin
 
   { Calculate the check digit }
   checksum := 0;
-  checkpart := 0;
+  //checkpart := 0;
   for i := 0 to 3 do
   begin
     checkpart := StrToInt(localstr[i * 2]);

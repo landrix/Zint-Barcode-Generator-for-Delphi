@@ -57,7 +57,7 @@ var
   dest : TArrayOfChar; { 6 + 80 * 6 + 6 + 1 ~ 512 }
 begin
   SetLength(dest, 512);
-  error_number := 0;
+  //error_number := 0;
 
   if(_length > 80) then
   begin
@@ -96,7 +96,7 @@ var
   i : Integer;
 begin
   SetLength(dest, 512);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 45) then
   begin
@@ -132,7 +132,7 @@ var
   i : Integer;
 begin
   SetLength(dest, 512);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 45) then
   begin
@@ -168,7 +168,7 @@ var
   i : Integer;
 begin
   SetLength(dest, 512);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 80) then
   begin
@@ -206,7 +206,7 @@ var
 begin
   SetLength(bars, 7); SetLength(spaces, 7); SetLength(mixed, 14); SetLength(dest, 1000);
   SetLength(temp, _length + 2);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 89) then
   begin
@@ -270,7 +270,7 @@ var
   i : Integer;
 begin
   SetLength(localstr, 16);
-  error_number := 0;
+  //error_number := 0;
 
   count := 0;
 
@@ -321,7 +321,7 @@ var
   i : Integer;
 begin
   SetLength(localstr, 16);
-  error_number := 0;
+  //error_number := 0;
   count := 0;
   if (_length > 13) then
   begin
@@ -376,7 +376,7 @@ begin
   if (error_number = ZERROR_INVALID_DATA) then
     begin
     strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number;
+    //result := error_number;
   end;
 
   zeroes := 11 - _length;

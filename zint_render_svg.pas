@@ -51,6 +51,7 @@ type
     procedure DrawText(const AParams: TZintDrawTextParams); override;
     function CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; override;
     function CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; override;
+    procedure Inflate(const ANewWidth, ANewHeight : Single); override;
   public
     constructor Create(ASVGFile: TStringList); reintroduce; virtual;
     procedure Render(ASymbol : TZintSymbol); override;
@@ -174,8 +175,11 @@ begin
    Format('<text x="%f" y="%f" fill="%s" font-family="%s" font-size="%f" style="text-anchor:middle">%s</text>',
                [AParams.x, AParams.y+AParams.Height/2, FFGColor, FFont, AParams.Height, AParams.Text], FFormatSettings)
                );
+end;
 
-
+procedure TZintRenderTargetSVG.Inflate(const ANewWidth, ANewHeight: Single);
+begin
+  inherited;
 end;
 
 procedure TZintRenderTargetSVG.Render(ASymbol: TZintSymbol);

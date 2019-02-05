@@ -227,8 +227,8 @@ end;
 procedure add_on(const source : TArrayOfByte; var dest : TArrayOfChar; mode : Integer);
 var
   parity : TArrayOfChar;
-  i, code_type : Cardinal;
-  code_value, parity_bit : Integer;
+  code_type : Cardinal;
+  i, code_value, parity_bit : Integer;
   values : TArrayOfInteger;
   parity_sum: Integer;
 begin { EAN-2 and EAN-5 add-on codes }

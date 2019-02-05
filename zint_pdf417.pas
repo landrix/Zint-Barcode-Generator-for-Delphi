@@ -593,7 +593,7 @@ var
   newtable : Integer;
   cw_number : Integer;
 begin
-  codeascii := #0;
+  //codeascii := #0;
   wnet := 0;
 
   for j := 0 to 999 do
@@ -757,9 +757,9 @@ var
   total : UInt64;
 begin
   len := 0;
-  chunkLen := 0;
-  mantisa := 0;
-  total := 0;
+  //chunkLen := 0;
+  //mantisa := 0;
+  //total := 0;
 
   if (_length = 1) then
   begin
@@ -1032,7 +1032,7 @@ begin
   for loop := 0 to 519 do
     mccorrection[loop] := 0;
 
-  total := 0;
+  //total := 0;
   for i := 0 to longueur - 1 do
   begin
     total := (chainemc[i] + mccorrection[k - 1]) mod 929;
@@ -1386,7 +1386,7 @@ begin
   for loop := 0 to 49 do
     mccorrection[loop] := 0;
 
-  total := 0;
+  //total := 0;
   for i := 0 to longueur - 1 do
   begin
     total := (chainemc[i] + mccorrection[k - 1]) mod 929;

@@ -73,7 +73,7 @@ var
   i, sum, check_digit : Integer;
   error_number : Integer;
 begin
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 38) then
   begin
@@ -115,7 +115,7 @@ var
   error_number : Integer;
 begin
   SetLength(height_pattern, 256);
-  error_number := 0;
+  //error_number := 0;
 
   error_number := postnet(symbol, source, height_pattern, _length);
   if (error_number <> 0) then
@@ -146,7 +146,7 @@ var
   i, sum, check_digit : Integer;
   error_number : Integer;
 begin
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 38) then
   begin
@@ -188,7 +188,7 @@ var
   error_number : Integer;
 begin
   SetLength(height_pattern, 256);
-  error_number := 0;
+  //error_number := 0;
 
   error_number := planet(symbol, source, height_pattern, _length);
   if (error_number <> 0) then
@@ -220,7 +220,7 @@ var
 begin
   SetLength(localstr, 8);
   SetLength(dest, 80);
-  error_number := 0;
+  //error_number := 0;
   if (_length > 6) then
   begin
     strcpy(symbol.errtxt, 'Input too long');
@@ -337,7 +337,7 @@ var
 begin
   SetLength(height_pattern, 200);
   strcpy(height_pattern, '');
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 120) then
   begin
@@ -389,7 +389,7 @@ begin
   SetLength(localstr, 20);
   strcpy(height_pattern, '');
 
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 18) then
   begin
@@ -442,7 +442,7 @@ begin
   SetLength(height_pattern, 100);
   strcpy(height_pattern, '');
 
-  error_number := 0;
+  //error_number := 0;
   if (_length > 50) then
   begin
     strcpy(symbol.errtxt, 'Input too long');
@@ -494,7 +494,7 @@ var
   dest : TArrayOfChar; { 90 * 4 + 1 ~ }
 begin
   SetLength(dest, 512);
-  error_number := 0;
+  //error_number := 0;
 
   if (_length > 90) then
   begin
@@ -529,8 +529,8 @@ begin
   SetLength(inter, 23);
   SetLength(local_source, _length + 1);
 
-  inter_posn := 0;
-  error_number := 0;
+  //inter_posn := 0;
+  //error_number := 0;
 
   ustrcpy(local_source, source);
   for i := 0 to _length - 1 do

@@ -159,7 +159,7 @@ begin
       if ((current = SHIFTA) and (last = LATCHC)) then
         begin list[1][i] := LATCHA; current := LATCHA; end;
       if ((current = SHIFTB) and (last = LATCHC)) then
-        begin list[1][i] := LATCHB; current := LATCHB; end;
+        begin list[1][i] := LATCHB; {current := LATCHB;} end;
     end; { Rule 2 is implimented elsewhere, Rule 6 is implied }
   end;
   grwp16(indexliste, list);

@@ -242,7 +242,7 @@ begin
 
   for i := 0 to 7 do
     rsCodeWords[i] := 0;
-  total := 0;
+  //total := 0;
   for i := 0 to cwCnt - 1 do
   begin
     total := (codeWords[i] + rsCodeWords[k - 1]) mod 929;
@@ -486,7 +486,7 @@ begin
   for loop := 0 to 49 do
     mccorrection[loop] := 0;
 
-  total := 0;
+  //total := 0;
   for i := 0 to longueur - 1 do
   begin
     total := (chainemc[i] + mccorrection[k - 1]) mod 929;
@@ -691,7 +691,7 @@ begin
   for loop := 0 to 519 do
     mccorrection[loop] := 0;
 
-  total := 0;
+  //total := 0;
   for i := 0 to longueur - 1 do
   begin
     total := (chainemc[i] + mccorrection[k - 1]) mod 929;
@@ -1607,8 +1607,8 @@ begin
 
     if ((remainder >= 4) and (remainder <= 6)) then
     begin
-      d1 := ctoi(general_field[i]);
-      Inc(d1);
+      //d1 := ctoi(general_field[i]);
+      //Inc(d1);
 
       mask := $08;
       for j := 0 to 3 do
@@ -1788,7 +1788,7 @@ begin
     if (alpha_pad = 1) then
     begin
       concat(binary_string, '11111');
-      alpha_pad := 0;
+      //alpha_pad := 0;
       { Extra FNC1 character required after Alpha encodation (section 5.2.3) }
     end;
 
@@ -1812,7 +1812,7 @@ var
   temp : TArrayOfChar;
 begin
   with_addon := 0;
-  first_len := 0; second_len := 0; zfirst_len := 0; zsecond_len := 0; n := 0;
+  first_len := 0; second_len := 0; zfirst_len := 0; zsecond_len := 0; //n := 0;
 
   h  := strlen(symbol.primary);
   for i := 0 to h - 1 do
@@ -1864,7 +1864,7 @@ begin
   SetLength(reduced, rs);
   SetLength(binary_string, bs);
 
-  error_number := 0;
+  //error_number := 0;
   pri_len := strlen(symbol.primary);
   if (pri_len = 0) then
   begin

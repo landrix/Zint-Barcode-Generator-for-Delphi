@@ -21,7 +21,7 @@ object Form46: TForm46
     Left = 3
     Top = 231
     Width = 771
-    Height = 259
+    Height = 256
     Align = alClient
     AutoSize = True
     Center = True
@@ -35,7 +35,7 @@ object Form46: TForm46
   object lblError: TLabel
     AlignWithMargins = True
     Left = 3
-    Top = 496
+    Top = 493
     Width = 771
     Height = 13
     Align = alBottom
@@ -242,72 +242,34 @@ object Form46: TForm46
         TabOrder = 4
         object TabSheet2: TTabSheet
           Caption = 'Margin'
-          inline fboMargin: TFrameBorderOptions
-            Left = 0
-            Top = 0
-            Width = 262
-            Height = 129
-            Align = alClient
-            TabOrder = 0
-            ExplicitWidth = 262
-            ExplicitHeight = 129
-          end
         end
         object TabSheet3: TTabSheet
           Caption = 'Padding'
           ImageIndex = 1
-          inline fboPadding: TFrameBorderOptions
-            Left = 0
-            Top = 0
-            Width = 262
-            Height = 129
-            Align = alClient
-            TabOrder = 0
-            ExplicitWidth = 262
-            ExplicitHeight = 129
-          end
         end
         object TabSheet4: TTabSheet
           Caption = 'Border'
           ImageIndex = 2
-          inline fboBorder: TFrameBorderOptions
-            Left = 0
-            Top = 0
-            Width = 262
-            Height = 129
-            Align = alClient
-            TabOrder = 0
-            ExplicitWidth = 262
-            ExplicitHeight = 129
-          end
+          ExplicitLeft = 0
+          ExplicitTop = 0
+          ExplicitWidth = 0
+          ExplicitHeight = 0
         end
         object TabSheet5: TTabSheet
           Caption = 'TextSpacing'
           ImageIndex = 3
-          inline fboTextSpacing: TFrameBorderOptions
-            Left = 0
-            Top = 0
-            Width = 262
-            Height = 129
-            Align = alClient
-            TabOrder = 0
-            ExplicitWidth = 262
-            ExplicitHeight = 129
-          end
+          ExplicitLeft = 0
+          ExplicitTop = 0
+          ExplicitWidth = 0
+          ExplicitHeight = 0
         end
         object TabSheet6: TTabSheet
           Caption = 'Whitespace'
           ImageIndex = 4
-          inline fboWhitespace: TFrameBorderOptions
-            Left = 0
-            Top = 0
-            Width = 262
-            Height = 129
-            Align = alClient
-            TabOrder = 0
-            ExplicitWidth = 262
-            ExplicitHeight = 129
-          end
+          ExplicitLeft = 0
+          ExplicitTop = 0
+          ExplicitWidth = 0
+          ExplicitHeight = 0
         end
       end
       object comHAlign: TComboBox

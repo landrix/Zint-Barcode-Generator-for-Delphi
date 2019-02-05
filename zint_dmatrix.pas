@@ -152,7 +152,8 @@ matrixW : array[0..NbOfSymbols - 1] of NativeInt = (
     {32} 80, { 80x80 } 88, { 88x88 } 96, { 96x96 } 104,{104x104}
     {36} 120,{120x120}132, {132x132}144  {144x144}
     );
-
+
+
 
 matrixFH : array[0..NbOfSymbols - 1] of NativeInt = (
   {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
@@ -221,8 +222,10 @@ matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
     {36} 175, {120x120} 163, {132x132} 156 { 144x144}
     );
 
-matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
+
+matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
+
+  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
 //	5, 7, 7, 10, 11, 12, 14, 14, 18, 18, 20, 24, 24, 28, 28, 36, 42, 48, 56, 68,
 //	42, 56, 36, 48, 56, 68, 56, 68, 62, 62 );
     { 0}  5, { 10x10 }  7, { 12x12 }  7, {  8x18 } 10, { 14x14 }
@@ -238,7 +241,8 @@ matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
     );
 
 
-{$UNDEF RANGEON} {disable possible /d switch}
+
+{$UNDEF RANGEON} {disable possible /d switch}
 {$IFOPT R+}{$DEFINE RANGEON}{$ENDIF} {save initial switch state}
 {$R-}
 procedure ecc200placementbit(var _array : TArrayOfInteger; NR : Integer; NC : Integer; r : Integer; c : Integer; p : Integer; b : Byte);
@@ -486,7 +490,6 @@ begin
       Result := 1;
   end;
 end;
-
 
 //function look_ahead_test(source : TArrayOfByte; sourcelen : Integer; position : Integer; current_mode : Integer; gs1 : Integer) : Integer;
 //{ A custom version of the 'look ahead test' from Annex P }
@@ -908,7 +911,8 @@ begin
 //      *length_p -= 2;
   end;
 
-  while (sp < inputlen) do
+
+  while (sp < inputlen) do
   begin
 
     current_mode := next_mode;

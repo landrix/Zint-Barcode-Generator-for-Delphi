@@ -101,7 +101,7 @@ begin
     begin
       accumulator[i] := 1;
       carry := 1;
-      done := 1;
+      //done := 1;
     end;
   end;
 end;

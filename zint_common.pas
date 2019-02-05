@@ -412,11 +412,11 @@ function froundup(input : Single) : Single;
 var
   fraction, output : Single;
 begin
-  fraction := 0; output := 0;
-
   fraction := input - Trunc(input);
-  if (fraction > 0.01) then begin output := (input - fraction) + 1.0; end else begin output := input; end;
-
+  if (fraction > 0.01) then
+    output := (input - fraction) + 1.0
+  else
+    output := input;
   result := output;
 end;
 
