@@ -57,6 +57,9 @@
 *.tvsconfig
 *.dsk
 
+# DevExpress files
+*.skincfg
+
 # Delphi history and backups
 __history/
 __recovery/
