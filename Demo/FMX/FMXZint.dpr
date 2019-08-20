@@ -1,4 +1,4 @@
-program XE2FMXZint;
+program FMXZint;
 
 uses
   FMX.Forms,

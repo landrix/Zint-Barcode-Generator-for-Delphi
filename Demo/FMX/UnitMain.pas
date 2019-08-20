@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Edit, FMX.ListBox, zint,
-  FMX.Objects;
+  FMX.Objects, FMX.StdCtrls, FMX.Controls.Presentation, FMX.Graphics;
 
 type
   TFormMain = class(TForm)

@@ -13,7 +13,7 @@ unit zint_render_fmx_bmp;
 interface
 
 uses
-  zint, zint_render_fmx_canvas, FMX.Types;
+  zint, zint_render_fmx_canvas, FMX.Types, FMX.Graphics;
 
 type
   TZintBMPRenderTarget = class(TZintCanvasRenderTarget)
@@ -37,7 +37,6 @@ implementation
 procedure TZintBMPRenderTarget.DrawStop;
 begin
   inherited;
-  Bitmap.BitmapChanged;
 end;
 
 procedure TZintBMPRenderTarget.Inflate(const ANewWidth, ANewHeight : Single);

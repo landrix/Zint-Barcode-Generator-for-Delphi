@@ -13,7 +13,8 @@ unit zint_render_fmx_canvas;
 interface
 
 uses
-  zint, FMX.Types, system.UITypes, Classes;
+  zint, FMX.Types, System.UITypes, System.Classes, FMX.Graphics,
+  System.Math.Vectors,System.Types;
 
 type
 
@@ -49,16 +50,13 @@ type
 
 implementation
 
-uses
-  Types;
-
 { TZintCanvasRenderTarget }
 
 procedure TZintCanvasRenderTarget.ClearBackground(const AParams : TZintClearBackgroundParams);
 begin
   FCanvas.Fill.Color:=FBGColor;
-  FCanvas.Fill.Kind:=TBrushKind.bkSolid;
-  FCanvas.Stroke.Kind:=TBrushKind.bkNone;
+  FCanvas.Fill.Kind:=TBrushKind.Solid;
+  FCanvas.Stroke.Kind:=TBrushKind.None;
 
   FCanvas.FillRect(RectF(FX,
                          FY,
@@ -68,11 +66,11 @@ end;
 
 procedure TZintCanvasRenderTarget.DrawRect(const AParams : TZintDrawRectParams);
 begin
-  FCanvas.Stroke.Kind:=TBrushKind.bkSolid;
+  FCanvas.Stroke.Kind:=TBrushKind.Solid;
   FCanvas.Stroke.Color:=ffgcolor;
 
   FCanvas.Fill.Color:=FFGColor;
-  FCanvas.Fill.Kind:=TBrushKind.bkSolid;
+  FCanvas.Fill.Kind:=TBrushKind.Solid;
 
   FCanvas.FillRect(RectF(AParams.x,
                         AParams.y,
@@ -90,7 +88,7 @@ var
   Points : TPolygon;
 begin
   FCanvas.Fill.Color:=ffgcolor;
-  FCanvas.Fill.Kind:=TBrushKind.bkSolid;
+  FCanvas.Fill.Kind:=TBrushKind.Solid;
 
   SetLength(Points, 6);
   Points[0] := PointF(AParams.x-(AParams.width/2), AParams.y - AParams.height / 4);
@@ -107,13 +105,13 @@ procedure TZintCanvasRenderTarget.DrawRing(const AParams : TZintDrawRingParams);
 var
   Radius : Single;
 begin
-    FCanvas.Stroke.Kind:=TBrushKind.bkSolid;
+    FCanvas.Stroke.Kind:=TBrushKind.Solid;
     FCanvas.Stroke.Color:=ffgcolor;
 
-    FCanvas.Fill.Kind:=TBrushKind.bkNone;
+    FCanvas.Fill.Kind:=TBrushKind.None;
 
-    FCanvas.StrokeThickness:=AParams.OuterRadius-AParams.InnerRadius;
-    Radius:=AParams.InnerRadius+FCanvas.StrokeThickness/2;
+    FCanvas.Stroke.Thickness:=AParams.OuterRadius-AParams.InnerRadius;
+    Radius:=AParams.InnerRadius+FCanvas.Stroke.Thickness/2;
 
     FCanvas.DrawEllipse(RectF(AParams.X-radius,
                         AParams.y-radius,
@@ -134,11 +132,9 @@ begin
 end;
 
 procedure TZintCanvasRenderTarget.DrawText(const AParams: TZintDrawTextParams);
-var
-  s : String;
 begin
     FCanvas.Font.Assign(FFont);
-    FCanvas.Fill.Kind:=TBrushKind.bkSolid;
+    FCanvas.Fill.Kind:=TBrushKind.Solid;
     FCanvas.Fill.Color:=FFGColor;
 
     FCanvas.Font.Size:=AParams.Height;
@@ -146,7 +142,7 @@ begin
                            AParams.y,
                            AParams.x+AParams.width,
                            AParams.y+AParams.Height),
-                         AParams.text, false,1, [], TTextAlign.taCenter);
+                         AParams.text, false,1, [], TTextAlign.Center);
 end;
 
 function TZintCanvasRenderTarget.CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single;
@@ -181,8 +177,8 @@ begin
   inherited;
 
   FFont:=TFont.Create;
-  FFGColor:=FMX.Types.claBlack;
-  FBGColor:=FMX.Types.claWhite;
+  FFGColor := TAlphaColorRec.Black;
+  FBGColor := TAlphaColorRec.White;
 end;
 
 destructor TZintCanvasRenderTarget.Destroy;
