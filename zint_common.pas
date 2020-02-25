@@ -468,7 +468,7 @@ begin
     begin
 			if (source[i] = $C2) then
       begin
-				preprocessed[j] := source[i + 1];
+			preprocessed[j] := source[i + 1];
         Inc(j);
 				next := i + 2;
       end;

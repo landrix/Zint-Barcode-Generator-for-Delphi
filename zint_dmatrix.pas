@@ -257,7 +257,12 @@ begin
     Inc(c, NC);
     Inc(r, 4 - ((NC + 4) mod 8));
   end;
-  _array[r * NC + c] := (p shl 3) + Ord(b);
+    // Necessary for 26x32,26x40,26x48,36x120,36x144,72x120,72x144
+  if (r >= NR) then
+    Dec(r, NR);
+
+//  _array[r * NC + c] := (p shl 3) + Ord(b);
+  _array[r * NC + c] := (p shl 3) + b;
 end;
 {$IFDEF RANGEON} {$R+} {$ENDIF}
 
@@ -808,8 +813,8 @@ begin
 end;
 
 
-function dm200encode(symbol : zint_symbol; source : TArrayOfByte; var target : TArrayOfByte; var last_mode : Integer; _length : Integer;
-                      process_Buffer: TArrayOfInteger; var process_p: integer) : Integer;
+function dm200encode(symbol : zint_symbol; source : TArrayOfByte; var target : TArrayOfByte; var last_mode : Integer;
+                    var _length : Integer; process_Buffer: TArrayOfInteger; var process_p: integer) : Integer;
 { Encodes data using ASCII, C40, Text, X12, EDIFACT or Base 256 modes as appropriate }
 { Supports encoding FNC1 in supporting systems }
 var
@@ -836,7 +841,14 @@ begin
   current_mode := DM_ASCII;
   next_mode := DM_ASCII;
 
-  if (symbol.input_mode = GS1_MODE) then gs1 := 1 else gs1 := 0;
+  if ((symbol.input_mode and 7) = GS1_MODE) then begin
+    if (symbol.output_options and GS1_GS_SEPARATOR <> 0) then
+      gs1 := 2
+    else
+      gs1 := 1;
+  end
+  else
+    gs1 := 0;
 
   // manual GS1 encoding with raw data
   if (gs1=0) and (source[0]=232 { FNC1 }) then begin
@@ -864,19 +876,21 @@ begin
     end;
   end;
 
-  if symbol.eci > 3 then begin
+  if symbol.eci > 0 then begin
       { Encode ECI numbers according to Table 6 }
       target[tp] := 241;   // ECI Character
       Inc(tp);
       if symbol.eci <= 126 then begin
           target[tp] := symbol.eci + 1;
           Inc(tp);
+          concat(binary, '  ');
       end;
       if (symbol.eci >= 127) and (symbol.eci <= 16382) then  begin
           target[tp] := ((symbol.eci - 127) div 254) + 128;
           Inc(tp);
           target[tp] := ((symbol.eci - 127) mod 254) + 1;
           Inc(tp);
+          concat(binary, '   ');
       end;
       if symbol.eci >= 16383 then begin
           target[tp] := ((symbol.eci - 16383) div 64516) + 192;
@@ -885,30 +899,32 @@ begin
           Inc(tp);
           target[tp] := ((symbol.eci - 16383) mod 254) + 1;
           Inc(tp);
+          concat(binary, '    ');
       end;
   end;
 
   // Check for Macro05/Macro06
   //     "[)>[RS]05[GS]...[RS][EOT]"  -> CW 236
   //     "[)>[RS]06[GS]...[RS][EOT]"  -> CW 237
-  if (tp = 0) and (sp = 0) and (inputlen > 9)
+  if (tp = 0) and (sp = 0) and (inputlen >= 9)
            and (source[0] = Ord('[')) and (source[1] = Ord(')')) and (source[2] = Ord('>'))
            and (source[3] = $1e {RS}) and (source[4] = Ord('0'))
            and ((source[5] = Ord('5')) or (source[5] = Ord('6')))
            and (source[6] = $1d {GS})
            and (source[inputlen - 2] = $1e {RS}) and (source[inputlen - 1] = $4 {EOT}) then begin
 
-//           and (source[0] = Ord('[')) and (source[1] = Ord(')')) and (source[2] = Ord('>'))
-//           and (source[3] = $1e {RS}) and (source[4] = Ord('0'))
-//           and ((source[5] = Ord('5')) or (source[5] = Ord('6')))
-//           and (source[6] = $1d {GS})
-//           and (source[inputlen - 2] = $1e {RS}) and (source[inputlen - 1] = $4 {EOT}) then begin
+        // Output macro Codeword
+        if (source[5] = Ord('5')) then
+          target[tp] := 236
+        else
+          target[tp] := 237;
+
       inc(tp);
       concat(binary, ' ');
       {* Remove macro characters from input string *}
       sp := 7;
       Dec(inputlen, 2);
-//      *length_p -= 2;
+      Dec(_length, 2);
   end;
 
 
@@ -953,10 +969,15 @@ begin
           end
           else
           begin
-            if ((gs1 <> 0) and (source[sp] = ord('['))) then
-              target[tp] := 232 { FNC1 }
+            if ((gs1 <> 0) and (source[sp] = ord('['))) then begin
+              if gs1 = 2 then
+                target[tp] := 29+1 { GS }
+              else
+                target[tp] := 232; { FNC1 }
+            end
             else
               target[tp] := Ord(source[sp]) + 1;
+
             Inc(tp);
             concat(binary, ' ');
           end;
@@ -1264,8 +1285,7 @@ end;
 function dm200encode_remainder(var target: TArrayOfByte; target_length: integer; const source: TArrayOfByte; const inputlen: integer;
                         const last_mode: integer; const process_Buffer: TArrayOfInteger; const process_p: integer; const symbols_left: integer): Integer;
 var
-  intValue,
-  i        : NativeInt;
+  intValue : NativeInt;
 begin
     case last_mode of
         DM_C40,
@@ -1306,8 +1326,9 @@ begin
                 Inc(target_length);
             end
             else begin
-                target[target_length] := (254);
+                target[target_length] := 254;
                 Inc(target_length); // Unlatch.
+
                 if process_p = 1 then begin
                     target[target_length] := source[inputlen - 1] + 1;
                     Inc(target_length);
@@ -1375,7 +1396,7 @@ var
   skew : Integer;
   binary : TArrayOfByte;
   binlen : Integer;
-  inputlen: Integer;
+//  inputlen: Integer;
 
   process_buffer: TArrayOfInteger;    // holds remaining data to finalised
   process_p: integer;  // number of characters left to finalise
@@ -1393,7 +1414,7 @@ begin
   skew := 0;
   error_number := 0;
 
-  inputlen := _length;
+//  inputlen := _length;
   SetLength(binary, 2200);
   SetLength(process_buffer, 8);
   binlen := dm200encode(symbol, source, binary, last_mode, _length, process_buffer, process_p);
@@ -1450,7 +1471,7 @@ begin
 
   // Now we know the symbol size we can handle the remaining data in the process buffer.
   symbols_left := matrixbytes[symbolsize] - binlen;
-  binlen := dm200encode_remainder(binary, binlen, source, inputlen, last_mode, process_buffer, process_p, symbols_left);
+  binlen := dm200encode_remainder(binary, binlen, source, _length, last_mode, process_buffer, process_p, symbols_left);
 
   if (binlen > matrixbytes[symbolsize]) then begin
       error_number := ZERROR_TOO_LONG;

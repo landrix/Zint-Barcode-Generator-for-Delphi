@@ -3,7 +3,7 @@ object Form46: TForm46
   Top = 0
   Caption = 'ZintTest'
   ClientHeight = 509
-  ClientWidth = 777
+  ClientWidth = 784
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,23 +20,20 @@ object Form46: TForm46
     AlignWithMargins = True
     Left = 3
     Top = 231
-    Width = 771
-    Height = 256
+    Width = 778
+    Height = 259
     Align = alClient
     AutoSize = True
     Center = True
     ParentShowHint = False
     Proportional = True
     ShowHint = False
-    ExplicitLeft = -2
-    ExplicitTop = 175
-    ExplicitHeight = 312
   end
   object lblError: TLabel
     AlignWithMargins = True
     Left = 3
-    Top = 493
-    Width = 771
+    Top = 496
+    Width = 778
     Height = 13
     Align = alBottom
     Alignment = taCenter
@@ -46,22 +43,19 @@ object Form46: TForm46
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
-    ExplicitWidth = 3
   end
   object Splitter1: TSplitter
     Left = 0
     Top = 225
-    Width = 777
+    Width = 784
     Height = 3
     Cursor = crVSplit
     Align = alTop
-    ExplicitTop = 169
-    ExplicitWidth = 321
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 777
+    Width = 784
     Height = 35
     Align = alTop
     BevelOuter = bvNone
@@ -81,6 +75,7 @@ object Form46: TForm46
       Width = 297
       Height = 21
       Style = csDropDownList
+      DropDownCount = 25
       Sorted = True
       TabOrder = 1
       OnChange = comTypeChange
@@ -117,7 +112,7 @@ object Form46: TForm46
   object PageControl1: TPageControl
     Left = 0
     Top = 35
-    Width = 777
+    Width = 784
     Height = 190
     ActivePage = TabSheet1
     Align = alTop
@@ -125,7 +120,7 @@ object Form46: TForm46
     object TabSheet1: TTabSheet
       Caption = 'General Settings'
       DesignSize = (
-        769
+        776
         162)
       object Label3: TLabel
         Left = 279
@@ -250,26 +245,14 @@ object Form46: TForm46
         object TabSheet4: TTabSheet
           Caption = 'Border'
           ImageIndex = 2
-          ExplicitLeft = 0
-          ExplicitTop = 0
-          ExplicitWidth = 0
-          ExplicitHeight = 0
         end
         object TabSheet5: TTabSheet
           Caption = 'TextSpacing'
           ImageIndex = 3
-          ExplicitLeft = 0
-          ExplicitTop = 0
-          ExplicitWidth = 0
-          ExplicitHeight = 0
         end
         object TabSheet6: TTabSheet
           Caption = 'Whitespace'
           ImageIndex = 4
-          ExplicitLeft = 0
-          ExplicitTop = 0
-          ExplicitWidth = 0
-          ExplicitHeight = 0
         end
       end
       object comHAlign: TComboBox
