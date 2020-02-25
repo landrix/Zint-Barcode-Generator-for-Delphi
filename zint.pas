@@ -687,6 +687,9 @@ const
   BARCODE_CODEONE = 141;
   BARCODE_GRIDMATRIX = 142;
 
+  { Output Options  }
+  GS1_GS_SEPARATOR  = 512;
+
 type
   TZintSymbologyInfoEntry = record
     DisplayName : String;
