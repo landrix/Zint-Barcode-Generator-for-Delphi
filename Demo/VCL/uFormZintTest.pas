@@ -3,9 +3,12 @@ unit uFormZintTest;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, zint, Controls,
-  Forms, Dialogs, StdCtrls, ExtCtrls, uRTTIHelper, ComCtrls, TypInfo,
-  uFrameBorderOptions, Vcl.Menus;
+  Winapi.Windows, Winapi.Messages,
+  System.SysUtils, System.Variants, System.Classes,System.TypInfo,
+  Vcl.Graphics, Vcl.Controls,Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Vcl.Menus, Vcl.ComCtrls,Vcl.Printers,
+  uFrameBorderOptions,uFrameOptions,uRTTIHelper,
+  zint,zint_render_wmf, zint_render_canvas, zint_render_svg,zint_helper;
 
 type
   TForm46 = class(TForm)
@@ -77,9 +80,6 @@ var
 implementation
 
 {$R *.dfm}
-
-uses zint_render_wmf, zint_render_canvas, Printers, zint_render_svg,
-  zint_helper, uFrameOptions;
 
 procedure TForm46.btPrintClick(Sender: TObject);
 var

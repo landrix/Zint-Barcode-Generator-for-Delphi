@@ -1,8 +1,8 @@
 object FrameBorderOptions: TFrameBorderOptions
   Left = 0
   Top = 0
-  Width = 451
-  Height = 304
+  Width = 249
+  Height = 139
   Align = alClient
   TabOrder = 0
   object edTop: TEdit

@@ -1285,8 +1285,7 @@ end;
 function dm200encode_remainder(var target: TArrayOfByte; target_length: integer; const source: TArrayOfByte; const inputlen: integer;
                         const last_mode: integer; const process_Buffer: TArrayOfInteger; const process_p: integer; const symbols_left: integer): Integer;
 var
-  intValue,
-  i        : NativeInt;
+  intValue : NativeInt;
 begin
     case last_mode of
         DM_C40,

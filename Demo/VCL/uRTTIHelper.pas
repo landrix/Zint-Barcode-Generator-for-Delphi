@@ -12,12 +12,12 @@ unit uRTTIHelper;
 interface
 
 uses
-  TypInfo,
-  Classes,
-  SysUtils,
-  Variants,
-  StrUtils,
-  Math;
+  System.TypInfo,
+  System.Classes,
+  System.SysUtils,
+  System.Variants,
+  System.StrUtils,
+  System.Math;
 
 
 function rttihGetPropertiesList(AInstance : TObject;
@@ -226,7 +226,7 @@ begin
            ((PropInfoList[idx].PropType^.Kind in AIncludeTypeKinds) and (AIncludeTypeKinds <> [])) or
            ((not (PropInfoList[idx].PropType^.Kind in AExcludeTypeKinds)) and (AExcludeTypeKinds <> [])) then
         begin
-          AList.AddObject(APrefix + PropInfoList[idx].Name, TObject(PropInfoList[idx]));
+          AList.AddObject(APrefix + String(PropInfoList[idx].Name), TObject(PropInfoList[idx]));
 
           Inc(Result);
         end;
@@ -253,7 +253,7 @@ begin
                                      AIncludeTypeKinds,
                                      AExcludeTypeKinds,
                                      ASkipExceptions,
-                                     APrefix + PropInfoList[idx].Name + ADelimiter,
+                                     APrefix + String(PropInfoList[idx].Name) + ADelimiter,
                                      ADelimiter,
                                      AIgnoreClasses);
             end;
@@ -344,6 +344,7 @@ var
   Method : TMethod;
 begin
   Result := null;
+  PropInfo := nil;
 
   PosOfDelim := Pos(ADelimiter, APropertyName);
   if PosOfDelim = 0 then
@@ -372,8 +373,8 @@ begin
     else
       Result := null;
 
-    if (not VarIsNull(Result)) and
-       (PropInfo.PropType^.Kind = tkClass) and
+    if (not VarIsNull(Result)) and (PropInfo <> nil) then
+    if (PropInfo.PropType^.Kind = tkClass) and
        (PosOfDelim < Length(APropertyName)) then
     begin
       Result := rttihGetPropertyValue(TObject(Integer(Result)),
@@ -462,7 +463,7 @@ begin
   Assert(Assigned(AClassInfo) and (AClassinfo.Kind = tkClass), 'Invalid classinfo');
 
   repeat
-    Result := PTypeInfo(AClassInfo).Name + ADelimiter + Result;
+    Result := String(PTypeInfo(AClassInfo).Name) + ADelimiter + Result;
 
     TypeData := GetTypeData(AClassInfo);
     if Assigned(TypeData.ParentInfo) then
@@ -488,7 +489,7 @@ begin
   TypeData := GetTypeData(AClassInfo);
 
   if Assigned(TypeData) then
-    Result := TypeData.UnitName
+    Result := String(TypeData.UnitName)
   else
     Result := EmptyStr;
 end;
@@ -633,16 +634,16 @@ begin
     Inc(PParamFlags(CurParam), 1);
 
     Len := PByte(CurParam)^;
-    Result.Params[idx].Name := PShortString(CurParam)^;
+    Result.Params[idx].Name := String(PShortString(CurParam)^);
     Inc(PChar(CurParam), Len + 1);
 
     Len := PByte(CurParam)^;
-    Result.Params[idx].TypeName := PShortString(CurParam)^;
+    Result.Params[idx].TypeName := String(PShortString(CurParam)^);
     Inc(PChar(CurParam), Len + 1);
   end;
 
   if td.MethodKind in [mkFunction, mkSafeFunction] then
-    Result.ReturnType := PShortString(CurParam)^
+    Result.ReturnType := String(PShortString(CurParam)^)
   else
     Result.ReturnType := '';
 end;
