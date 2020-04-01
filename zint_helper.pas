@@ -100,8 +100,7 @@ begin
   ArrayCopy(Result, AArray);
 end;
 
-procedure ArrayCopy(var ADestination: TArrayOfChar;
-  const ASource: TArrayOfByte; ACount: Integer);
+procedure ArrayCopy(var ADestination: TArrayOfChar; const ASource: TArrayOfByte; ACount: Integer);
 var
   i, j, cnt : Integer;
 begin
@@ -110,7 +109,7 @@ begin
   cnt := 0;
   while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
   begin
-    ADestination[i] := Chr(ASource[j]);
+    ADestination[i] := Char(ASource[j]);
     Inc(i);
     Inc(j);
     Inc(cnt);
@@ -167,8 +166,7 @@ begin
   end;
 end;
 
-procedure Fill(var ADestination: TArrayOfChar; ACount: Integer; AChar: Char;
-  AStartIndex: Integer);
+procedure Fill(var ADestination: TArrayOfChar; ACount: Integer; AChar: Char; AStartIndex: Integer);
 var
   i : Integer;
 begin

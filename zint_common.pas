@@ -56,6 +56,7 @@ procedure uconcat(var ADest : TArrayOfByte; const ASource : String); overload;
 procedure concat(var dest : TArrayOfChar; const source : TArrayOfChar); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: String); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: TArrayOfByte); overload;
+procedure bin_append(const arg, length: integer; binary: TArrayOfChar);
 function ctoi(source : Char) : Integer;
 function itoc(source : Integer) : Char;
 procedure to_upper(var source : TArrayOfByte);
@@ -194,17 +195,40 @@ function ctoi(source : Char) : Integer;
 begin
 	if (source >= '0') and (source <= '9') then
 		result := Ord(source) - Ord('0')
+  else if (source >= 'A') and (source <= 'F') then
+	  result := Ord(source) - Ord('A') + 10
+  else if (source >= 'a') and (source <= 'f') then
+	  result := Ord(source) - Ord('a') + 10
   else
-	  result := Ord(source) - Ord('A') + 10;
+    Result := -1;
 end;
 
 { Converts an integer value to its hexadecimal character }
 function itoc(source : Integer) : Char;
 begin
   if (source >= 0) and (source <= 9) then
-    Result := Chr(Ord('0') + source)
+    Result := Char(Ord('0') + source)
   else
-    Result := Chr(Ord('A') + (source - 10));
+    Result := Char(Ord('A') + (source - 10));
+end;
+
+{* Convert an integer value to a string representing its binary equivalent *}
+procedure bin_append(const arg, length: integer; binary: TArrayOfChar);
+var
+  i: NativeInt;
+  start: NativeInt;
+  posn: Cardinal;
+begin
+  posn := strlen(binary);
+
+  start := 1 shl (length - 1);
+
+  for i := 0 to length - 1 do begin
+    binary[posn + i] := '0';
+    if (arg and (start shr i)) <> 0 then
+      binary[posn + i] := '1';
+  end;
+  binary[posn + length] := #0;
 end;
 
 procedure to_upper(var source : TArrayOfByte);
@@ -261,15 +285,13 @@ begin
 
   for i := 0 to n - 1 do
     if (data = set_string[i]) then
-    begin
-      result := i; exit;
-    end;
-  result := 0; exit;
+      exit(i);
+  result := 0;
 end;
 
 function posn(const ASet_string: String; const AData: Byte): Integer;
 begin
-  Result := posn(StrToArrayOfChar(ASet_string), Chr(AData));
+  Result := posn(StrToArrayOfChar(ASet_string), Char(AData));
 end;
 
 function posn(const ASet_string: String; const AData: Char): Integer;
@@ -290,10 +312,9 @@ begin
 			concat(dest, StrToArrayOfChar(table[i]));
 end;
 
-procedure lookup(const set_string: TArrayOfChar; const table: array of String;
-  const data: Byte; var dest: TArrayOfChar);
+procedure lookup(const set_string: TArrayOfChar; const table: array of String; const data: Byte; var dest: TArrayOfChar);
 begin
-  lookup(set_string, table, Chr(data), dest);
+  lookup(set_string, table, Char(data), dest);
 end;
 
 procedure lookup(const ASet_string : String; const ATable : array of String; const AData : Byte; var ADest : TArrayOfChar);
@@ -301,8 +322,7 @@ begin
   lookup(StrToArrayOfChar(ASet_string), ATable, AData, ADest);
 end;
 
-procedure lookup(const ASet_string: String; const ATable: array of String;
-  const AData: Char; var ADest: TArrayOfChar);
+procedure lookup(const ASet_string: String; const ATable: array of String; const AData: Char; var ADest: TArrayOfChar);
 begin
   lookup(ASet_string, ATable, Ord(AData), ADest);
 end;
