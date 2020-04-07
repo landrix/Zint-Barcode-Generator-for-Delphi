@@ -40,14 +40,14 @@ const
   CANDBB = 99;
 
 // Pascal-specific things
-function strlen(const AString : TArrayOfChar) : Integer;
+function strlen(const AString : TArrayOfChar) : NativeInt;
 procedure strcpy(var target : TArrayOfChar; const source : TArrayOfChar); overload;
 procedure strcpy(var ATarget : TArrayOfChar; const ASource : String); overload;
 
 { The most commonly used set }
 const NEON = '0123456789';
 
-function ustrlen(const data : TArrayOfByte) : Integer;
+function ustrlen(const data : TArrayOfByte) : NativeInt;
 procedure ustrcpy(var target : TArrayOfByte; const source : TArrayOfByte); overload;
 procedure ustrcpy(var ATarget : TArrayOfByte; const ASource : String); overload;
 procedure uconcat(var dest : TArrayOfByte; const source : TArrayOfByte); overload;
@@ -73,9 +73,9 @@ function module_is_set(symbol : zint_symbol; y_coord : Integer; x_coord : Intege
 procedure set_module(symbol : zint_symbol; y_coord : Integer; x_coord : Integer);
 procedure unset_module(symbol : zint_symbol; y_coord : Integer; x_coord : Integer);
 procedure expand(symbol : zint_symbol; data : TArrayOfChar);
-function is_stackable(symbology : Integer) : Integer;
-function is_extendable(symbology : Integer) : Integer;
-function istwodigits(const source : TArrayOfByte; position : Integer) : Integer;
+function is_stackable(symbology : Integer) : Boolean;
+function is_extendable(symbology : Integer) : Boolean;
+function istwodigits(const source : TArrayOfByte; position : Integer) : Boolean;
 function froundup(input : Single) : Single;
 function parunmodd(llyth : Byte) : Integer; overload;
 function parunmodd(llyth : Char) : Integer; overload;
@@ -89,28 +89,21 @@ function nitems(a : TArrayOfInteger) : Integer; overload;
 
 implementation
 
-uses zint_helper;
+uses zint_helper, System.AnsiStrings;
 
-function strlen(const AString: TArrayOfChar): Integer;
-var
-  i : Integer;
+function strlen(const AString: TArrayOfChar): NativeInt;
 begin
-  Result := High(AString) + 1;
-  for i := Low(AString) to High(AString) do
-    if AString[i] = #0 then
-    begin
-      Result := i;
-      break;
-    end;
+  Result := Pos(#0, String(AString)) - 1;
 end;
 
 procedure strcpy(var target: TArrayOfChar; const source: TArrayOfChar);
 var
-  i, len : Integer;
+  len : NativeInt;
 begin
   len := strlen(source);
-  for i := 0 to len - 1 do
-    target[i] := source[i];
+  if len > 0 then
+    Move(Source[0], Target[0], Len * SizeOf(Char));
+
   target[len] := #0;
 end;
 
@@ -120,9 +113,9 @@ begin
 end;
 
 { Local replacement for strlen() with uint8_t strings }
-function ustrlen(const data : TArrayOfByte) : Integer;
+function ustrlen(const data : TArrayOfByte) : NativeInt;
 var
-  i : Integer;
+  i : NativeInt;
 begin
   Result := High(data) - Low(data) + 1;
   for i := Low(data) to High(data) do
@@ -136,11 +129,12 @@ end;
 { Local replacement for strcpy() with uint8_t strings }
 procedure ustrcpy(var target : TArrayOfByte; const source : TArrayOfByte);
 var
-  i, len : Integer;
+  i, len : NativeInt;
 begin
   len := ustrlen(source);
-  for i := 0 to len - 1 do
-    target[i] := source[i];
+  Move(Source, Target, Len);
+//  for i := 0 to len - 1 do
+//    target[i] := source[i];
   target[len] := 0;
 end;
 
@@ -161,7 +155,7 @@ end;
 
 procedure concat(var dest: TArrayOfChar; const source: TArrayOfChar);
 var
-  i, j, n : Integer;
+  i, j, n : NativeInt;
 begin
   j := strlen(dest);
   n := strlen(source);
@@ -172,7 +166,7 @@ end;
 { Concatinates dest[] with the contents of source[], copying /0 as well }
 procedure uconcat(var dest : TArrayOfByte; const source : TArrayOfByte);
 var
-  i, j, n : Integer;
+  i, j, n : NativeInt;
 begin
   j := ustrlen(dest);
   n := ustrlen(source);
@@ -385,47 +379,60 @@ begin
 end;
 
 { Indicates which symbologies can have row binding }
-function is_stackable(symbology : Integer) : Integer;
+function is_stackable(symbology : Integer) : Boolean;
 begin
-  Result := 0;
+  Result := False;
 
-	if(symbology < BARCODE_PDF417) then  Result := 1;
-	if(symbology = BARCODE_CODE128B) then Result := 1;
-	if(symbology = BARCODE_ISBNX) then Result := 1;
-	if(symbology = BARCODE_EAN14) then Result := 1;
-	if(symbology = BARCODE_NVE18) then Result := 1;
-	if(symbology = BARCODE_KOREAPOST) then Result := 1;
-	if(symbology = BARCODE_PLESSEY) then Result := 1;
-	if(symbology = BARCODE_TELEPEN_NUM) then Result := 1;
-	if(symbology = BARCODE_ITF14) then Result := 1;
-	if(symbology = BARCODE_CODE32) then Result := 1;
+	if(symbology < BARCODE_PDF417) then
+    Exit(True);
+	if(symbology = BARCODE_CODE128B) then
+    Exit(True);
+	if(symbology = BARCODE_ISBNX) then
+    Exit(True);
+	if(symbology = BARCODE_EAN14) then
+    Exit(True);
+	if(symbology = BARCODE_NVE18) then
+    Exit(True);
+	if(symbology = BARCODE_KOREAPOST) then
+    Exit(True);
+	if(symbology = BARCODE_PLESSEY) then
+    Exit(True);
+	if(symbology = BARCODE_TELEPEN_NUM) then
+    Exit(True);
+	if(symbology = BARCODE_ITF14) then
+    Exit(True);
+	if(symbology = BARCODE_CODE32) then
+    Exit(True);
 end;
 
 { Indicates which symbols can have addon }
-function is_extendable(symbology : Integer) : Integer;
+function is_extendable(symbology : Integer) : Boolean;
 begin
-  Result := 0;
+  Result := False;
 
-	if (symbology = BARCODE_EANX) then result := 1;
-	if (symbology = BARCODE_UPCA) then result := 1;
-	if (symbology = BARCODE_UPCE) then result := 1;
-	if (symbology = BARCODE_ISBNX) then result := 1;
-	if (symbology = BARCODE_UPCA_CC) then result := 1;
-	if (symbology = BARCODE_UPCE_CC) then result := 1;
-	if (symbology = BARCODE_EANX_CC) then result := 1;
+	if (symbology = BARCODE_EANX) then
+    Exit(True);
+	if (symbology = BARCODE_UPCA) then
+    Exit(True);
+	if (symbology = BARCODE_UPCE) then
+    Exit(True);
+	if (symbology = BARCODE_ISBNX) then
+    Exit(True);
+	if (symbology = BARCODE_UPCA_CC) then
+    Exit(True);
+	if (symbology = BARCODE_UPCE_CC) then
+    Exit(True);
+	if (symbology = BARCODE_EANX_CC) then
+    Exit(True);
 end;
 
-function istwodigits(const source : TArrayOfByte; position : Integer) : Integer;
+function istwodigits(const source : TArrayOfByte; position : Integer) : Boolean;
 begin
   if ((source[position] >= Ord('0')) and (source[position] <= Ord('9'))) then
-  begin
     if ((source[position + 1] >= Ord('0')) and (source[position + 1] <= Ord('9'))) then
-    begin
-      result := 1; exit;
-    end;
-  end;
+      Exit(True);
 
-  result := 0; exit;
+  result := False;
 end;
 
 function froundup(input : Single) : Single;

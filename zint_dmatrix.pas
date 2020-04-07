@@ -938,7 +938,7 @@ begin
     begin
       next_mode := DM_ASCII;
 
-      if (((sp + 1) <{=} inputlen) and (istwodigits(source, sp) <> 0)) then
+      if (((sp + 1) <{=} inputlen) and istwodigits(source, sp)) then
       begin
         target[tp] := (10 * StrToInt(Chr(source[sp]))) + StrToInt(Chr(source[sp + 1])) + 130;
         Inc(tp); concat(binary, ' ');

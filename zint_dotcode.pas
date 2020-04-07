@@ -1056,7 +1056,8 @@ end;
 var
   i: NativeInt;
 begin
-  strcpy(dot_stream, 0);
+//  strcpy(dot_stream, 0);
+  dot_stream[0] := #0;
 
   {* Mask value is encoded as two dots *}
   bin_append(masked_array[0], 2, dot_stream);
@@ -1313,7 +1314,7 @@ begin
     SetLength(dot_array, width * height{ * sizeof(char)});
 
     {* Add pad characters *}
-    padding_dots := n_dots - min_dots; {* get the number of free dots available for padding *}
+    padding_dots := integer(n_dots - min_dots); {* get the number of free dots available for padding *}
     is_first := 1; {* first padding character flag *}
 
     while (padding_dots >= 9) do begin
@@ -1441,10 +1442,10 @@ begin
         dot_stream_length := make_dotstream(masked_codeword_array, (data_length + ecc_length + 1), dot_stream);
 
         {* Add pad bits *}
-//        for jc := dot_stream_length to n_dots - 1 do
-//            strcat(dot_stream, '1');
-//
-//        fold_dotstream(dot_stream, width, height, dot_array);
+        for jc := dot_stream_length to n_dots - 1 do
+            concat(dot_stream, '1');
+
+        fold_dotstream(dot_stream, width, height, dot_array);
     end; {* else *} { the version with the best mask is already in memory }
 
     if debug then begin

@@ -37,6 +37,7 @@ type
     procedure DrawRect(const AParams : TZintDrawRectParams); override;
     procedure DrawHexagon(const AParams : TZintDrawHexagonParams); override;
     procedure DrawRing(const AParams : TZintDrawRingParams); override;
+    procedure DrawRingFull(const AParams : TZintDrawRingParams); override;
     procedure DrawText(const AParams: TZintDrawTextParams); override;
     function CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; override;
     function CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; override;
@@ -152,6 +153,24 @@ begin
                   Round(AParams.y - AParams.OuterRadius + HalfLineWidth),
                   Round(AParams.x + AParams.OuterRadius - HalfLineWidth),
                   Round(AParams.y + AParams.OuterRadius - HalfLineWidth));
+end;
+
+procedure TZintRenderTargetCanvas.DrawRingFull(const AParams: TZintDrawRingParams);
+var
+  HalfRadius: Double;
+begin
+  FCanvas.Brush.Style := bsSolid;
+  FCanvas.Brush.Color := FFGColor;
+  FCanvas.Pen.Width := 0;
+  FCanvas.Pen.Color := FFGColor;
+  FCanvas.Pen.Style := psSolid;
+  HalfRadius := AParams.OuterRadius / 2;
+
+
+  FCanvas.Ellipse(Round(AParams.x - HalfRadius),
+                  Round(AParams.y - HalfRadius),
+                  Round(AParams.x + HalfRadius),
+                  Round(AParams.y + HalfRadius));
 end;
 
 procedure TZintRenderTargetCanvas.DrawText(const AParams: TZintDrawTextParams);

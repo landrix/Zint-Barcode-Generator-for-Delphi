@@ -552,6 +552,7 @@ type
     procedure DrawMaxiRings; virtual;
     procedure DrawMaxiModules; virtual;
     procedure DrawModules; virtual;
+    procedure DrawRings; virtual;
     procedure DrawTexts; virtual;
     procedure RenderStart; virtual;
     procedure RenderStop; virtual;
@@ -563,6 +564,7 @@ type
     procedure DrawRect(const AParams : TZintDrawRectParams); virtual; abstract;
     procedure DrawHexagon(const AParams : TZintDrawHexagonParams); virtual; abstract;
     procedure DrawRing(const AParams : TZintDrawRingParams); virtual; abstract;
+    procedure DrawRingFull(const AParams : TZintDrawRingParams); virtual; abstract;
     procedure DrawText(const AParams : TZintDrawTextParams); virtual; abstract;
     function CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; virtual; abstract;
     function CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; virtual; abstract;
@@ -2939,7 +2941,7 @@ begin
     FText := '';
 
   idx := Pos('+', FText);
-  FHasAddonText := (is_extendable(FSymbol.symbology) <> 0) and (idx > 0);
+  FHasAddonText := is_extendable(FSymbol.symbology) and (idx > 0);
   if FHasAddonText then
   begin
     FAddonText := Copy(FText, idx + 1, Length(FText) - idx);
@@ -3193,7 +3195,7 @@ begin
       BarHeight := FSymbol.row_height[row] * FModuleWidth;
 
     if (row > 0) and ((FSymbol.output_options and (BARCODE_BIND or BARCODE_BIND)) <> 0) and
-       (is_stackable(FSymbol.symbology) <> 0) then
+       is_stackable(FSymbol.symbology) then
     begin
       DRP.X := LX;
       DRP.Y := LY - (FSymbol.border_width * FModuleWidth) / 2;
@@ -3220,6 +3222,58 @@ begin
           HandleSpecialBarsEANUPC(BarIndex, DRP);
 
         DrawRect(DRP);
+        Inc(BarIndex)
+      end;
+
+      Inc(col, block_width);
+      LX := LX + block_width * FModuleWidth;
+      isspace := isspace xor true;
+    until col >= FSymbol.width;
+
+    LY := LY + BarHeight;
+  end;
+end;
+
+procedure TZintCustomRenderTarget.DrawRings;
+var
+  row, col : NativeInt;
+  block_width : NativeInt;
+  isspace : Boolean;
+  LX,LY : Double;
+  DRP : TZintDrawRingParams;
+  BarHeight : Double;
+  BarIndex : NativeInt;
+begin
+  DRP.OuterRadius := FModuleWidth;
+  DRP.InnerRadius := 0;
+
+  LY := FBarcodeRect.Y + DRP.OuterRadius / 2;
+
+  for row := 0 to FSymbol.rows - 1 do
+  begin
+    BarIndex := 0;
+    LX := FBarcodeRect.X + DRP.OuterRadius / 2;
+    col := 0;
+    isspace := module_is_set(FSymbol, row, col) = 0;
+
+    if FSymbol.row_height[row] = 0 then
+      BarHeight := FLargeBarHeight
+    else
+      BarHeight := FSymbol.row_height[row] * FModuleWidth;
+
+    repeat
+      block_width := 0;
+
+      repeat
+        Inc(block_width);
+      until not (module_is_set(FSymbol, row, col + block_width) = module_is_set(FSymbol, row, col));
+
+      if not isspace then
+      begin
+        DRP.X := LX;
+        DRP.Y := LY;
+
+        DrawRingFull(DRP);
         Inc(BarIndex)
       end;
 
@@ -3535,7 +3589,10 @@ begin
   end
   else
   begin
-    DrawModules;
+    if (FSymbol.output_options and BARCODE_DOTTY_MODE) <> 0 then
+      DrawRings
+    else
+      DrawModules;
     if FHasText then
       DrawTexts;
   end;
