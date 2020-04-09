@@ -56,7 +56,7 @@ procedure uconcat(var ADest : TArrayOfByte; const ASource : String); overload;
 procedure concat(var dest : TArrayOfChar; const source : TArrayOfChar); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: String); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: TArrayOfByte); overload;
-procedure bin_append(const arg, length: integer; binary: TArrayOfChar);
+procedure bin_append(const arg, length: NativeInt; binary: TArrayOfChar);
 function ctoi(source : Char) : Integer;
 function itoc(source : Integer) : Char;
 procedure to_upper(var source : TArrayOfByte);
@@ -129,7 +129,7 @@ end;
 { Local replacement for strcpy() with uint8_t strings }
 procedure ustrcpy(var target : TArrayOfByte; const source : TArrayOfByte);
 var
-  i, len : NativeInt;
+  {i,} len : NativeInt;
 begin
   len := ustrlen(source);
   Move(Source, Target, Len);
@@ -207,11 +207,11 @@ begin
 end;
 
 {* Convert an integer value to a string representing its binary equivalent *}
-procedure bin_append(const arg, length: integer; binary: TArrayOfChar);
+procedure bin_append(const arg, length: NativeInt; binary: TArrayOfChar);
 var
   i: NativeInt;
   start: NativeInt;
-  posn: Cardinal;
+  posn: NativeInt;
 begin
   posn := strlen(binary);
 
