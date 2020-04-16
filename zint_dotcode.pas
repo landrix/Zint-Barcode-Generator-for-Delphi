@@ -50,7 +50,7 @@ const
   GF = 113;
   PM = 3;
 
-function get_dot(Dots: TArrayOfChar; Hgt, Wid, x, y: integer): Boolean;
+function get_dot(Dots: TArrayOfChar; Hgt, Wid, x, y: NativeInt): Boolean;
 begin
   Result := False;
 
@@ -58,7 +58,7 @@ begin
     Result := Dots[(y * Wid) + x] = '1';
 end;
 
-function clr_col(var Dots: TArrayOfChar; Hgt, Wid, x: integer): Boolean;
+function clr_col(var Dots: TArrayOfChar; Hgt, Wid, x: NativeInt): Boolean;
 var
   y: NativeInt;
 begin
@@ -73,7 +73,7 @@ begin
   Result := True;
 end;
 
-function clr_row(var Dots: TArrayOfChar; Hgt, Wid, y: Integer): Boolean;
+function clr_row(var Dots: TArrayOfChar; Hgt, Wid, y: NativeInt): Boolean;
 var
   x: NativeInt;
 begin
@@ -90,11 +90,11 @@ end;
 
 
 {* Dot pattern scoring routine from Annex A *}
-function score_array(Dots: TArrayOfChar; Hgt, Wid: Integer): Integer;
+function score_array(Dots: TArrayOfChar; Hgt, Wid: NativeInt): NativeInt;
 var
-  x, y, worstedge, first, last, sum: integer;
-  penalty_local: integer;
-  penalty: integer;
+  x, y, worstedge, first, last, sum: NativeInt;
+  penalty_local: NativeInt;
+  penalty: NativeInt;
 begin
   penalty_local := 0;
   penalty := 0;
