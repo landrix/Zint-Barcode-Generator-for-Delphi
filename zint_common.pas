@@ -40,14 +40,14 @@ const
   CANDBB = 99;
 
 // Pascal-specific things
-function strlen(const AString : TArrayOfChar) : Integer;
+function strlen(const AString : TArrayOfChar) : NativeInt;
 procedure strcpy(var target : TArrayOfChar; const source : TArrayOfChar); overload;
 procedure strcpy(var ATarget : TArrayOfChar; const ASource : String); overload;
 
 { The most commonly used set }
 const NEON = '0123456789';
 
-function ustrlen(const data : TArrayOfByte) : Integer;
+function ustrlen(const data : TArrayOfByte) : NativeInt;
 procedure ustrcpy(var target : TArrayOfByte; const source : TArrayOfByte); overload;
 procedure ustrcpy(var ATarget : TArrayOfByte; const ASource : String); overload;
 procedure uconcat(var dest : TArrayOfByte; const source : TArrayOfByte); overload;
@@ -56,6 +56,7 @@ procedure uconcat(var ADest : TArrayOfByte; const ASource : String); overload;
 procedure concat(var dest : TArrayOfChar; const source : TArrayOfChar); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: String); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: TArrayOfByte); overload;
+procedure bin_append(const arg, length: NativeInt; binary: TArrayOfChar);
 function ctoi(source : Char) : Integer;
 function itoc(source : Integer) : Char;
 procedure to_upper(var source : TArrayOfByte);
@@ -72,9 +73,9 @@ function module_is_set(symbol : zint_symbol; y_coord : Integer; x_coord : Intege
 procedure set_module(symbol : zint_symbol; y_coord : Integer; x_coord : Integer);
 procedure unset_module(symbol : zint_symbol; y_coord : Integer; x_coord : Integer);
 procedure expand(symbol : zint_symbol; data : TArrayOfChar);
-function is_stackable(symbology : Integer) : Integer;
-function is_extendable(symbology : Integer) : Integer;
-function istwodigits(const source : TArrayOfByte; position : Integer) : Integer;
+function is_stackable(symbology : Integer) : Boolean;
+function is_extendable(symbology : Integer) : Boolean;
+function istwodigits(const source : TArrayOfByte; position : Integer) : Boolean;
 function froundup(input : Single) : Single;
 function parunmodd(llyth : Byte) : Integer; overload;
 function parunmodd(llyth : Char) : Integer; overload;
@@ -88,28 +89,21 @@ function nitems(a : TArrayOfInteger) : Integer; overload;
 
 implementation
 
-uses zint_helper;
+uses zint_helper, System.AnsiStrings;
 
-function strlen(const AString: TArrayOfChar): Integer;
-var
-  i : Integer;
+function strlen(const AString: TArrayOfChar): NativeInt;
 begin
-  Result := High(AString) + 1;
-  for i := Low(AString) to High(AString) do
-    if AString[i] = #0 then
-    begin
-      Result := i;
-      break;
-    end;
+  Result := Pos(#0, String(AString)) - 1;
 end;
 
 procedure strcpy(var target: TArrayOfChar; const source: TArrayOfChar);
 var
-  i, len : Integer;
+  len : NativeInt;
 begin
   len := strlen(source);
-  for i := 0 to len - 1 do
-    target[i] := source[i];
+  if len > 0 then
+    Move(Source[0], Target[0], Len * SizeOf(Char));
+
   target[len] := #0;
 end;
 
@@ -119,9 +113,9 @@ begin
 end;
 
 { Local replacement for strlen() with uint8_t strings }
-function ustrlen(const data : TArrayOfByte) : Integer;
+function ustrlen(const data : TArrayOfByte) : NativeInt;
 var
-  i : Integer;
+  i : NativeInt;
 begin
   Result := High(data) - Low(data) + 1;
   for i := Low(data) to High(data) do
@@ -135,11 +129,12 @@ end;
 { Local replacement for strcpy() with uint8_t strings }
 procedure ustrcpy(var target : TArrayOfByte; const source : TArrayOfByte);
 var
-  i, len : Integer;
+  {i,} len : NativeInt;
 begin
   len := ustrlen(source);
-  for i := 0 to len - 1 do
-    target[i] := source[i];
+  Move(Source, Target, Len);
+//  for i := 0 to len - 1 do
+//    target[i] := source[i];
   target[len] := 0;
 end;
 
@@ -160,7 +155,7 @@ end;
 
 procedure concat(var dest: TArrayOfChar; const source: TArrayOfChar);
 var
-  i, j, n : Integer;
+  i, j, n : NativeInt;
 begin
   j := strlen(dest);
   n := strlen(source);
@@ -171,7 +166,7 @@ end;
 { Concatinates dest[] with the contents of source[], copying /0 as well }
 procedure uconcat(var dest : TArrayOfByte; const source : TArrayOfByte);
 var
-  i, j, n : Integer;
+  i, j, n : NativeInt;
 begin
   j := ustrlen(dest);
   n := ustrlen(source);
@@ -194,17 +189,40 @@ function ctoi(source : Char) : Integer;
 begin
 	if (source >= '0') and (source <= '9') then
 		result := Ord(source) - Ord('0')
+  else if (source >= 'A') and (source <= 'F') then
+	  result := Ord(source) - Ord('A') + 10
+  else if (source >= 'a') and (source <= 'f') then
+	  result := Ord(source) - Ord('a') + 10
   else
-	  result := Ord(source) - Ord('A') + 10;
+    Result := -1;
 end;
 
 { Converts an integer value to its hexadecimal character }
 function itoc(source : Integer) : Char;
 begin
   if (source >= 0) and (source <= 9) then
-    Result := Chr(Ord('0') + source)
+    Result := Char(Ord('0') + source)
   else
-    Result := Chr(Ord('A') + (source - 10));
+    Result := Char(Ord('A') + (source - 10));
+end;
+
+{* Convert an integer value to a string representing its binary equivalent *}
+procedure bin_append(const arg, length: NativeInt; binary: TArrayOfChar);
+var
+  i: NativeInt;
+  start: NativeInt;
+  posn: NativeInt;
+begin
+  posn := strlen(binary);
+
+  start := 1 shl (length - 1);
+
+  for i := 0 to length - 1 do begin
+    binary[posn + i] := '0';
+    if (arg and (start shr i)) <> 0 then
+      binary[posn + i] := '1';
+  end;
+  binary[posn + length] := #0;
 end;
 
 procedure to_upper(var source : TArrayOfByte);
@@ -261,15 +279,13 @@ begin
 
   for i := 0 to n - 1 do
     if (data = set_string[i]) then
-    begin
-      result := i; exit;
-    end;
-  result := 0; exit;
+      exit(i);
+  result := 0;
 end;
 
 function posn(const ASet_string: String; const AData: Byte): Integer;
 begin
-  Result := posn(StrToArrayOfChar(ASet_string), Chr(AData));
+  Result := posn(StrToArrayOfChar(ASet_string), Char(AData));
 end;
 
 function posn(const ASet_string: String; const AData: Char): Integer;
@@ -290,10 +306,9 @@ begin
 			concat(dest, StrToArrayOfChar(table[i]));
 end;
 
-procedure lookup(const set_string: TArrayOfChar; const table: array of String;
-  const data: Byte; var dest: TArrayOfChar);
+procedure lookup(const set_string: TArrayOfChar; const table: array of String; const data: Byte; var dest: TArrayOfChar);
 begin
-  lookup(set_string, table, Chr(data), dest);
+  lookup(set_string, table, Char(data), dest);
 end;
 
 procedure lookup(const ASet_string : String; const ATable : array of String; const AData : Byte; var ADest : TArrayOfChar);
@@ -301,8 +316,7 @@ begin
   lookup(StrToArrayOfChar(ASet_string), ATable, AData, ADest);
 end;
 
-procedure lookup(const ASet_string: String; const ATable: array of String;
-  const AData: Char; var ADest: TArrayOfChar);
+procedure lookup(const ASet_string: String; const ATable: array of String; const AData: Char; var ADest: TArrayOfChar);
 begin
   lookup(ASet_string, ATable, Ord(AData), ADest);
 end;
@@ -365,47 +379,60 @@ begin
 end;
 
 { Indicates which symbologies can have row binding }
-function is_stackable(symbology : Integer) : Integer;
+function is_stackable(symbology : Integer) : Boolean;
 begin
-  Result := 0;
+  Result := False;
 
-	if(symbology < BARCODE_PDF417) then  Result := 1;
-	if(symbology = BARCODE_CODE128B) then Result := 1;
-	if(symbology = BARCODE_ISBNX) then Result := 1;
-	if(symbology = BARCODE_EAN14) then Result := 1;
-	if(symbology = BARCODE_NVE18) then Result := 1;
-	if(symbology = BARCODE_KOREAPOST) then Result := 1;
-	if(symbology = BARCODE_PLESSEY) then Result := 1;
-	if(symbology = BARCODE_TELEPEN_NUM) then Result := 1;
-	if(symbology = BARCODE_ITF14) then Result := 1;
-	if(symbology = BARCODE_CODE32) then Result := 1;
+	if(symbology < BARCODE_PDF417) then
+    Exit(True);
+	if(symbology = BARCODE_CODE128B) then
+    Exit(True);
+	if(symbology = BARCODE_ISBNX) then
+    Exit(True);
+	if(symbology = BARCODE_EAN14) then
+    Exit(True);
+	if(symbology = BARCODE_NVE18) then
+    Exit(True);
+	if(symbology = BARCODE_KOREAPOST) then
+    Exit(True);
+	if(symbology = BARCODE_PLESSEY) then
+    Exit(True);
+	if(symbology = BARCODE_TELEPEN_NUM) then
+    Exit(True);
+	if(symbology = BARCODE_ITF14) then
+    Exit(True);
+	if(symbology = BARCODE_CODE32) then
+    Exit(True);
 end;
 
 { Indicates which symbols can have addon }
-function is_extendable(symbology : Integer) : Integer;
+function is_extendable(symbology : Integer) : Boolean;
 begin
-  Result := 0;
+  Result := False;
 
-	if (symbology = BARCODE_EANX) then result := 1;
-	if (symbology = BARCODE_UPCA) then result := 1;
-	if (symbology = BARCODE_UPCE) then result := 1;
-	if (symbology = BARCODE_ISBNX) then result := 1;
-	if (symbology = BARCODE_UPCA_CC) then result := 1;
-	if (symbology = BARCODE_UPCE_CC) then result := 1;
-	if (symbology = BARCODE_EANX_CC) then result := 1;
+	if (symbology = BARCODE_EANX) then
+    Exit(True);
+	if (symbology = BARCODE_UPCA) then
+    Exit(True);
+	if (symbology = BARCODE_UPCE) then
+    Exit(True);
+	if (symbology = BARCODE_ISBNX) then
+    Exit(True);
+	if (symbology = BARCODE_UPCA_CC) then
+    Exit(True);
+	if (symbology = BARCODE_UPCE_CC) then
+    Exit(True);
+	if (symbology = BARCODE_EANX_CC) then
+    Exit(True);
 end;
 
-function istwodigits(const source : TArrayOfByte; position : Integer) : Integer;
+function istwodigits(const source : TArrayOfByte; position : Integer) : Boolean;
 begin
   if ((source[position] >= Ord('0')) and (source[position] <= Ord('9'))) then
-  begin
     if ((source[position + 1] >= Ord('0')) and (source[position + 1] <= Ord('9'))) then
-    begin
-      result := 1; exit;
-    end;
-  end;
+      Exit(True);
 
-  result := 0; exit;
+  result := False;
 end;
 
 function froundup(input : Single) : Single;

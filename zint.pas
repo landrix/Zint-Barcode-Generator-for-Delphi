@@ -46,6 +46,7 @@ type
   TArrayOfCardinal = array of Cardinal;
   TArrayOfWord = array of Word;
   TArrayOfChar = array of Char;
+//  TArrayOfChar = array of AnsiChar;
   TArrayOfArrayOfChar = array of array of Char;
   TArrayOfSmallInt = array of SmallInt;
 
@@ -132,7 +133,8 @@ type
                     zsRSS_EXPSTACK_CC,
                     zsCHANNEL,
                     zsCODEONE,
-                    zsGRIDMATRIX);
+                    zsGRIDMATRIX,
+                    zsDOTCODE);
 
   TZintCustomRenderTarget = class;
   TZintSymbol = class;
@@ -347,6 +349,7 @@ type
     //please use the following vars *ONLY* if you *REALLY* know, what you're doing
     //otherwise use the properties of the RenderTarget or the TZintSymbol.???Options - properties
     symbology : Integer;
+    height: Integer;
     whitespace_width : Integer;
     border_width : Integer;
     output_options : Integer;
@@ -360,6 +363,7 @@ type
     width : Integer;
     primary : TArrayOfChar;
     errtxt : TArrayOfChar;
+    Debug: Boolean;
     encoded_data : array[0..ZINT_ROWS_MAX - 1] of array[0..ZINT_COLS_MAX - 1] of Byte;
     row_height : array[0..ZINT_ROWS_MAX - 1] of Integer; { Largest symbol is 177x177 QR Code }
 
@@ -548,6 +552,7 @@ type
     procedure DrawMaxiRings; virtual;
     procedure DrawMaxiModules; virtual;
     procedure DrawModules; virtual;
+    procedure DrawRings; virtual;
     procedure DrawTexts; virtual;
     procedure RenderStart; virtual;
     procedure RenderStop; virtual;
@@ -559,6 +564,7 @@ type
     procedure DrawRect(const AParams : TZintDrawRectParams); virtual; abstract;
     procedure DrawHexagon(const AParams : TZintDrawHexagonParams); virtual; abstract;
     procedure DrawRing(const AParams : TZintDrawRingParams); virtual; abstract;
+    procedure DrawRingFull(const AParams : TZintDrawRingParams); virtual; abstract;
     procedure DrawText(const AParams : TZintDrawTextParams); virtual; abstract;
     function CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; virtual; abstract;
     function CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; virtual; abstract;
@@ -670,6 +676,10 @@ const
   BARCODE_HIBC_BLOCKF = 110;
   BARCODE_HIBC_AZTEC = 112;
 
+{ Tbarcode 10 codes }
+  BARCODE_DOTCODE = 115;
+//  BARCODE_HANXIN = 116;
+
 { Zint specific  }
   BARCODE_AZRUNE = 128;
   BARCODE_CODE32 = 129;
@@ -689,6 +699,7 @@ const
 
   { Output Options  }
   GS1_GS_SEPARATOR  = 512;
+  BARCODE_DOTTY_MODE = 256;
 
 type
   TZintSymbologyInfoEntry = record
@@ -697,7 +708,7 @@ type
   end;
 
 const
-  ZintSymbologyInfos : array[0..83] of TZintSymbologyInfoEntry =
+  ZintSymbologyInfos : array[0..84] of TZintSymbologyInfoEntry =
      ((DisplayName : 'Code 11'; Symbology : zsCODE11),
       (DisplayName : 'Standard Code 2 of 5'; Symbology : zsC25MATRIX),
       (DisplayName : 'Interleaved 2 of 5'; Symbology : zsC25INTER),
@@ -781,18 +792,21 @@ const
       (DisplayName : 'Composite Symbol with GS1 DataBar Expanded Stacked component'; Symbology : zsRSS_EXPSTACK_CC),
       (DisplayName : 'Channel Code'; Symbology : zsCHANNEL),
       (DisplayName : 'Code One'; Symbology : zsCODEONE),
-      (DisplayName : 'Grid Matrix'; Symbology : zsGRIDMATRIX));
+      (DisplayName : 'Grid Matrix'; Symbology : zsGRIDMATRIX),
+      (DisplayName : 'Dotcode'; Symbology : zsDOTCODE));
 
 
   BARCODE_BIND = 2;
   BARCODE_BOX = 4;
   READER_INIT = 16;
 
+  // Input Data type
   DATA_MODE = 0;
   UNICODE_MODE = 1;
   GS1_MODE = 2;
   KANJI_MODE = 3;
   SJIS_MODE = 4;
+  ESCAPE_MODE = 8;
 
   DM_SQUARE = 100;
   {fs 02/04/2018 added DMRE}
@@ -809,7 +823,8 @@ const
   ZERROR_ENCODING_PROBLEM = 9;
 
   //These are the functions from library.c
-  function gs1_compliant(_symbology : Integer) : Integer;
+  function gs1_compliant(_symbology : Integer) : boolean;
+  function supports_eci(const _symbology: Integer): boolean;
   procedure error_tag(var error_string : TArrayOfChar; error_number : Integer);
   function hibc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
   function extended_charset(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
@@ -826,7 +841,7 @@ uses zint_common, zint_helper, zint_dmatrix,
   zint_aztec, zint_qr, zint_upcean,
   zint_maxicode, zint_auspost, zint_code, zint_medical,
   zint_code16k, zint_code49, zint_pdf417, zint_composite, zint_gridmtx,
-  zint_plessey, zint_code1, zint_telepen, zint_postal, zint_imail, zint_rss;
+  zint_plessey, zint_code1, zint_telepen, zint_postal, zint_imail, zint_rss, zint_dotcode;
 
 const
   TECHNETIUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%';
@@ -921,6 +936,7 @@ begin
     zsCHANNEL : Result := BARCODE_CHANNEL;
     zsCODEONE : Result := BARCODE_CODEONE;
     zsGRIDMATRIX : Result := BARCODE_GRIDMATRIX;
+    zsDOTCODE : Result := BARCODE_DOTCODE;
     else raise Exception.Create('unknown barcode IntToSymbology');
   end;
 end;
@@ -1012,6 +1028,7 @@ begin
     BARCODE_CHANNEL : Result := zsCHANNEL;
     BARCODE_CODEONE : Result := zsCODEONE;
     BARCODE_GRIDMATRIX : Result := zsGRIDMATRIX;
+    BARCODE_DOTCODE : Result := zsDOTCODE;
     else raise Exception.Create('unknown barcode IntToSymbology');
   end;
 end;
@@ -1793,6 +1810,7 @@ begin
   begin
     SourceZS := TZintSymbol(Source);
     symbology := SourceZS.symbology;
+    height := SourceZS.height;
     whitespace_width := SourceZS.whitespace_width;
     border_width := SourceZS.border_width;
     output_options := SourceZS.output_options;
@@ -1820,6 +1838,7 @@ var
   i, j : Integer;
 begin
 	whitespace_width := 0;
+  Height := 0;
   border_width := 0;
   output_options := 0;
 
@@ -2012,7 +2031,7 @@ begin
   begin
 		if (counter < 36) then
     begin
-			check_digit := Chr((counter - 10) + Ord('A'));
+			check_digit := Char((counter - 10) + Ord('A'));
 		end
     else
     begin
@@ -2066,10 +2085,45 @@ begin
 	Result := error_number; exit;
 end;
 
-function gs1_compliant(_symbology : Integer) : Integer;
+procedure check_row_heights(symbol : zint_symbol);
+var
+  large_bar_count: NativeInt;
+  i: NativeInt;
+  preset_height: NativeInt;
+  large_bar_height: NativeInt;
+begin
+
+  {* Check that rows with undefined heights are never less than 5x  *}
+  large_bar_count   := 0;
+  preset_height     := 0;
+  large_bar_height  := 0;
+
+  for i := 0 to symbol.rows - 1 do begin
+    inc(preset_height, symbol.row_height[i]);
+    if symbol.row_height[i] = 0 then
+      inc(large_bar_count);
+  end;
+
+  if large_bar_count = 0 then
+    symbol.height := preset_height
+  else
+    large_bar_height := (symbol.height - preset_height) div large_bar_count;
+
+  if (large_bar_height < 5) then begin
+    for i := 0 to symbol.rows - 1 do begin
+      if symbol.row_height[i] = 0 then begin
+        symbol.row_height[i] := 5;
+        inc(preset_height, 5);
+      end;
+    end;
+    symbol.height := preset_height;
+  end;
+end;
+
+function gs1_compliant(_symbology : Integer) : boolean;
 { Returns 1 if symbology supports GS1 data }
 begin
-  result := 0;
+  result := false;
 
 	case _symbology of
 		BARCODE_EAN128,
@@ -2090,9 +2144,31 @@ begin
 		BARCODE_DATAMATRIX,
 		BARCODE_CODEONE,
 		BARCODE_CODE49,
-		BARCODE_QRCODE:
-			result := 1;
+		BARCODE_QRCODE,
+    BARCODE_DOTCODE:
+			result := True;
 	end;
+end;
+
+
+function supports_eci(const _symbology: Integer): boolean;
+begin
+  {* Returns 1 if symbology can encode the ECI character *}
+  result := false;
+
+	case _symbology of
+    BARCODE_AZTEC,
+    BARCODE_DATAMATRIX,
+    BARCODE_MAXICODE,
+    BARCODE_MICROPDF417,
+    BARCODE_PDF417,
+    BARCODE_PDF417TRUNC,
+    BARCODE_QRCODE,
+    BARCODE_DOTCODE,
+    BARCODE_GRIDMATRIX:
+    {BARCODE_HANXIN:}
+      Result := True;
+  end;
 end;
 
 function extended_charset(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
@@ -2225,9 +2301,10 @@ begin
 		BARCODE_MICROPDF417: error_number := micro_pdf417(symbol, preprocessed, _length);
 		BARCODE_MAXICODE: error_number := maxicode(symbol, preprocessed, _length);
 		BARCODE_AZTEC: error_number := aztec(symbol, preprocessed, _length);
+    BARCODE_DOTCODE: error_number := dotCode(symbol, preprocessed, _length);
   end;
 
-	result := error_number; exit;
+	result := error_number;
 end;
 
 procedure TZintSymbol.Render(ATarget : TZintCustomRenderTarget);
@@ -2255,6 +2332,119 @@ begin
   symbology := SymbologyToInt(Value);
   Changed;
 end;
+
+function escape_char_process(symbol: zint_symbol; input_string: TArrayOfByte; var _length: Integer): integer;
+var
+//  error_number: integer;
+  in_posn, out_posn: integer;
+  hex1, hex2: integer;
+
+//#ifndef _MSC_VER
+//    unsigned char escaped_string[*length + 1];
+//#else
+//    unsigned char* escaped_string = (unsigned char*) _alloca(*length + 1);
+//#endif
+
+  escaped_string: TArrayOfByte;
+begin
+  SetLength(escaped_string, _Length);
+  in_posn := 0;
+  out_posn := 0;
+
+  repeat
+    if (input_string[in_posn] = Byte('\')) then begin
+        case (input_string[in_posn + 1]) of
+            Byte('0'): begin
+                  escaped_string[out_posn] := $00; {* Null *}
+                  inc(in_posn, 2);
+                end;
+            Byte('E'): begin
+                  escaped_string[out_posn] := $04; {* End of Transmission *}
+                  inc(in_posn, 2);
+                end;
+            Byte('a'): begin
+                  escaped_string[out_posn] := $07; {* Bell *}
+                  inc(in_posn, 2);
+                end;
+            Byte('b'): begin
+                  escaped_string[out_posn] := $08; {* Backspace *}
+                  inc(in_posn, 2);
+                end;
+            Byte('t'): begin
+                  escaped_string[out_posn] := $09; {* Horizontal tab *}
+                  inc(in_posn, 2);
+                end;
+            Byte('n'): begin
+                  escaped_string[out_posn] := $0a; {* Line feed *}
+                  inc(in_posn, 2);
+                end;
+            Byte('v'): begin
+                  escaped_string[out_posn] := $0b; {* Vertical tab *}
+                  inc(in_posn, 2);
+                end;
+            Byte('f'): begin
+                  escaped_string[out_posn] := $0c; {* Form feed *}
+                  inc(in_posn, 2);
+                end;
+            Byte('r'): begin
+                  escaped_string[out_posn] := $0d; {* Carriage return *}
+                  inc(in_posn, 2);
+                end;
+            Byte('e'): begin
+                  escaped_string[out_posn] := $1b; {* Escape *}
+                  inc(in_posn, 2);
+                end;
+            Byte('G'): begin
+                  escaped_string[out_posn] := $1d; {* Group Separator *}
+                  inc(in_posn, 2);
+                end;
+            Byte('R'): begin
+                  escaped_string[out_posn] := $1e; {* Record Separator *}
+                  inc(in_posn, 2);
+                end;
+            Byte('x'): begin
+                  if (in_posn + 4 > _length) then begin
+                    strcpy(symbol.errtxt, '232: Incomplete escape character in input data');
+                    exit(ZERROR_INVALID_DATA);
+                  end;
+
+                  hex1 := ctoi(Char(input_string[in_posn + 2]));
+                  hex2 := ctoi(Char(input_string[in_posn + 3]));
+
+                  if ((hex1 >= 0) and (hex2 >= 0)) then begin
+                    escaped_string[out_posn] := (hex1 shl 4) + hex2;
+                    inc(in_posn, 4);
+                  end
+                  else begin
+                    strcpy(symbol.errtxt, '233: Corrupt escape character in input data');
+                    exit(ZERROR_INVALID_DATA);
+                  end;
+                end;
+            Byte('\'): begin
+                  escaped_string[out_posn] := Byte('\');
+                  inc(in_posn, 2);
+                end;
+            else begin
+                strcpy(symbol.errtxt, '234: Unrecognised escape character in input data');
+                exit(ZERROR_INVALID_DATA);
+            end;
+        end;
+    end
+    else begin
+      escaped_string[out_posn] := input_string[in_posn];
+      inc(in_posn);
+    end;
+    inc(out_posn);
+  until in_posn >= _Length;  { while (in_posn < *length) }
+
+  input_string := escaped_string;
+//    memcpy(input_string, escaped_string, out_posn);
+//    input_string[out_posn] = '\0';
+  _length := out_posn;
+
+  result := 0;
+end;
+
 
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
@@ -2301,7 +2491,11 @@ begin
 	if (symbol.symbology = 83) then begin symbol.symbology := BARCODE_PLANET; end;
 	if (symbol.symbology = 88) then begin symbol.symbology := BARCODE_EAN128; end;
 	if (symbol.symbology = 91) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
-	if ((symbol.symbology >= 94) and (symbol.symbology <= 96)) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
+	if ((symbol.symbology >= 94) and (symbol.symbology <= 96)) then begin
+          strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+          symbol.symbology := BARCODE_CODE128;
+          error_number := ZWARN_INVALID_OPTION;
+  end;
 	if (symbol.symbology = 100) then begin symbol.symbology := BARCODE_HIBC_128; end;
 	if (symbol.symbology = 101) then begin symbol.symbology := BARCODE_HIBC_39; end;
 	if (symbol.symbology = 103) then begin symbol.symbology := BARCODE_HIBC_DM; end;
@@ -2309,7 +2503,19 @@ begin
 	if (symbol.symbology = 107) then begin symbol.symbology := BARCODE_HIBC_PDF; end;
 	if (symbol.symbology = 109) then begin symbol.symbology := BARCODE_HIBC_MICPDF; end;
 	if (symbol.symbology = 111) then begin symbol.symbology := BARCODE_HIBC_BLOCKF; end;
-	if ((symbol.symbology >= 113) and (symbol.symbology <= 127)) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
+  if ((symbol.symbology = 113) or (symbol.symbology = 114)) then begin
+          strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+          symbol.symbology := BARCODE_CODE128;
+          error_number := ZWARN_INVALID_OPTION;
+  end;
+
+	if (symbol.symbology = 115) then symbol.symbology := BARCODE_DOTCODE;
+	if ((symbol.symbology >= 117) and (symbol.symbology <= 127)) then begin
+          strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+          symbol.symbology := BARCODE_CODE128;
+          error_number := ZWARN_INVALID_OPTION;
+  end;
+
 	{ Everything from 128 up is Zint-specific }
 	if (symbol.symbology >= 143) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
 	if ((symbol.symbology = BARCODE_CODABLOCKF) or (symbol.symbology = BARCODE_HIBC_BLOCKF)) then begin strcpy(symbol.errtxt, 'Codablock F not supported'); error_number := ZERROR_INVALID_OPTION; end;
@@ -2317,13 +2523,22 @@ begin
 	if (error_number > 4) then
   begin
 		error_tag(symbol.errtxt, error_number);
-		result := error_number; exit;
+    exit(error_number);
 	end
   else
 		error_buffer := error_number;
 
-	if ((symbol.input_mode < 0) or (symbol.input_mode > 2)) then begin symbol.input_mode := DATA_MODE; end;
+  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 3) then begin
+    strcpy(symbol.errtxt, '217: Symbology does not support ECI switching');
+    error_number := ZERROR_INVALID_OPTION;
+  end;
 
+  if (symbol.eci < 3) or (symbol.eci > 999999) then begin
+    strcpy(symbol.errtxt, '218: Invalid ECI mode');
+    error_number := ZERROR_INVALID_OPTION;
+  end;
+
+  {* Start acting on input mode *}
 	if (symbol.input_mode = GS1_MODE) then
   begin
 		for i := 0 to _length - 1 do
@@ -2331,23 +2546,50 @@ begin
 			if (source[i] = 0) then
       begin
 				strcpy(symbol.errtxt, 'NULL characters not permitted in GS1 mode');
-				result := ZERROR_INVALID_DATA; exit;
+				exit(ZERROR_INVALID_DATA);
 			end;
 		end;
-		if (gs1_compliant(symbol.symbology) = 1) then
+		if gs1_compliant(symbol.symbology) then
     begin
 			error_number := ugs1_verify(symbol, source, _length, local_source);
-			if (error_number <> 0) then begin result := error_number; exit; end;
+			if (error_number <> 0) then
+        exit(error_number);
+
 			_length := ustrlen(local_source);
 		end
     else
     begin
 			strcpy(symbol.errtxt, 'Selected symbology does not support GS1 mode');
-			result := ZERROR_INVALID_OPTION; exit;
+			exit(ZERROR_INVALID_OPTION);
     end;
   end
   else
 		local_source := source;
+
+  if (symbol.input_mode and ESCAPE_MODE) > 0 then begin
+      error_number := escape_char_process(symbol, local_source, _length);
+      if error_number <> 0 then
+          error_tag(symbol.errtxt, error_number);
+          Exit(error_number);
+      dec(symbol.input_mode, ESCAPE_MODE);
+  end;
+
+
+	if (symbol.input_mode < 0) or (symbol.input_mode > 2) then
+    symbol.input_mode := DATA_MODE;
+
+  if (symbol.eci <> 3) and (symbol.eci <> 26) then
+    symbol.input_mode := DATA_MODE;
+
+//  if (symbol.input_mode = UNICODE_MODE) then
+//        strip_bom(local_source, &in_length);
+
+//  if ((symbol.dot_size < 0.01) or (symbol.dot_size > 20.0)) then begin
+//    strcpy(symbol.errtxt, '221: Invalid dot size');
+////        error_tag(symbol->errtxt, ZINT_ERROR_INVALID_OPTION);
+//    Exit(ZERROR_INVALID_OPTION);
+//  end;
+
 
 	case symbol.symbology of
 		BARCODE_QRCODE,
@@ -2374,7 +2616,11 @@ begin
 		error_number := error_buffer;
 
 	error_tag(symbol.errtxt, error_number);
-	result := error_number; exit;
+
+  if error_number <= 5 then
+    check_row_heights(symbol);
+
+	result := error_number;
 end;
 
 { TZintCustomRenderTarget }
@@ -2695,7 +2941,7 @@ begin
     FText := '';
 
   idx := Pos('+', FText);
-  FHasAddonText := (is_extendable(FSymbol.symbology) <> 0) and (idx > 0);
+  FHasAddonText := is_extendable(FSymbol.symbology) and (idx > 0);
   if FHasAddonText then
   begin
     FAddonText := Copy(FText, idx + 1, Length(FText) - idx);
@@ -2949,7 +3195,7 @@ begin
       BarHeight := FSymbol.row_height[row] * FModuleWidth;
 
     if (row > 0) and ((FSymbol.output_options and (BARCODE_BIND or BARCODE_BIND)) <> 0) and
-       (is_stackable(FSymbol.symbology) <> 0) then
+       is_stackable(FSymbol.symbology) then
     begin
       DRP.X := LX;
       DRP.Y := LY - (FSymbol.border_width * FModuleWidth) / 2;
@@ -2976,6 +3222,58 @@ begin
           HandleSpecialBarsEANUPC(BarIndex, DRP);
 
         DrawRect(DRP);
+        Inc(BarIndex)
+      end;
+
+      Inc(col, block_width);
+      LX := LX + block_width * FModuleWidth;
+      isspace := isspace xor true;
+    until col >= FSymbol.width;
+
+    LY := LY + BarHeight;
+  end;
+end;
+
+procedure TZintCustomRenderTarget.DrawRings;
+var
+  row, col : NativeInt;
+  block_width : NativeInt;
+  isspace : Boolean;
+  LX,LY : Double;
+  DRP : TZintDrawRingParams;
+  BarHeight : Double;
+  BarIndex : NativeInt;
+begin
+  DRP.OuterRadius := FModuleWidth;
+  DRP.InnerRadius := 0;
+
+  LY := FBarcodeRect.Y + DRP.OuterRadius / 2;
+
+  for row := 0 to FSymbol.rows - 1 do
+  begin
+    BarIndex := 0;
+    LX := FBarcodeRect.X + DRP.OuterRadius / 2;
+    col := 0;
+    isspace := module_is_set(FSymbol, row, col) = 0;
+
+    if FSymbol.row_height[row] = 0 then
+      BarHeight := FLargeBarHeight
+    else
+      BarHeight := FSymbol.row_height[row] * FModuleWidth;
+
+    repeat
+      block_width := 0;
+
+      repeat
+        Inc(block_width);
+      until not (module_is_set(FSymbol, row, col + block_width) = module_is_set(FSymbol, row, col));
+
+      if not isspace then
+      begin
+        DRP.X := LX;
+        DRP.Y := LY;
+
+        DrawRingFull(DRP);
         Inc(BarIndex)
       end;
 
@@ -3291,7 +3589,10 @@ begin
   end
   else
   begin
-    DrawModules;
+    if (FSymbol.output_options and BARCODE_DOTTY_MODE) <> 0 then
+      DrawRings
+    else
+      DrawModules;
     if FHasText then
       DrawTexts;
   end;

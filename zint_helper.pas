@@ -25,14 +25,14 @@ function StrToArrayOfChar(const AString : String) : TArrayOfChar;
 function ArrayOfCharToString(const AArray : TArrayOfChar) : String;
 function ArrayOfCharToArrayOfByte(const AArray : TArrayOfChar) : TArrayOfByte;
 function ArrayOfByteToArrayOfChar(const AArray : TArrayOfByte) : TArrayOfChar;
-procedure ArrayCopy(var ADestination : TArrayOfChar; const ASource : TArrayOfByte; ACount : Integer = MaxInt); overload;
-procedure ArrayCopy(var ADestination : TArrayOfByte; const ASource : TArrayOfChar; ACount : Integer = MaxInt); overload;
-procedure ArrayCopy(var ADestination : TArrayOfChar; const ASource : TArrayOfChar; ACount : Integer = MaxInt); overload;
-procedure ArrayCopy(var ADestination : TArrayOfByte; const ASource : TArrayOfByte; ACount : Integer = MaxInt); overload;
-procedure Fill(var ADestination : TArrayOfChar; ACount : Integer; AChar : Char; AStartIndex : Integer = 0); overload;
-procedure Fill(var ADestination : TArrayOfSmallInt; ACount : Integer; AValue : Smallint; AStartIndex : Integer = 0); overload;
-procedure Fill(var ADestination : TArrayOfInteger; ACount : Integer; AValue : Integer; AStartIndex : Integer = 0); overload;
-procedure Fill(var ADestination : TArrayOfByte; ACount : Integer; AValue : Byte; AStartIndex : Integer = 0); overload;
+procedure ArrayCopy(var ADestination : TArrayOfChar; const ASource : TArrayOfByte; ACount : NativeInt = MaxInt); overload;
+procedure ArrayCopy(var ADestination : TArrayOfByte; const ASource : TArrayOfChar; ACount : NativeInt = MaxInt); overload;
+procedure ArrayCopy(var ADestination : TArrayOfChar; const ASource : TArrayOfChar; ACount : NativeInt = MaxInt); overload;
+procedure ArrayCopy(var ADestination : TArrayOfByte; const ASource : TArrayOfByte; ACount : NativeInt = MaxInt); overload;
+procedure Fill(var ADestination : TArrayOfChar; ACount : NativeInt; AChar : Char; AStartIndex : NativeInt = 0); overload;
+procedure Fill(var ADestination : TArrayOfSmallInt; ACount : NativeInt; AValue : Smallint; AStartIndex : NativeInt = 0); overload;
+procedure Fill(var ADestination : TArrayOfInteger; ACount : NativeInt; AValue : NativeInt; AStartIndex : NativeInt = 0); overload;
+procedure Fill(var ADestination : TArrayOfByte; ACount : NativeInt; AValue : Byte; AStartIndex : NativeInt = 0); overload;
 
 implementation
 
@@ -41,51 +41,52 @@ uses
 
 function StrToArrayOfByte(const AString: String): TArrayOfByte;
 var
-  c : Char;
-  i : Integer;
+  Len : NativeInt;
 begin
-  SetLength(Result, Length(AString) + 1);
-  i := 0;
-  for c in AString do
-  begin
-    Result[i]:=Ord(c);
-    inc(i);
-  end;
-  Result[i] := 0;
+  Len := AString.Length;
+
+  if Len > 0 then
+    {$if CompilerVersion >= 30}
+    Result := TEncoding.ANSI.GetBytes(AString);
+    {$else}
+    Result := @RawByteString(AString)[1];
+    {$endif}
+
+  SetLength(Result, Len + 1); //For terminal #0
+  Result[len] := 0;
 end;
 
 function ArrayOfByteToString(const AArray: TArrayOfByte): String;
 var
-  i : Integer;
+  i, ArrayLen : NativeInt;
 begin
-  Result := '';
+  ArrayLen := ustrlen(AArray);
+  SetLength(Result, ArrayLen);
 
-  for i := Low(AArray) to ustrlen(AArray) - 1 do
-    Result := Result + Chr(AArray[i]);
+  if ArrayLen > 0 then
+    for i := Low(AArray) to ArrayLen - 1 do
+      Result[i + 1] := Chr(AArray[i]);
 end;
 
 function StrToArrayOfChar(const AString: String): TArrayOfChar;
 var
-  i : Integer;
-  c : Char;
+  len : NativeInt;
 begin
-  SetLength(Result, Length(AString) + 1);
-  i := Low(Result);
-  for c in AString do
-  begin
-    Result[i] := c;
-    Inc(i);
-  end;
-  Result[High(Result)] := Chr(0);
+  len := AString.Length;
+  SetLength(Result, len + 1);
+  AString.CopyTo(0, Result[0], 0, len);
+  Result[len] := #0;
 end;
 
 function ArrayOfCharToString(const AArray: TArrayOfChar): String;
 var
-  i : Integer;
+  i, ArrayLen : NativeInt;
 begin
-  Result := '';
-  for i := 0 to strlen(AArray) - 1 do
-    Result := Result + AArray[i];
+  ArrayLen := strlen(AArray);
+  SetLength(Result, ArrayLen);
+
+  for i := 0 to ArrayLen - 1 do
+    Result[i + 1] := AArray[i];
 end;
 
 function ArrayOfCharToArrayOfByte(const AArray: TArrayOfChar): TArrayOfByte;
@@ -100,107 +101,137 @@ begin
   ArrayCopy(Result, AArray);
 end;
 
-procedure ArrayCopy(var ADestination: TArrayOfChar;
-  const ASource: TArrayOfByte; ACount: Integer);
+procedure ArrayCopy(var ADestination: TArrayOfChar; const ASource: TArrayOfByte; ACount: NativeInt);
 var
-  i, j, cnt : Integer;
+//  i, j, cnt : NativeInt;
+  i : NativeInt;
 begin
-  i := Low(ADestination);
-  j := Low(ASource);
-  cnt := 0;
-  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
-  begin
-    ADestination[i] := Chr(ASource[j]);
-    Inc(i);
-    Inc(j);
-    Inc(cnt);
-  end;
+//  i := Low(ADestination);
+//  j := Low(ASource);
+//  cnt := 0;
+
+//  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
+//  begin
+//    ADestination[i] := Char(ASource[j]);
+//    Inc(i);
+//    Inc(j);
+//    Inc(cnt);
+//  end;
+
+  if High(ADestination) < ACount then
+    ACount := High(ADestination);
+
+  if High(ASource) < ACount then
+   ACount := High(ASource);
+
+  for I := Low(ASource) to ACount - 1 do
+    ADestination[i] := Char(ASource[i]);
 end;
 
-procedure ArrayCopy(var ADestination: TArrayOfByte;
-  const ASource: TArrayOfChar; ACount: Integer);
+procedure ArrayCopy(var ADestination: TArrayOfByte; const ASource: TArrayOfChar; ACount: NativeInt);
 var
-  i, j, cnt : Integer;
+//  i, j, cnt : NativeInt;
+  i : NativeInt;
 begin
-  i := Low(ADestination);
-  j := Low(ASource);
-  cnt := 0;
-  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
-  begin
-    ADestination[i] := Ord(ASource[j]);
-    Inc(i);
-    Inc(j);
-    Inc(cnt);
-  end;
+//  i := Low(ADestination);
+//  j := Low(ASource);
+//  cnt := 0;
+//  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
+//  begin
+//    ADestination[i] := Ord(ASource[j]);
+//    Inc(i);
+//    Inc(j);
+//    Inc(cnt);
+//  end;
+
+  if High(ADestination) < ACount then
+    ACount := High(ADestination);
+
+  if High(ASource) < ACount then
+   ACount := High(ASource);
+
+  for I := Low(ASource) to ACount do
+    ADestination[i] := Ord(ASource[i]);   // What happens if Char is > 255 ?
 end;
 
-procedure ArrayCopy(var ADestination: TArrayOfChar;
-  const ASource: TArrayOfChar; ACount: Integer);
-var
-  i, j, cnt : Integer;
+procedure ArrayCopy(var ADestination: TArrayOfChar; const ASource: TArrayOfChar; ACount: NativeInt);
+//var
+//  i, j, cnt : Integer;
 begin
-  i := Low(ADestination);
-  j := Low(ASource);
-  cnt := 0;
-  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
-  begin
-    ADestination[i] := ASource[j];
-    Inc(i);
-    Inc(j);
-    Inc(cnt);
-  end;
+//  i := Low(ADestination);
+//  j := Low(ASource);
+//  cnt := 0;
+//  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
+//  begin
+//    ADestination[i] := ASource[j];
+//    Inc(i);
+//    Inc(j);
+//    Inc(cnt);
+//  end;
+  if High(ADestination) < ACount then
+    ACount := High(ADestination);
+
+  if High(ASource) < ACount then
+    ACount := High(ASource);
+
+  Move(ASource[0], ADestination[0], ACount * SizeOf(Char));
 end;
 
-procedure ArrayCopy(var ADestination : TArrayOfByte; const ASource : TArrayOfByte; ACount : Integer = MaxInt);
-var
-  i, j, cnt : Integer;
+procedure ArrayCopy(var ADestination : TArrayOfByte; const ASource : TArrayOfByte; ACount : NativeInt = MaxInt);
+//var
+//  i, j, cnt : Integer;
 begin
-  i := Low(ADestination);
-  j := Low(ASource);
-  cnt := 0;
-  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
-  begin
-    ADestination[i] := ASource[j];
-    Inc(i);
-    Inc(j);
-    Inc(cnt);
-  end;
+//  i := Low(ADestination);
+//  j := Low(ASource);
+//  cnt := 0;
+//  while (i <= High(ADestination)) and (j <= High(ASource)) and (cnt <= ACount) do
+//  begin
+//    ADestination[i] := ASource[j];
+//    Inc(i);
+//    Inc(j);
+//    Inc(cnt);
+//  end;
+  if High(ADestination) < ACount then
+    ACount := High(ADestination);
+
+  if High(ASource) < ACount then
+    ACount := High(ASource);
+
+  Move(ASource[0], ADestination[0], ACount);
 end;
 
-procedure Fill(var ADestination: TArrayOfChar; ACount: Integer; AChar: Char;
-  AStartIndex: Integer);
-var
-  i : Integer;
+procedure Fill(var ADestination: TArrayOfChar; ACount: NativeInt; AChar: Char; AStartIndex: NativeInt);
+//var
+//  i : NativeInt;
 begin
-  for i := AStartIndex to AStartIndex + ACount - 1 do
-    ADestination[i] := AChar;
+//  for i := AStartIndex to AStartIndex + ACount - 1 do
+//    ADestination[i] := AChar;
+  FillChar(ADestination[AStartIndex], ACount, AChar);
 end;
 
-procedure Fill(var ADestination: TArrayOfSmallInt; ACount: Integer;
-  AValue: Smallint; AStartIndex: Integer);
+procedure Fill(var ADestination: TArrayOfSmallInt; ACount: NativeInt; AValue: Smallint; AStartIndex: NativeInt);
 var
-  i : Integer;
+  i : NativeInt;
 begin
   for i := AStartIndex to AStartIndex + ACount - 1 do
     ADestination[i] := AValue;
 end;
 
-procedure Fill(var ADestination: TArrayOfInteger; ACount: Integer;
-  AValue: Integer; AStartIndex: Integer);
+procedure Fill(var ADestination: TArrayOfInteger; ACount: NativeInt; AValue: NativeInt; AStartIndex: NativeInt);
 var
-  i : Integer;
+  i : NativeInt;
 begin
   for i := AStartIndex to AStartIndex + ACount - 1 do
     ADestination[i] := AValue;
 end;
 
-procedure Fill(var ADestination: TArrayOfByte; ACount: Integer; AValue: Byte;
-  AStartIndex: Integer);
-var
-  i : Integer;
+procedure Fill(var ADestination: TArrayOfByte; ACount: NativeInt; AValue: Byte; AStartIndex: NativeInt);
+//var
+//  i : NativeInt;
 begin
-  for i := AStartIndex to AStartIndex + ACount - 1 do
-    ADestination[i] := AValue;
+//  for i := AStartIndex to AStartIndex + ACount - 1 do
+//    ADestination[i] := AValue;
+  FillChar(ADestination[AStartIndex], ACount, AValue);
 end;
 
 end.

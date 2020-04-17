@@ -448,7 +448,7 @@ begin
 
       if (next_mode = C1_ASCII) then
       begin { Step B3 }
-        if (istwodigits(source, sp) <> 0) and (((sp + 1) <> _length)) then
+        if istwodigits(source, sp) and (((sp + 1) <> _length)) then
         begin
           target[tp] := (10 * ctoi(Chr(source[sp]))) + ctoi(Chr(source[sp + 1])) + 130;
           Inc(tp);
