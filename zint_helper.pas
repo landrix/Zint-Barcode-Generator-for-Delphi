@@ -201,11 +201,7 @@ begin
 end;
 
 procedure Fill(var ADestination: TArrayOfChar; ACount: NativeInt; AChar: Char; AStartIndex: NativeInt);
-//var
-//  i : NativeInt;
 begin
-//  for i := AStartIndex to AStartIndex + ACount - 1 do
-//    ADestination[i] := AChar;
   FillChar(ADestination[AStartIndex], ACount, AChar);
 end;
 
@@ -226,11 +222,7 @@ begin
 end;
 
 procedure Fill(var ADestination: TArrayOfByte; ACount: NativeInt; AValue: Byte; AStartIndex: NativeInt);
-//var
-//  i : NativeInt;
 begin
-//  for i := AStartIndex to AStartIndex + ACount - 1 do
-//    ADestination[i] := AValue;
   FillChar(ADestination[AStartIndex], ACount, AValue);
 end;
 

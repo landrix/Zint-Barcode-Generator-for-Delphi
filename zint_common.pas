@@ -101,7 +101,7 @@ var
   len : NativeInt;
 begin
   len := strlen(source);
-  if len > 0 then
+//  if len > 0 then
     Move(Source[0], Target[0], Len * SizeOf(Char));
 
   target[len] := #0;
@@ -129,13 +129,12 @@ end;
 { Local replacement for strcpy() with uint8_t strings }
 procedure ustrcpy(var target : TArrayOfByte; const source : TArrayOfByte);
 var
-  {i,} len : NativeInt;
+  len : NativeInt;
 begin
   len := ustrlen(source);
-  Move(Source, Target, Len);
-//  for i := 0 to len - 1 do
-//    target[i] := source[i];
-  target[len] := 0;
+
+  target := Copy(Source);
+  target[len] := 0;   // Be sure we have zero terminal
 end;
 
 procedure ustrcpy(var ATarget: TArrayOfByte; const ASource : String);
