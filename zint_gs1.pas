@@ -312,7 +312,7 @@ begin
     reduced[j] := #0;
 
 	{ the character '[' in the reduced string refers to the FNC1 character }
-	result := 0; exit;
+	result := 0;
 end;
 
 function ugs1_verify(symbol : zint_symbol; source : TArrayOfByte; src_len : Integer; var reduced : TArrayOfByte) : Integer;
@@ -322,15 +322,19 @@ var
 begin
   SetLength(temp, src_len + 5);
 	error_number := gs1_verify(symbol, source, src_len, temp);
-	if (error_number <> 0) then begin Result := error_number; exit; end;
-
-	if (strlen(temp) < src_len + 5) then
-  begin
-    ustrcpy(reduced, ArrayOfCharToArrayOfByte(temp));
-		Result := 0; exit;
+	if (error_number <> 0) then begin
+    Result := error_number;
+    exit;
   end;
+
+	if (strlen(temp) < src_len + 5) then begin
+    ustrcpy(reduced, ArrayOfCharToArrayOfByte(temp));
+		Result := 0;
+    exit;
+  end;
+
 	strcpy(symbol.errtxt, 'ugs1_verify overflow');
-	result := ZERROR_INVALID_DATA; exit;
+	result := ZERROR_INVALID_DATA;
 end;
 
 end.
