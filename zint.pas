@@ -3242,7 +3242,7 @@ var
   LX,LY : Double;
   DRP : TZintDrawRingParams;
   BarHeight : Double;
-  BarIndex : NativeInt;
+  //BarIndex : NativeInt;
 begin
   DRP.OuterRadius := FModuleWidth;
   DRP.InnerRadius := 0;
@@ -3251,7 +3251,7 @@ begin
 
   for row := 0 to FSymbol.rows - 1 do
   begin
-    BarIndex := 0;
+    //BarIndex := 0;
     LX := FBarcodeRect.X + DRP.OuterRadius / 2;
     col := 0;
     isspace := module_is_set(FSymbol, row, col) = 0;
@@ -3274,7 +3274,7 @@ begin
         DRP.Y := LY;
 
         DrawRingFull(DRP);
-        Inc(BarIndex)
+        //Inc(BarIndex)
       end;
 
       Inc(col, block_width);

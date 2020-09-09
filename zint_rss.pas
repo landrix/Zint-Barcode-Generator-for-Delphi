@@ -2050,7 +2050,7 @@ begin
         end;
 
         Inc(i, 2);
-        {$IFDEF DEBUG_ZINT} WriteLn();{$ENDIF}
+        {$IFDEF DEBUG_ZINT} WriteLn;{$ENDIF}
         last_mode := NUMERIC;
       end;
 

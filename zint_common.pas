@@ -92,8 +92,16 @@ implementation
 uses zint_helper, System.AnsiStrings;
 
 function strlen(const AString: TArrayOfChar): NativeInt;
+var
+  i : NativeInt;
 begin
-  Result := Pos(#0, String(AString)) - 1;
+  Result := High(AString) - Low(AString) + 1;
+  for i := Low(AString) to High(AString) do
+    if AString[i] = #0 then
+    begin
+      Result := i - Low(AString);
+      break;
+    end;
 end;
 
 procedure strcpy(var target: TArrayOfChar; const source: TArrayOfChar);
@@ -101,7 +109,7 @@ var
   len : NativeInt;
 begin
   len := strlen(source);
-//  if len > 0 then
+  if len > 0 then
     Move(Source[0], Target[0], Len * SizeOf(Char));
 
   target[len] := #0;
@@ -133,7 +141,7 @@ var
 begin
   len := ustrlen(source);
 
-  target := Copy(Source);
+  Move(Source, Target, Len);
   target[len] := 0;   // Be sure we have zero terminal
 end;
 
