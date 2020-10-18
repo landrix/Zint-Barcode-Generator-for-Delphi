@@ -21,18 +21,19 @@ object Form46: TForm46
     Left = 3
     Top = 231
     Width = 778
-    Height = 259
+    Height = 256
     Align = alClient
     AutoSize = True
     Center = True
     ParentShowHint = False
     Proportional = True
     ShowHint = False
+    ExplicitHeight = 259
   end
   object lblError: TLabel
     AlignWithMargins = True
     Left = 3
-    Top = 496
+    Top = 493
     Width = 778
     Height = 13
     Align = alBottom
@@ -43,6 +44,7 @@ object Form46: TForm46
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
+    ExplicitWidth = 3
   end
   object Splitter1: TSplitter
     Left = 0
@@ -75,7 +77,7 @@ object Form46: TForm46
       Width = 297
       Height = 21
       Style = csDropDownList
-      DropDownCount = 25
+      DropDownCount = 35
       Sorted = True
       TabOrder = 1
       OnChange = comTypeChange

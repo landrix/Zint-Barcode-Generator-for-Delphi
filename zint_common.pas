@@ -141,7 +141,7 @@ var
 begin
   len := ustrlen(source);
 
-  Move(Source, Target, Len);
+  Move(Source[0], Target[0], Len);
   target[len] := 0;   // Be sure we have zero terminal
 end;
 

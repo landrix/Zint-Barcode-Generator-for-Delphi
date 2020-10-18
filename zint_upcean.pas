@@ -73,7 +73,6 @@ procedure upca_draw(const source : TArrayOfChar; var dest : TArrayOfChar);
 var
   i, half_way : Cardinal;
 begin { UPC A is usually used for 12 digit numbers, but this function takes a source of any _length }
-
   half_way := strlen(source) div 2;
 
   { start character }
@@ -356,9 +355,9 @@ procedure ean8(symbol : zint_symbol; const source : TArrayOfByte; var dest : TAr
 var
   _length : Integer;
   gtin : TArrayOfChar;
+  gtinAsByte : TArrayOfByte;
 begin { Make an EAN-8 barcode when we haven't been given the check digit }
   { EAN-8 is basically the same as UPC-A but with fewer digits }
-
   SetLength(gtin,10);
 
   strcpy(gtin, ArrayOfByteToArrayOfChar(source));
@@ -366,7 +365,8 @@ begin { Make an EAN-8 barcode when we haven't been given the check digit }
   gtin[_length] := upc_check(gtin);
   gtin[_length + 1] := #0;
   upca_draw(gtin, dest);
-  ustrcpy(symbol.text, ArrayOfCharToArrayOfByte(gtin));
+  gtinAsByte := ArrayOfCharToArrayOfByte(gtin);
+  ustrcpy(symbol.text, gtinAsByte);
 end;
 
 function isbn13_check(const source : TArrayOfChar) : Char; { For ISBN(13) only }

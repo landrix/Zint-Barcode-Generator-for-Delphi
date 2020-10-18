@@ -124,7 +124,7 @@ begin
   if High(ASource) < ACount then
    ACount := High(ASource);
 
-  for I := Low(ASource) to ACount - 1 do
+  for I := Low(ASource) to ACount do
     ADestination[i] := Char(ASource[i]);
 end;
 
