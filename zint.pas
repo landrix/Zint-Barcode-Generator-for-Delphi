@@ -2528,14 +2528,16 @@ begin
   else
 		error_buffer := error_number;
 
-  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 3) then begin
+  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 3) then
+  begin
     strcpy(symbol.errtxt, '217: Symbology does not support ECI switching');
-    error_number := ZERROR_INVALID_OPTION;
+    //comment out never used error_number := ZERROR_INVALID_OPTION;
   end;
 
-  if (symbol.eci < 3) or (symbol.eci > 999999) then begin
+  if (symbol.eci < 3) or (symbol.eci > 999999) then
+  begin
     strcpy(symbol.errtxt, '218: Invalid ECI mode');
-    error_number := ZERROR_INVALID_OPTION;
+    //comment out never used error_number := ZERROR_INVALID_OPTION;
   end;
 
   {* Start acting on input mode *}

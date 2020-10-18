@@ -591,9 +591,14 @@ begin
   { Calculate check digit }
   check := 19 - (sum mod 19);
   if (check = 19) then check := 0;
-  if (check <= 9) then check_char := Chr(check + Ord('0'));
-  if (check = 10) then check_char := '-';
-  if (check >= 11) then check_char := Chr((check - 11) + Ord('a'));
+  if (check <= 9) then
+    check_char := Chr(check + Ord('0'))
+  else
+  if (check = 10) then
+    check_char := '-'
+  else
+  //if (check >= 11) then
+    check_char := Chr((check - 11) + Ord('a'));
   concat(pattern, JapanTable[posn(KASUTSET, check_char)]);
 
   concat(pattern, '31'); { Stop }

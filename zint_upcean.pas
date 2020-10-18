@@ -379,7 +379,7 @@ begin
 
   for i := 0 to h - 1 do
   begin
-    inc(sum, ctoi(source[i]) * weight);
+    inc(sum, ctoi(source[i]) * Integer(weight));
     if (weight = 1) then weight := 3 else weight := 1;
   end;
 
@@ -400,7 +400,7 @@ begin
 
   for i := 0 to h - 1 do
   begin
-    inc(sum, ctoi(source[i]) * weight);
+    inc(sum, ctoi(source[i]) * Integer(weight));
     Inc(weight);
   end;
 
@@ -685,7 +685,7 @@ begin
         Inc(reader);
         Inc(writer);
       end;
-    until not (reader <= ustrlen(local_source));
+    until not (Integer(reader) <= ustrlen(local_source));
   end
   else
     ustrcpy(first_part, local_source);

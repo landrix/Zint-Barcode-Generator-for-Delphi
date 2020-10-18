@@ -1809,8 +1809,11 @@ begin
 
 	latch := 0;
 
-	if(ecc_mode = LEVEL_L) then bits_total := 40;
-	if(ecc_mode = LEVEL_M) then bits_total := 32;
+	case ecc_mode of
+    LEVEL_L : bits_total := 40;
+	  LEVEL_M : bits_total := 32;
+    else exit; //should not happen
+  end;
 
 	// Add terminator
 	bits_left := bits_total - strlen(binary_data);
@@ -1841,8 +1844,11 @@ begin
         concat(binary_data, '11101100');
 	end;
 
-	if(ecc_mode = LEVEL_L) then begin data_codewords := 5; ecc_codewords := 5; end;
-	if(ecc_mode = LEVEL_M) then begin data_codewords := 4; ecc_codewords := 6; end;
+	case ecc_mode of
+    LEVEL_L : begin data_codewords := 5; ecc_codewords := 5; end;
+	  LEVEL_M : begin data_codewords := 4; ecc_codewords := 6; end;
+    else exit; //should not happen
+  end;
 
 	// Copy data into codewords
 	for i := 0 to data_codewords - 1 do
@@ -1882,8 +1888,11 @@ begin
 
 	latch := 0;
 
-	if(ecc_mode = LEVEL_L) then bits_total := 84;
-	if(ecc_mode = LEVEL_M) then bits_total := 68;
+	case ecc_mode of
+    LEVEL_L : bits_total := 84;
+	  LEVEL_M : bits_total := 68;
+    else exit; //should not happen
+  end;
 
 	// Add terminator
 	bits_left := bits_total - strlen(binary_data);
@@ -1930,8 +1939,11 @@ begin
 		concat(binary_data, '0000');
 	end;
 
-	if(ecc_mode = LEVEL_L) then begin data_codewords := 11; ecc_codewords := 6; end;
-	if(ecc_mode = LEVEL_M) then begin data_codewords := 9; ecc_codewords := 8; end;
+	case ecc_mode of
+    LEVEL_L : begin data_codewords := 11; ecc_codewords := 6; end;
+	  LEVEL_M : begin data_codewords := 9; ecc_codewords := 8; end;
+    else exit; //should not happen
+  end;
 
 	// Copy data into codewords
 	for i := 0 to (data_codewords - 1) - 1 do
@@ -1991,9 +2003,12 @@ begin
 
 	latch := 0;
 
-	if(ecc_mode = LEVEL_L) then bits_total := 128;
-	if(ecc_mode = LEVEL_M) then bits_total := 112;
-	if(ecc_mode = LEVEL_Q) then bits_total := 80;
+	case ecc_mode of
+    LEVEL_L : bits_total := 128;
+	  LEVEL_M : bits_total := 112;
+	  LEVEL_Q : bits_total := 80;
+    else exit; //shoud not happend
+  end;
 
 	// Add terminator
 	bits_left := bits_total - strlen(binary_data);
@@ -2026,9 +2041,12 @@ begin
 		end;
   end;
 
-	if(ecc_mode = LEVEL_L) then begin data_codewords := 16; ecc_codewords := 8; end;
-	if(ecc_mode = LEVEL_M) then begin data_codewords := 14; ecc_codewords := 10; end;
-	if(ecc_mode = LEVEL_Q) then begin data_codewords := 10; ecc_codewords := 14; end;
+	case ecc_mode of
+    LEVEL_L : begin data_codewords := 16; ecc_codewords := 8; end;
+	  LEVEL_M : begin data_codewords := 14; ecc_codewords := 10; end;
+	  LEVEL_Q : begin data_codewords := 10; ecc_codewords := 14; end;
+    else exit; //shoud not happend
+  end;
 
 	// Copy data into codewords
 	for i := 0 to data_codewords - 1 do

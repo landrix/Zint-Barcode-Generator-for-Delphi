@@ -52,6 +52,7 @@ type
     function CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; override;
     function CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; override;
     procedure Inflate(const ANewWidth, ANewHeight : Single); override;
+    procedure DrawRingFull(const AParams : TZintDrawRingParams); override;
   public
     constructor Create(ASVGFile: TStringList); reintroduce; virtual;
     procedure Render(ASymbol : TZintSymbol); override;
@@ -145,6 +146,11 @@ begin
                        FFGColor,
                        AParams.OuterRadius-AParams.InnerRadius],FFormatSettings));
 
+end;
+
+procedure TZintRenderTargetSVG.DrawRingFull(const AParams: TZintDrawRingParams);
+begin
+  raise Exception.Create('not implemented');
 end;
 
 procedure TZintRenderTargetSVG.DrawStart;

@@ -81,12 +81,12 @@ begin
   begin
     if (checkptr[i] <> 0) then
       for j := 0 to 8 do
-        checkptr[i+j] := checkptr[i+j] xor grid[j];
+        checkptr[Integer(i)+j] := checkptr[Integer(i)+j] xor grid[j];
   end;
 
   for i := 0 to 7 do
   begin
-    case checkptr[_length * 4 + i] of
+    case checkptr[_length * 4 + Integer(i)] of
       0: concat(dest, '13');
       1: concat(dest, '31');
     end;

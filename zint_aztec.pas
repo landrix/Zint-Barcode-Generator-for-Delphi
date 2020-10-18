@@ -1178,6 +1178,7 @@ begin
   begin { The size of the symbol has been specified by the user }
     if ((reader = 1) and ((symbol.option_2 >= 2) and (symbol.option_2 <= 4))) then
       symbol.option_2 := 5;
+    compact := 1; //prevent compiler warning, the next 3 queries cover all cases.
     if ((symbol.option_2 >= 1) and (symbol.option_2 <= 4)) then
     begin
       compact := 1;
@@ -1195,7 +1196,7 @@ begin
     end;
 
     { Determine codeword bit_length - Table 3 }
-    if ((layers >= 0) and (layers <= 2)) then codeword_size := 6;
+    codeword_size := 6; {if ((layers >= 0) and (layers <= 2))}
     if ((layers >= 3) and (layers <= 8)) then codeword_size := 8;
     if ((layers >= 9) and (layers <= 22)) then codeword_size := 10;
     if (layers >= 23) then codeword_size := 12;

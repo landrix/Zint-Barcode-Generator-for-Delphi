@@ -804,7 +804,7 @@ begin
         while (chunkLen > 0) do
         begin
           Dec(chunkLen);
-          chainemc[mc_length + chunkLen] := Integer(total mod 900);
+          chainemc[mc_length + Int64(chunkLen)] := Integer(total mod 900);
           total := total div 900;
         end;
         Inc(mc_length, 5);

@@ -2435,6 +2435,7 @@ begin
 
   check_char := (211 * ((data_chars + 1) - 4)) + (checksum mod 211);
 
+  c_group := 1;
   if (check_char <= 347) then c_group := 1;
   if ((check_char >= 348) and (check_char <= 1387)) then c_group := 2;
   if ((check_char >= 1388) and (check_char <= 2947)) then c_group := 3;

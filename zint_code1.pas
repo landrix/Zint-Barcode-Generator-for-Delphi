@@ -1215,6 +1215,7 @@ var
   sub_data, sub_ecc : TArrayOfCardinal;
   RSGlobals : TRSGlobals;
 begin
+  sub_version := 3;
   size := 1;
   SetLength(datagrid, 136);
   for i := Low(datagrid) to High(datagrid) do SetLength(datagrid[i], 120);

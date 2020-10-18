@@ -1121,7 +1121,7 @@ begin
           j := 0;
           glyph := 0;
           repeat
-            if (gb2312_lookup[j * 2] = utfdata[i]) then
+            if (Integer(gb2312_lookup[j * 2]) = utfdata[i]) then
               glyph := gb2312_lookup[(j * 2) + 1];
             Inc(j);
           until not ((j < 7445) and (glyph = 0));

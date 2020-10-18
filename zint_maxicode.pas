@@ -692,7 +692,7 @@ begin
   maxi_codeword[5] := ((Ord(postcode[0]) and $03) shl 4) or ((Ord(postcode[1]) and $3c) shr 2);
   maxi_codeword[6] := ((Ord(postcode[0]) and $3c) shr 2) or ((country and $3) shl 4);
   maxi_codeword[7] := (country and $fc) shr 2;
-  maxi_codeword[8] := ((country and $300) shr 8) or ((service and $f) shl 2);
+  maxi_codeword[8] := Integer(((country and $300) shr 8)) or ((service and $f) shl 2);
   maxi_codeword[9] := ((service and $3f0) shr 4);
 end;
 

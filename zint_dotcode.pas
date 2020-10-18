@@ -1314,7 +1314,7 @@ begin
     SetLength(dot_array, width * height{ * sizeof(char)});
 
     {* Add pad characters *}
-    padding_dots := integer(n_dots - min_dots); {* get the number of free dots available for padding *}
+    padding_dots := integer(n_dots) - min_dots; {* get the number of free dots available for padding *}
     is_first := 1; {* first padding character flag *}
 
     while (padding_dots >= 9) do begin
