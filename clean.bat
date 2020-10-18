@@ -13,8 +13,16 @@ del /q /s *.ico
 del /q /s *.otares
 del /q /s *.stat
 rmdir /Q /S .\__history
-rmdir /Q /S Projects\__history
+rmdir /Q /S .\__recovery
 rmdir /Q /S Demo\FMX\__history
+rmdir /Q /S Demo\Lazarus\__history
 rmdir /Q /S Demo\VCL\__history
+rmdir /Q /S Demo\VCL-QR-EPC\__history
+rmdir /Q /S Demo\FMX\__recovery
+rmdir /Q /S Demo\Lazarus\__recovery
+rmdir /Q /S Demo\VCL\__recovery
+rmdir /Q /S Demo\VCL-QR-EPC\__recovery
 rmdir /Q /S Demo\VCL\Win32
 rmdir /Q /S Demo\VCL\Win64
+rmdir /Q /S Demo\VCL-QR-EPC\Win32
+rmdir /Q /S Demo\VCL-QR-EPC\Win64
