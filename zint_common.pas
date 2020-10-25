@@ -89,7 +89,7 @@ function nitems(a : TArrayOfInteger) : Integer; overload;
 
 implementation
 
-uses zint_helper, System.AnsiStrings;
+uses zint_helper{$IFNDEF FPC}, System.AnsiStrings{$ENDIF};
 
 function strlen(const AString: TArrayOfChar): NativeInt;
 var

@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="9"/>
+    <Version Value="12"/>
     <PathDelim Value="\"/>
     <General>
+      <Flags>
+        <CompatibilityMode Value="True"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="ZintTest"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
-      <Icon Value="0"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>
     </i18n>
-    <VersionInfo>
-      <StringTable ProductVersion=""/>
-    </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
     </BuildModes>
@@ -24,9 +22,10 @@
       <Version Value="2"/>
     </PublishOptions>
     <RunParams>
-      <local>
-        <FormatVersion Value="1"/>
-      </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default"/>
+      </Modes>
     </RunParams>
     <RequiredPackages Count="1">
       <Item1>
@@ -37,7 +36,6 @@
       <Unit0>
         <Filename Value="ZintTest.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="ZintTest"/>
       </Unit0>
       <Unit1>
         <Filename Value="uFormZintTest.pas"/>
@@ -45,157 +43,126 @@
         <ComponentName Value="formZintTest"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="uFormZintTest"/>
       </Unit1>
       <Unit2>
         <Filename Value="..\..\zint_helper.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_helper"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\..\zint_2of5.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_2of5"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\..\zint_gs1.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_gs1"/>
       </Unit4>
       <Unit5>
         <Filename Value="..\..\zint_auspost.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_auspost"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\..\zint_code.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_code"/>
       </Unit6>
       <Unit7>
         <Filename Value="..\..\zint_code128.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_code128"/>
       </Unit7>
       <Unit8>
         <Filename Value="..\..\zint_code16k.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_code16k"/>
       </Unit8>
       <Unit9>
         <Filename Value="..\..\zint_composite.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_composite"/>
       </Unit9>
       <Unit10>
         <Filename Value="..\..\zint_pdf417.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_pdf417"/>
       </Unit10>
       <Unit11>
         <Filename Value="..\..\zint.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint"/>
       </Unit11>
       <Unit12>
         <Filename Value="..\..\zint_code49.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_code49"/>
       </Unit12>
       <Unit13>
         <Filename Value="..\..\zint_reedsol.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_reedsol"/>
       </Unit13>
       <Unit14>
         <Filename Value="..\..\zint_gridmtx.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_gridmtx"/>
       </Unit14>
       <Unit15>
         <Filename Value="..\..\zint_gb2312.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_gb2312"/>
       </Unit15>
       <Unit16>
         <Filename Value="..\..\zint_common.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_common"/>
       </Unit16>
       <Unit17>
         <Filename Value="..\..\zint_large.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_large"/>
       </Unit17>
       <Unit18>
         <Filename Value="..\..\zint_plessey.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_plessey"/>
       </Unit18>
       <Unit19>
         <Filename Value="..\..\zint_maxicode.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_maxicode"/>
       </Unit19>
       <Unit20>
         <Filename Value="..\..\zint_aztec.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_aztec"/>
       </Unit20>
       <Unit21>
         <Filename Value="..\..\zint_qr.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_qr"/>
       </Unit21>
       <Unit22>
         <Filename Value="..\..\zint_dmatrix.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_dmatrix"/>
       </Unit22>
       <Unit23>
         <Filename Value="..\..\zint_medical.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_medical"/>
       </Unit23>
       <Unit24>
         <Filename Value="..\..\zint_upcean.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_upcean"/>
       </Unit24>
       <Unit25>
         <Filename Value="..\..\zint_render_canvas.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_render_canvas"/>
       </Unit25>
       <Unit26>
         <Filename Value="..\..\zint_code1.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_code1"/>
       </Unit26>
       <Unit27>
         <Filename Value="..\..\zint_render_bmp.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_render_bmp"/>
       </Unit27>
       <Unit28>
         <Filename Value="..\..\zint_telepen.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_telepen"/>
       </Unit28>
       <Unit29>
         <Filename Value="..\..\zint_postal.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_postal"/>
       </Unit29>
       <Unit30>
         <Filename Value="..\..\zint_imail.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_imail"/>
       </Unit30>
       <Unit31>
         <Filename Value="..\..\zint_rss.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="zint_rss"/>
       </Unit31>
     </Units>
   </ProjectOptions>
@@ -217,12 +184,6 @@
         </Win32>
       </Options>
     </Linking>
-    <Other>
-      <CompilerMessages>
-        <MsgFileName Value=""/>
-      </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="4">

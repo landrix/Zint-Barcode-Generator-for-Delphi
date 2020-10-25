@@ -32,7 +32,7 @@ const
 implementation
 
 uses
-  System.SysUtils, System.Math, zint_reedsol, zint_common;
+  SysUtils, Math, zint_reedsol, zint_common;
 
 const
   MAXBARCODE = 3116;

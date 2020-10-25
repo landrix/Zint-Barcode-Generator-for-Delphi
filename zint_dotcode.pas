@@ -27,7 +27,7 @@ function dotCode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer)
 implementation
 
 uses
-  System.SysUtils, System.Math, Winapi.Windows, zint_reedsol, zint_common;
+  SysUtils, Math, Windows, zint_reedsol, zint_common;
 
 
 {* DotCode symbol character dot patterns, from Annex C *}
@@ -422,8 +422,8 @@ begin
   Result := (source[position] >= 128);
 end;
 
-{* Analyse input data stream and encode using algorithm from Annex F *}
-function dotcode_encode_message(symbol : zint_symbol; const Source: TArrayOfByte; _length: integer; var codeword_array: TArrayOfByte;
+{* Analyse input data stream and encode using algorithm from Annex F *}
+function dotcode_encode_message(symbol : zint_symbol; const Source: TArrayOfByte; _length: integer; var codeword_array: TArrayOfByte;
                                 var binary_finish: NativeInt): Integer;
 var
   input_position, array_length, i: integer;
@@ -1051,8 +1051,8 @@ begin
     Result := array_length;
 end;
 
-{* Convert codewords to binary data stream *}
-function make_dotstream(const masked_array: TArrayOfByte; array_length: integer; dot_stream: TArrayOfChar): Cardinal;
+{* Convert codewords to binary data stream *}
+function make_dotstream(const masked_array: TArrayOfByte; array_length: integer; dot_stream: TArrayOfChar): Cardinal;
 var
   i: NativeInt;
 begin
@@ -1072,8 +1072,8 @@ begin
 end;
 
 
-{* Determines if a given dot is a reserved corner dot
- * to be used by one of the last six bits
+{* Determines if a given dot is a reserved corner dot
+ * to be used by one of the last six bits
  *}
 function is_corner(column, row, width, height: NativeInt): Boolean;
 begin
@@ -1107,8 +1107,8 @@ begin
           Result := True;
 end;
 
-{* Place the dots in the symbol*}
-procedure fold_dotstream(dot_stream: TArrayOfChar; width, height: NativeInt; dot_array: TArrayOfChar);
+{* Place the dots in the symbol*}
+procedure fold_dotstream(dot_stream: TArrayOfChar; width, height: NativeInt; dot_array: TArrayOfChar);
 var
   column, row: NativeInt;
   input_position: NativeInt;
@@ -1177,7 +1177,7 @@ begin
   end;
 end;
 
-
+
 function dotCode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   i, j, k: NativeInt;

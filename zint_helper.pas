@@ -46,11 +46,15 @@ begin
   Len := AString.Length;
 
   if Len > 0 then
+    {$IFNDEF FPC}
     {$if CompilerVersion >= 30}
     Result := TEncoding.ANSI.GetBytes(AString);
     {$else}
     Result := @RawByteString(AString)[1];
     {$endif}
+    {$ELSE}
+    Result := @RawByteString(AString)[1];
+    {$ENDIF}
 
   SetLength(Result, Len + 1); //For terminal #0
   Result[len] := 0;
