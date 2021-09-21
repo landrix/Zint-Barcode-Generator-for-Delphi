@@ -27,8 +27,14 @@ function dotCode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer)
 implementation
 
 uses
-  SysUtils, Math, Windows, zint_reedsol, zint_common;
+  SysUtils, Math, {$IFDEF MSWINDOWS}Windows,{$ENDIF} zint_reedsol, zint_common;
 
+procedure OutputDebugString(const AMessage: string);
+begin
+{$IFDEF MSWINDOWS}
+  Windows.OutputDebugString(AMessage);
+{$ENDIF}
+end;
 
 {* DotCode symbol character dot patterns, from Annex C *}
 const
