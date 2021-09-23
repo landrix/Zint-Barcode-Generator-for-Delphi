@@ -32,7 +32,7 @@ uses
 procedure OutputDebugString(const AMessage: string);
 begin
 {$IFDEF MSWINDOWS}
-  Windows.OutputDebugString(AMessage);
+  Windows.OutputDebugString(PChar(AMessage));
 {$ENDIF}
 end;
 
