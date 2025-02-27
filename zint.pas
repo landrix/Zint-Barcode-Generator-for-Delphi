@@ -256,9 +256,16 @@ type
 
 //  TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144, dms8x18, dms8x32, dms12x26, dms12x36, dms16x36, dms16x48);
   {fs 02/04/2018 added DMRE sizes}
+  {fs 27/02/2025 added DMRE new sizes}
   TdmSize = (dmsAuto, dms10x10, dms12x12, dms14x14, dms16x16, dms18x18, dms20x20, dms22x22, dms24x24, dms26x26, dms32x32, dms36x36, dms40x40, dms44x44, dms48x48, dms52x52, dms64x64, dms72x72, dms80x80, dms88x88, dms96x96, dms104x104, dms120x120, dms132x132, dms144x144,
               dmr8x18, dmr8x32, dmr12x26, dmr12x36, dmr16x36, dmr16x48,
-              dmre8x48, dmre8x64, dmre12x64, dmre16x64, dmre24x48, dmre24x64, dmre26x40, dmre26x48, dmre26x64);
+              dmre8x48, dmre8x64, dmre8x80, dmre8x96 ,dmre8x120, dmre8x144,
+              dmre12x64, dmre12x88,
+              dmre16x64,
+              dmre20x36, dmre20x44, dmre20x64,
+              dmre22x48,
+              dmre24x48, dmre24x64,
+              dmre26x40, dmre26x48, dmre26x64);
 
   { TZintDatamatrixOptions }
 
@@ -325,6 +332,9 @@ type
   { TZintSymbol }
 
   TZintSymbol = class(TZintPersistent)
+  private
+    FNoMinHeightCheck: Boolean;
+    procedure SetNoMinHeightCheck(const Value: Boolean);
   protected
     FMSIPlesseyOptions: TZintMSIPlessyOptions;
     FExtCode39Options: TZintExtCode39Options;
@@ -390,6 +400,8 @@ type
     property MicroQROptions : TZintMicroQROptions read FMicroQROptions;
     property Code1Option : TZintCode1Options read FCode1Options;
     property QRCodeOptions : TZintQRCodeOptions read FQRCodeOptions;
+    /// <summary>If True avoids the correction for the minimal height ==> barcode can be out of specs !</summary>
+    property NoMinHeightCheck: Boolean read FNoMinHeightCheck write SetNoMinHeightCheck;
   end;
 
   zint_symbol = TZintSymbol;
@@ -566,8 +578,8 @@ type
     procedure DrawRing(const AParams : TZintDrawRingParams); virtual; abstract;
     procedure DrawRingFull(const AParams : TZintDrawRingParams); virtual; abstract;
     procedure DrawText(const AParams : TZintDrawTextParams); virtual; abstract;
-    function CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; virtual; abstract;
-    function CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; virtual; abstract;
+    function  CalcTextHeight(const AParams : TZintCalcTextHeightParams) : Single; virtual; abstract;
+    function  CalcTextWidth(const AParams : TZintCalcTextWidthParams) : Single; virtual; abstract;
   public
     constructor Create(AOwner : TPersistent); override;
     destructor Destroy; override;
@@ -2184,7 +2196,7 @@ begin
 		BARCODE_GRIDMATRIX: error_number := grid_matrix(symbol, source, _length);
 	end;
 
-	Result := error_number; exit;
+	Result := error_number;
 end;
 
 function reduced_charset(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
@@ -2327,6 +2339,12 @@ begin
   Writer.WriteInteger(option_3);
 end;
 
+procedure TZintSymbol.SetNoMinHeightCheck(const Value: Boolean);
+begin
+  FNoMinHeightCheck := Value;
+  Changed;
+end;
+
 procedure TZintSymbol.SetSymbology(const Value: TZintSymbology);
 begin
   symbology := SymbologyToInt(Value);
@@ -2466,59 +2484,139 @@ begin
   SetLength(local_source, _length + 1);
 
 	{ First check the symbology field }
-	if (symbol.symbology < 1) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
+	if (symbol.symbology < 1) then begin
+    strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end;
 
 	{ symbol.symbologys 1 to 86 are defined by tbarcode }
-	if (symbol.symbology = 5) then begin symbol.symbology := BARCODE_C25MATRIX; end;
-	if ((symbol.symbology >= 10) and (symbol.symbology <= 12)) then begin symbol.symbology := BARCODE_EANX; end;
-	if ((symbol.symbology = 14) or (symbol.symbology = 15)) then begin symbol.symbology := BARCODE_EANX; end;
-	if (symbol.symbology = 17) then begin symbol.symbology := BARCODE_UPCA; end;
-	if (symbol.symbology = 19) then begin strcpy(symbol.errtxt, 'Codabar 18 not supported, using Codabar'); symbol.symbology := BARCODE_CODABAR; error_number := ZWARN_INVALID_OPTION; end;
-	if (symbol.symbology = 26) then begin symbol.symbology := BARCODE_UPCA; end;
-	if (symbol.symbology = 27) then begin strcpy(symbol.errtxt, 'UPCD1 not supported'); error_number := ZERROR_INVALID_OPTION; end;
-	if (symbol.symbology = 33) then begin symbol.symbology := BARCODE_EAN128; end;
-	if ((symbol.symbology = 35) or (symbol.symbology = 36)) then begin symbol.symbology := BARCODE_UPCA; end;
-	if ((symbol.symbology = 38) or (symbol.symbology = 39)) then begin symbol.symbology := BARCODE_UPCE; end;
-	if ((symbol.symbology >= 41) and (symbol.symbology <= 45)) then begin symbol.symbology := BARCODE_POSTNET; end;
-	if (symbol.symbology = 46) then begin symbol.symbology := BARCODE_PLESSEY; end;
-	if (symbol.symbology = 48) then begin symbol.symbology := BARCODE_NVE18; end;
-	if (symbol.symbology = 54) then begin strcpy(symbol.errtxt, 'General Parcel Code not supported, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
-	if ((symbol.symbology = 59) or (symbol.symbology = 61)) then begin symbol.symbology := BARCODE_CODE128; end;
-	if (symbol.symbology = 62) then begin symbol.symbology := BARCODE_CODE93; end;
-	if ((symbol.symbology = 64) or (symbol.symbology = 65)) then begin symbol.symbology := BARCODE_AUSPOST; end;
-	if (symbol.symbology = 73) then begin strcpy(symbol.errtxt, 'Codablock E not supported'); error_number := ZERROR_INVALID_OPTION; end;
-	if (symbol.symbology = 78) then begin symbol.symbology := BARCODE_RSS14; end;
-	if (symbol.symbology = 83) then begin symbol.symbology := BARCODE_PLANET; end;
-	if (symbol.symbology = 88) then begin symbol.symbology := BARCODE_EAN128; end;
-	if (symbol.symbology = 91) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
-	if ((symbol.symbology >= 94) and (symbol.symbology <= 96)) then begin
-          strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
-          symbol.symbology := BARCODE_CODE128;
-          error_number := ZWARN_INVALID_OPTION;
-  end;
-	if (symbol.symbology = 100) then begin symbol.symbology := BARCODE_HIBC_128; end;
-	if (symbol.symbology = 101) then begin symbol.symbology := BARCODE_HIBC_39; end;
-	if (symbol.symbology = 103) then begin symbol.symbology := BARCODE_HIBC_DM; end;
-	if (symbol.symbology = 105) then begin symbol.symbology := BARCODE_HIBC_QR; end;
-	if (symbol.symbology = 107) then begin symbol.symbology := BARCODE_HIBC_PDF; end;
-	if (symbol.symbology = 109) then begin symbol.symbology := BARCODE_HIBC_MICPDF; end;
-	if (symbol.symbology = 111) then begin symbol.symbology := BARCODE_HIBC_BLOCKF; end;
-  if ((symbol.symbology = 113) or (symbol.symbology = 114)) then begin
-          strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
-          symbol.symbology := BARCODE_CODE128;
-          error_number := ZWARN_INVALID_OPTION;
-  end;
+	if (symbol.symbology = 5) then
+    symbol.symbology := BARCODE_C25MATRIX
 
-	if (symbol.symbology = 115) then symbol.symbology := BARCODE_DOTCODE;
-	if ((symbol.symbology >= 117) and (symbol.symbology <= 127)) then begin
-          strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
-          symbol.symbology := BARCODE_CODE128;
-          error_number := ZWARN_INVALID_OPTION;
-  end;
+	else if ((symbol.symbology >= 10) and (symbol.symbology <= 12)) then
+    symbol.symbology := BARCODE_EANX
+
+	else if ((symbol.symbology = 14) or (symbol.symbology = 15)) then
+    symbol.symbology := BARCODE_EANX
+
+	else if (symbol.symbology = 17) then
+    symbol.symbology := BARCODE_UPCA
+
+	else if (symbol.symbology = 19) then begin
+    strcpy(symbol.errtxt, 'Codabar 18 not supported, using Codabar');
+    symbol.symbology := BARCODE_CODABAR;
+    error_number := ZWARN_INVALID_OPTION;
+  end
+
+	else if (symbol.symbology = 26) then
+    symbol.symbology := BARCODE_UPCA
+
+	else if (symbol.symbology = 27) then begin
+    strcpy(symbol.errtxt, 'UPCD1 not supported');
+    error_number := ZERROR_INVALID_OPTION;
+  end
+
+	else if (symbol.symbology = 33) then
+    symbol.symbology := BARCODE_EAN128
+
+	else if ((symbol.symbology = 35) or (symbol.symbology = 36)) then
+    symbol.symbology := BARCODE_UPCA
+
+	else if ((symbol.symbology = 38) or (symbol.symbology = 39)) then
+    symbol.symbology := BARCODE_UPCE
+
+	else if ((symbol.symbology >= 41) and (symbol.symbology <= 45)) then
+    symbol.symbology := BARCODE_POSTNET
+
+	else if (symbol.symbology = 46) then
+    symbol.symbology := BARCODE_PLESSEY
+
+	else if (symbol.symbology = 48) then
+    symbol.symbology := BARCODE_NVE18
+
+	else if (symbol.symbology = 54) then begin
+    strcpy(symbol.errtxt, 'General Parcel Code not supported, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end
+
+	else if ((symbol.symbology = 59) or (symbol.symbology = 61)) then
+    symbol.symbology := BARCODE_CODE128
+
+	else if (symbol.symbology = 62) then
+    symbol.symbology := BARCODE_CODE93
+
+	else if ((symbol.symbology = 64) or (symbol.symbology = 65)) then
+    symbol.symbology := BARCODE_AUSPOST
+	else if (symbol.symbology = 73) then begin
+    strcpy(symbol.errtxt, 'Codablock E not supported');
+    error_number := ZERROR_INVALID_OPTION;
+  end
+	else if (symbol.symbology = 78) then
+    symbol.symbology := BARCODE_RSS14
+	else if (symbol.symbology = 83) then
+    symbol.symbology := BARCODE_PLANET
+
+	else if (symbol.symbology = 88) then
+    symbol.symbology := BARCODE_EAN128
+
+	else if (symbol.symbology = 91) then begin
+    strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end
+
+	else if ((symbol.symbology >= 94) and (symbol.symbology <= 96)) then begin
+    strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end
+	else if (symbol.symbology = 100) then
+    symbol.symbology := BARCODE_HIBC_128
+
+	else if (symbol.symbology = 101) then
+    symbol.symbology := BARCODE_HIBC_39
+
+	else if (symbol.symbology = 103) then
+    symbol.symbology := BARCODE_HIBC_DM
+
+	else if (symbol.symbology = 105) then
+    symbol.symbology := BARCODE_HIBC_QR
+	else if (symbol.symbology = 107) then
+    symbol.symbology := BARCODE_HIBC_PDF
+	else if (symbol.symbology = 109) then
+    symbol.symbology := BARCODE_HIBC_MICPDF
+
+	else if (symbol.symbology = 111) then
+    symbol.symbology := BARCODE_HIBC_BLOCKF
+
+  else if ((symbol.symbology = 113) or (symbol.symbology = 114)) then begin
+    strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end
+
+//	else if (symbol.symbology = 115) then
+//    symbol.symbology := BARCODE_DOTCODE
+
+	else if ((symbol.symbology >= 117) and (symbol.symbology <= 127)) then begin
+    strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end
 
 	{ Everything from 128 up is Zint-specific }
-	if (symbol.symbology >= 143) then begin strcpy(symbol.errtxt, 'Symbology out of range, using Code 128'); symbol.symbology := BARCODE_CODE128; error_number := ZWARN_INVALID_OPTION; end;
-	if ((symbol.symbology = BARCODE_CODABLOCKF) or (symbol.symbology = BARCODE_HIBC_BLOCKF)) then begin strcpy(symbol.errtxt, 'Codablock F not supported'); error_number := ZERROR_INVALID_OPTION; end;
+	else if (symbol.symbology >= 143) then begin
+    strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
+    symbol.symbology := BARCODE_CODE128;
+    error_number := ZWARN_INVALID_OPTION;
+  end
+
+	else if ((symbol.symbology = BARCODE_CODABLOCKF) or (symbol.symbology = BARCODE_HIBC_BLOCKF)) then begin
+    strcpy(symbol.errtxt, 'Codablock F not supported');
+    error_number := ZERROR_INVALID_OPTION;
+  end;
 
 	if (error_number > 4) then
   begin
@@ -2799,7 +2897,11 @@ begin
     end;
   end;
 
-  FModuleWidth := BarcodeSpace / Modules;
+  try
+    FModuleWidth := BarcodeSpace / Modules;
+  Except       { fs: Division by 0. Note: ExceptionMask can be set differently, depending on loaded Dlls ? }
+    FModuleWidth := FMaxModuleWidth;
+  end;
 
   if (FMaxModuleWidth > 0) and
      (FModuleWidth > FMaxModuleWidth) then
@@ -2878,7 +2980,9 @@ begin
     end;
   end;
 
-  if FHeight > FHeightDesired then
+  if FSymbol.NoMinHeightCheck then
+    FHeight := FHeightDesired
+  else if (FHeight > FHeightDesired) then
   begin
     case FRenderAdjustMode of
       ramInflate:
@@ -2904,8 +3008,7 @@ begin
       end;
     end;
   end
-  else
-  if (FSymbol.symbology <> BARCODE_MAXICODE) and (FLargeBarCount > 0) then
+  else if (FSymbol.symbology <> BARCODE_MAXICODE) and (FLargeBarCount > 0) then
     FHeight := FHeightDesired;
 end;
 
