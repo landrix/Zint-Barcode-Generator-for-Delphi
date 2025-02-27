@@ -906,7 +906,7 @@ begin
     end;
   end;
 
-  if symbol.eci > 3 then begin
+  if symbol.eci > 0 then begin
       { Encode ECI numbers according to Table 6 }
       target[tp] := 241;   // ECI Character
       Inc(tp);
