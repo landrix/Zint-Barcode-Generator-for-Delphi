@@ -27,12 +27,12 @@ function dotCode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer)
 implementation
 
 uses
-  SysUtils, Math, {$IFDEF MSWINDOWS}Windows,{$ENDIF} zint_reedsol, zint_common;
+  System.SysUtils, System.Math, {$IFDEF MSWINDOWS}Winapi.Windows,{$ENDIF} zint_reedsol, zint_common;
 
 procedure OutputDebugString(const AMessage: string);
 begin
 {$IFDEF MSWINDOWS}
-  Windows.OutputDebugString(PChar(AMessage));
+  Winapi.Windows.OutputDebugString(PChar(AMessage));
 {$ENDIF}
 end;
 

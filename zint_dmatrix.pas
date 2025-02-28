@@ -25,14 +25,15 @@ uses
 function dmatrix(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 
   {fs 02/04/2018 added DMRE sizes}
+  {fs 27/02/2025 added DMRE new sizes}
 const
-  NbOfSymbols = 39;
+  NbOfSymbols = 48; {High(TdmSize)}
 
 
 implementation
 
 uses
-  SysUtils, Math, zint_reedsol, zint_common;
+  System.SysUtils, System.Math, zint_reedsol, zint_common;
 
 const
   MAXBARCODE = 3116;
@@ -69,123 +70,6 @@ text_value : array[0..127] of Integer = (
 	15,16,17,18,19,20,21,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,
 	22,23,24,25,26,0,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,27,28,29,30,31 );
 
-intsymbol : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	0,1,3,5,7,8,10,12,13,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,2,4,6,9,11,14 );
-
-     0, {  1: 10x10 ,  3}  1, {  2: 12x12 ,  5}  3, {  3: 14x14 ,  8}  5, {  4: 16x16 , 12}
-     7, {  5: 18x18 , 18}  9, {  6: 20x20 , 22} 12, {  7: 22x22 , 30} 14, {  8: 24x24 , 36}
-    16, {  9: 26x26 , 44} 18, { 10: 32x32 , 62} 22, { 11: 36x36 , 86} 25, { 12: 40x40 ,114}
-    27, { 13: 44x44 ,144} 28, { 14: 48x48 ,174} 29, { 15: 52x52 ,204} 30, { 16: 64x64 ,280}
-    31, { 17: 72x72 ,368} 32, { 18: 80x80 ,456} 33, { 19: 88x88 ,576} 34, { 20: 96x96 ,696}
-    35, { 21:104x104,816} 36, { 22:120x120,1050}37, { 23:132x132,1304}38, { 24:144x144,1558}
-     2, { 25:  8x18 ,  5}  4, { 26:  8x32 , 10}  6, { 27: 12x26 , 16} 10, { 28: 12x36 , 22}
-    13, { 29: 16x36 , 32} 17, { 30: 16x48 , 49}  8, { 31:  8x48 , 18} 11, { 32:  8x64 , 24}
-    15, { 33: 12x64 , 43} 19, { 34: 16x64 , 62} 21, { 35: 24x48 , 80} 24, { 36: 24x64 ,108}
-    20, { 37: 26x40 , 70} 23, { 38: 26x48 , 90} 26 { 39: 26x64 ,118}
-    );
-
-
-
-  {fs 02/04/2018 Is the current code a DMRE code ?
-  This is the case, if intsymbol index >= 30 }
-
-isDMRE : array[0..NbOfSymbols - 1] of Boolean = (
-    { 0} False, {  10x10 ,3 } False, { 12x12 , 5 } False, {  8x18 , 5 } False, { 14x14 , 8 }
-    { 4} False, {  8x32 ,10 } False, { 16x16 ,12 } False, { 12x26 ,16 } False, { 18x18 ,18 }
-    { 8} True, {  8x48 ,18 } False, { 20x20 ,22 } False, { 12x36 ,22 } True, {  8x64 ,24 }
-    {12} False, { 22x22 ,30 } False, { 16x36 ,32 } False, { 24x24 ,36 } True, { 12x64 ,43 }
-    {16} False, { 26x26 ,44 } False, { 16x48 ,49 } False, { 32x32 ,62 } True, { 16x64 ,62 }
-    {20} True, { 26x40 , 70} True, { 24x48 ,80 } False, { 36x36 ,86 } True, { 26x48 ,90 }
-    {24} True, { 24x64 ,108} False, { 40x40 ,114} True, { 26x64 ,118} False, { 44x44 ,144}
-    {28} False, { 48x48 ,174 } False, { 52x52,204 } False, { 64x64,280 } False, { 72x72,368 }
-    {32} False, { 80x80 ,456 } False, { 88x88,576 } False, { 96x96,696 } False, {104x104,816}
-    {36} False, {120x120 ,1050} False, {132x132,1304}False  {144x144,1558}
-    );
-
-  {fs 02/04/2018 Is the current code a rectangle code ?
-  This is the case, if intsymbol index 25 >= < 30 }
-
-isRectangle : array[0..NbOfSymbols - 1] of Boolean = (
-    { 0} False, {  10x10 ,3 } False, { 12x12 , 5 } True, {  8x18 , 5 } False, { 14x14 , 8 }
-    { 4} True, {  8x32 ,10 } False, { 16x16 ,12 } True, { 12x26 ,16 } False, { 18x18 ,18 }
-    { 8} False, {  8x48 ,18 } False, { 20x20 ,22 } True, { 12x36 ,22 } False, {  8x64 ,24 }
-    {12} False, { 22x22 ,30 } True, { 16x36 ,32 } False, { 24x24 ,36 } False, { 12x64 ,43 }
-    {16} False, { 26x26 ,44 } True, { 16x48 ,49 } False, { 32x32 ,62 } False, { 16x64 ,62 }
-    {20} False, { 26x40 , 70} False, { 24x48 ,80 } False, { 36x36 ,86 } False, { 26x48 ,90 }
-    {24} False, { 24x64 ,108} False, { 40x40 ,114} False, { 26x64 ,118} False, { 44x44 ,144}
-    {28} False, { 48x48 ,174 } False, { 52x52,204 } False, { 64x64,280 } False, { 72x72,368 }
-    {32} False, { 80x80 ,456 } False, { 88x88,576 } False, { 96x96,696 } False, {104x104,816}
-    {36} False, {120x120 ,1050} False, {132x132,1304}False  {144x144,1558}
-    );
-
-
-matrixH : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	10, 12, 8, 14, 8, 16, 12, 18, 20, 12, 22, 16, 24, 26, 16, 32, 36, 40, 44, 48,
-//	52, 64, 72, 80, 88, 96, 104, 120, 132, 144 );
-    { 0} 10, { 10x10 , 3 } 12, { 12x12 , 5 } 8, {   8x18 , 5 } 14, { 14x14 , 8 }
-    { 4}  8, {  8x32 ,10 } 16, { 16x16 ,12 } 12, { 12x26 ,16 } 18, { 18x18 ,18 }
-    { 8}  8, {  8x48 ,18 } 20, { 20x20 ,22 } 12, { 12x36 ,22 } 8, {   8x64 ,24 }
-    {12} 22, { 22x22 ,30 } 16, { 16x36 ,32 } 24, { 24x24 ,36 } 12, { 12x64 ,43 }
-    {16} 26, { 26x26 ,44 } 16, { 16x48 ,49 } 32, { 32x32 ,62 } 16, { 16x64 ,62 }
-    {20} 26, { 26x40 , 70} 24, { 24x48 ,80 } 36, { 36x36 ,86 } 26, { 26x48 ,90 }
-    {24} 24, { 24x64 ,108} 40, { 40x40 ,114} 26, { 26x64 ,118} 44, { 44x44 ,144}
-    {28} 48, { 48x48,174 } 52, { 52x52,204 } 64, { 64x64,280 } 72, { 72x72,368 }
-    {32} 80, { 80x80,456 } 88, { 88x88,576 } 96, { 96x96,696 } 104, {104x104,816}
-    {36} 120, {120x120,1050} 132,{132x132,1304}144 {144x144,1558}
-    );
-
-
-matrixW : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	10, 12, 18, 14, 32, 16, 26, 18, 20, 36, 22, 36, 24, 26, 48, 32, 36, 40, 44,
-//	48, 52, 64, 72, 80, 88, 96, 104, 120, 132, 144 );
-    { 0} 10, { 10x10 } 12, { 12x12 } 18, {  8x18 } 14, { 14x14 }
-    { 4} 32, {  8x32 } 16, { 16x16 } 26, { 12x26 } 18, { 18x18 }
-    { 8} 48, {  8x48 } 20, { 20x20 } 36, { 12x36 } 64, {  8x64 }
-    {12} 22, { 22x22 } 36, { 16x36 } 24, { 24x24 } 64, { 12x64 }
-    {16} 26, { 26x26 } 48, { 16x48 } 32, { 32x32 } 64, { 16x64 }
-    {20} 40, { 26x40 } 48, { 24x48 } 36, { 36x36 } 48, { 26x48 }
-    {24} 64, { 24x64 } 40, { 40x40 } 64, { 26x64 } 44, { 44x44 }
-    {28} 48, { 48x48 } 52, { 52x52 } 64, { 64x64 } 72, { 72x72 }
-    {32} 80, { 80x80 } 88, { 88x88 } 96, { 96x96 } 104,{104x104}
-    {36} 120,{120x120}132, {132x132}144  {144x144}
-    );
-
-
-
-matrixFH : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	10, 12, 8, 14, 8, 16, 12, 18, 20, 12, 22, 16, 24, 26, 16, 16, 18, 20, 22, 24,
-//	26, 16, 18, 20, 22, 24, 26, 20, 22, 24 );
-    { 0} 10, { 10x10 } 12, { 12x12 } 8, {   8x18 } 14, { 14x14 }
-    { 4}  8, {  8x32 } 16, { 16x16 } 12, { 12x26 } 18, { 18x18 }
-    { 8}  8, {  8x48 } 20, { 20x20 } 12, { 12x36 }  8, {  8x64 }
-    {12} 22, { 22x22 } 16, { 16x36 } 24, { 24x24 } 12, { 12x64 }
-    {16} 26, { 26x26 } 16, { 16x48 } 16, { 32x32 } 16, { 16x64 }
-    {20} 26, { 26x40 } 24, { 24x48 } 18, { 36x36 } 26, { 26x48 }
-    {24} 24, { 24x64 } 20, { 40x40 } 26, { 26x64 } 22, { 44x44 }
-    {28} 24, { 48x48 } 26, { 52x52 } 16, { 64x64 } 18, { 72x72 }
-    {32} 20, { 80x80 } 22, { 88x88 } 24, { 96x96 } 26, {104x104}
-    {36} 20, {120x120} 22, {132x132} 24  {144x144}
-    );
-
-matrixFW : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	10, 12, 18, 14, 16, 16, 26, 18, 20, 18, 22, 18, 24, 26, 24, 16, 18, 20, 22,
-//	24, 26, 16, 18, 20, 22, 24, 26, 20, 22, 24 );
-    { 0} 10, { 10x10 } 12, { 12x12 } 18, {  8x18 } 14, { 14x14 }
-    { 4} 16, {  8x32 } 16, { 16x16 } 26, { 12x26 } 18, { 18x18 }
-    { 8} 24, {  8x48 } 20, { 20x20 } 18, { 12x36 } 16, {  8x64 }
-    {12} 22, { 22x22 } 18, { 16x36 } 24, { 24x24 } 16, { 12x64 }
-    {16} 26, { 26x26 } 24, { 16x48 } 16, { 32x32 } 16, { 16x64 }
-    {20} 20, { 26x40 } 24, { 24x48 } 18, { 36x36 } 24, { 26x48 }
-    {24} 16, { 24x64 } 20, { 40x40 } 16, { 26x64 } 22, { 44x44 }
-    {28} 24, { 48x48 } 26, { 52x52 } 16, { 64x64 } 18, { 72x72 }
-    {32} 20, { 80x80 } 22, { 88x88 } 24, { 96x96 } 26, {104x104}
-    {36} 20, {120x120} 22, {132x132} 24  {144x144}
-    );
 
 
 matrixbytes : array[0..NbOfSymbols - 1] of NativeInt = (
@@ -195,49 +79,195 @@ matrixbytes : array[0..NbOfSymbols - 1] of NativeInt = (
     { 0}   3, { 10x10 }   5, { 12x12 }   5, {  8x18 }   8, { 14x14 }
     { 4}  10, {  8x32 }  12, { 16x16 }  16, { 12x26 }  18, { 18x18 }
     { 8}  18, {  8x48 }  22, { 20x20 }  22, { 12x36 }  24, {  8x64 }
-    {12}  30, { 22x22 }  32, { 16x36 }  36, { 24x24 }  43, { 12x64 }
-    {16}  44, { 26x26 }  49, { 16x48 }  62, { 32x32 }  62, { 16x64 }
-    {20}  70, { 26x40 }  80, { 24x48 }  86, { 36x36 }  90, { 26x48 }
-    {24} 108, { 24x64 } 114, { 40x40 } 118, { 26x64 } 144, { 44x44 }
-    {28} 174, { 48x48 } 204, { 52x52 } 280, { 64x64 } 368, { 72x72 }
-    {32} 456, { 80x80 } 576, { 88x88 } 696, { 96x96 } 816, {104x104}
-    {36}1050, {120x120}1304, {132x132}1558 {144x144}
+    {12}  30, { 22x22 }  32, { 16x36 }  32, { 8x80 }   36, { 24x24 }
+    {16}  38 {8x96},      43 {12x64},     44 {26x26},     44 {20x36},
+    {20}  49 {16x48},     49 {8x120},     56 {20x44},     62 {32x32},
+    {24}  62 {16x64},     63 {8x144},     64 {12x88},     70 {26x40},
+    {28}  72 {22x48},     80 {24x48},     84 {20x64},     86 {36x36},
+    {32}  90 {26x48},    108 {24x64},    114 {40x40},    118 {26x64},
+    {36} 144 {44x44},    174 {48x48},    204 {52x52},    280 {64x64},
+    {40} 368 {72x72},    456 {80x80},    576 {88x88},    696 {96x96},
+    {44} 816 {104x104}, 1050 {120x120}, 1304 {132x132}, 1558 {144x144}
     );
 
 
-// Total Data Codewords
+{* Index into `dm_matrixbytes` array in `symbol->option_2` (CLI `--vers`) order,
+   i.e. square symbols first, then standard rectangular, then DMRE.
+   The bracketed comment value is the total data codewords value. *}
+
+intsymbol : array[0..NbOfSymbols - 1] of NativeInt = (
+//
+//     0, {  1: 10x10 ,  3}  1, {  2: 12x12 ,  5}  3, {  3: 14x14 ,  8}  5, {  4: 16x16 , 12}
+//     7, {  5: 18x18 , 18}  9, {  6: 20x20 , 22} 12, {  7: 22x22 , 30} 14, {  8: 24x24 , 36}
+//    16, {  9: 26x26 , 44} 18, { 10: 32x32 , 62} 22, { 11: 36x36 , 86} 25, { 12: 40x40 ,114}
+//    27, { 13: 44x44 ,144} 28, { 14: 48x48 ,174} 29, { 15: 52x52 ,204} 30, { 16: 64x64 ,280}
+//    31, { 17: 72x72 ,368} 32, { 18: 80x80 ,456} 33, { 19: 88x88 ,576} 34, { 20: 96x96 ,696}
+//    35, { 21:104x104,816} 36, { 22:120x120,1050}37, { 23:132x132,1304}38, { 24:144x144,1558}
+//     2, { 25:  8x18 ,  5}  4, { 26:  8x32 , 10}  6, { 27: 12x26 , 16} 10, { 28: 12x36 , 22}
+//    13, { 29: 16x36 , 32} 17, { 30: 16x48 , 49}  8, { 31:  8x48 , 18} 11, { 32:  8x64 , 24}
+//    15, { 33: 12x64 , 43} 19, { 34: 16x64 , 62} 21, { 35: 24x48 , 80} 24, { 36: 24x64 ,108}
+//    20, { 37: 26x40 , 70} 23, { 38: 26x48 , 90} 26 { 39: 26x64 ,118}
+//    );
+
+    { Standard DM square }
+    {  1-4}  0 {10x10 (3)},      1 {12x12 (5)},       3 {14x14 (8)},       5 {16x16 (12)},
+    {  5-8}  7 {18x18 (18)},     9 {20x20 (22)},     12 {22x22 (30)},     15 {24x24 (36)},
+    { 9-12} 18 {26x26 (44)},    23 {32x32 (62)},     31 {36x36 (86)},     34 {40x40 (114)},
+    {13-16} 36 {44x44 (144)},   37 {48x48 (174)},    38 {52x52 (204)},    39 {64x64 (280)},
+    {17-20} 40 {72x72 (368)},   41 {80x80 (456)},    42 {88x88 (576)},    43 {96x96 (696)},
+    {21-24} 44 {104x104 (816)}, 45 {120x120 (1050)}, 46 {132x132 (1304)}, 47 {144x144 (1558)},
+
+    { Standard DM rectangular }
+    {25-28}  2 {8x18 (5)},       4 {8x32 (10)},       6 {12x26 (16)},     10 {12x36 (22)},
+    {29-30} 13 {16x36 (32)},    20 {16x48 (49)},
+
+    { DMRE }
+    {31-34}  8 {8x48 (18)},     11 {8x64 (24)},      14 {8x80 (32)},      16 {8x96 (38)},
+    {35-38} 21 {8x120 (49)},    25 {8x144 (63)},     17 {12x64 (43)},     26 {12x88 (64)},
+    {39-42} 24 {16x64 (62)},    19 {20x36 (44)},     22 {20x44 (56)},     30 {20x64 (84)},
+    {43-46} 28 {22x48 (72)},    29 {24x48 (80)},     33 {24x64 (108)},    27 {26x40 (70)},
+    {47-48} 32 {26x48 (90)},    35 {26x64 (118)}
+  );
+
+{* Following arrays in total data codewords order (`dm_matrixbytes`) *}
+
+
+
+
+{* Whether the version is DMRE *}
+{* This is the case, if intsymbol index >= 30 }
+isDMRE : array[0..NbOfSymbols - 1] of Boolean = (
+    { 0} False {10x10 (3)},     False {12x12 (5)},      False {8x18 (5)},       False {14x14 (8)},
+    { 4} False {8x32 (10)},     False {16x16 (12)},     False {12x26 (16)},     False {18x18 (18)},
+    { 8} True {8x48 (18)},      False {20x20 (22)},     False {12x36 (22)},     True {8x64 (24)},
+    {12} False {22x22 (30)},    False {16x36 (32)},     True {8x80 (32)},       False {24x24 (36)},
+    {16} True {8x96 (38)},      True {12x64 (43)},      False {26x26 (44)},     True {20x36 (44)},
+    {20} False {16x48 (49)},    True {8x120 (49)},      True {20x44 (56)},      False {32x32 (62)},
+    {24} True{16x64 (62)},      True {8x144 (63)},      True {12x88 (64)},      True {26x40 (70)},
+    {28} True {22x48 (72)},     True {24x48 (80)},      True {20x64 (84)},      False {36x36 (86)},
+    {32} True {26x48 (90)},     True {24x64 (108)},     False {40x40 (114)},    True {26x64 (118)},
+    {36} False {44x44 (144)},   False {48x48 (174)},    False {52x52 (204)},    False {64x64 (280)},
+    {40} False {72x72 (368)},   False {80x80 (456)},    False {88x88 (576)},    False {96x96 (696)},
+    {44} False {104x104 (816)}, False {120x120 (1050)}, False {132x132 (1304)}, False {144x144 (1558)}
+    );
+
+
+  {fs 02/04/2018 Is the current code a rectangle code ?
+  This is the case, if intsymbol index 25 >= < 30 }
+isRectangle : array[0..NbOfSymbols - 1] of Boolean = (
+    { 0} False {10x10 (3)},     False {12x12 (5)},      True {8x18 (5)},       False {14x14 (8)},
+    { 4} True {8x32 (10)},      False {16x16 (12)},     True {12x26 (16)},     False {18x18 (18)},
+    { 8} True {8x48 (18)},      False {20x20 (22)},     True {12x36 (22)},     True {8x64 (24)},
+    {12} False {22x22 (30)},    True {16x36 (32)},     True {8x80 (32)},       False {24x24 (36)},
+    {16} True {8x96 (38)},      True {12x64 (43)},      False {26x26 (44)},     True {20x36 (44)},
+    {20} True {16x48 (49)},     True {8x120 (49)},      True {20x44 (56)},      False {32x32 (62)},
+    {24} True{16x64 (62)},      True {8x144 (63)},      True {12x88 (64)},      True {26x40 (70)},
+    {28} True {22x48 (72)},     True {24x48 (80)},      True {20x64 (84)},      False {36x36 (86)},
+    {32} True {26x48 (90)},     True {24x64 (108)},     False {40x40 (114)},    True {26x64 (118)},
+    {36} False {44x44 (144)},   False {48x48 (174)},    False {52x52 (204)},    False {64x64 (280)},
+    {40} False {72x72 (368)},   False {80x80 (456)},    False {88x88 (576)},    False {96x96 (696)},
+    {44} False {104x104 (816)}, False {120x120 (1050)}, False {132x132 (1304)}, False {144x144 (1558)}
+    );
+
+
+{* Horizontal matrix size *}
+matrixH : array[0..NbOfSymbols - 1] of NativeInt = (
+    { 0}  10 {10x10},    12 {12x12 },    8 {8x18},     14 {14x14},
+    { 4}   8 {8x32},     16 {16x16},    12 {12x26},    18 {18x18},
+    { 8}   8 {8x48},     20 {20x20},    12 {12x36},     8 {8x64},
+    {12}  22 {22x22},    16 {16x36},     8 {8x80},     24 {24x24},
+    {16}   8 {8x96},     12 {12x64},    26 {26x26},    20 {20x36},
+    {20}  16 {16x48},     8 {8x120},    20 {20x44},    32 {32x32},
+    {24}  16 {16x64},     8 {8x144},    12 {12x88},    26 {26x40},
+    {28}  22 {22x48},    24 {24x48},    20 {20x64},    36 {36x36},
+    {32}  26 {26x48},    24 {24x64},    40 {40x40},    26 {26x64},
+    {36}  44 {44x44},    48 {48x48},    52 {52x52},    64 {64x64},
+    {40}  72 {72x72},    80 {80x80},    88 {88x88},    96 {96x96},
+    {44} 104 {104x104}, 120 {120x120}, 132 {132x132}, 144 {144x144}
+    );
+
+
+{* Vertical matrix sizes *}
+matrixW : array[0..NbOfSymbols - 1] of NativeInt = (
+    { 0}  10 {10x10},    12 {12x12},    18 {8x18},     14 {14x14},
+    { 4}  32 {8x32},     16 {16x16},    26 {12x26},    18 {18x18},
+    { 8}  48 {8x48},     20 {20x20},    36 {12x36},    64 {8x64},
+    {12}  22 {22x22},    36 {16x36},    80 {8x80},     24 {24x24},
+    {16}  96 {8x96},     64 {12x64},    26 {26x26},    36 {20x36},
+    {20}  48 {16x48},   120 {8x120},    44 {20x44},    32 {32x32},
+    {24}  64 {16x64},   144 {8x144},    88 {12x88},    40 {26x40},
+    {28}  48 {22x48},    48 {24x48},    64 {20x64},    36 {36x36},
+    {32}  48 {26x48},    64 {24x64},    40 {40x40},    64 {26x64},
+    {36}  44 {44x44},    48 {48x48},    52 {52x52},    64 {64x64},
+    {40}  72 {72x72},    80 {80x80},    88 {88x88},    96 {96x96},
+    {44} 104 {104x104}, 120 {120x120}, 132 {132x132}, 144 {144x144}
+    );
+
+
+{* Horizontal submodule size (including subfinder) - see Table 7 Data region H + 2 *}
+matrixFH : array[0..NbOfSymbols - 1] of NativeInt = (
+    { 0} 10 {10x10},   12 {12x12},    8 {8x18},    14 {14x14},
+    { 4}  8 {8x32},    16 {16x16},   12 {12x26},   18 {18x18},
+    { 8}  8 {8x48},    20 {20x20},   12 {12x36},    8 {8x64},
+    {12} 22 {22x22},   16 {16x36},    8 {8x80},    24 {24x24},
+    {16}  8 {8x96},    12 {12x64},   26 {26x26},   20 {20x36},
+    {20} 16 {16x48},    8 {8x120},   20 {20x44},   16 {32x32},
+    {24} 16 {16x64},    8 {8x144},   12 {12x88},   26 {26x40},
+    {28} 22 {22x48},   24 {24x48},   20 {20x64},   18 {36x36},
+    {32} 26 {26x48},   24 {24x64},   20 {40x40},   26 {26x64},
+    {36} 22 {44x44},   24 {48x48},   26 {52x52},   16 {64x64},
+    {40} 18 {72x72},   20 {80x80},   22 {88x88},   24 {96x96},
+    {44} 26 {104x104}, 20 {120x120}, 22 {132x132}, 24 {144x144}
+    );
+
+{* Vertical submodule size (including subfinder) - see Table 7 Data region W + 2 *}
+matrixFW : array[0..NbOfSymbols - 1] of NativeInt = (
+    { 0} 10 {10x10},   12 {12x12},   18 {8x18},    14 {14x14},
+    { 4} 16 {8x32},    16 {16x16},   26 {12x26},   18 {18x18},
+    { 8} 24 {8x48},    20 {20x20},   18 {12x36},   16 {8x64},
+    {12} 22 {22x22},   18 {16x36},   20 {8x80},    24 {24x24},
+    {16} 24 {8x96},    16 {12x64},   26 {26x26},   18 {20x36},
+    {20} 24 {16x48},   20 {8x120},   22 {20x44},   16 {32x32},
+    {24} 16 {16x64},   24 {8x144},   22 {12x88},   20 {26x40},
+    {28} 24 {22x48},   24 {24x48},   16 {20x64},   18 {36x36},
+    {32} 24 {26x48},   16 {24x64},   20 {40x40},   16 {26x64},
+    {36} 22 {44x44},   24 {48x48},   26 {52x52},   16 {64x64},
+    {40} 18 {72x72},   20 {80x80},   22 {88x88},   24 {96x96},
+    {44} 26 {104x104}, 20 {120x120}, 22 {132x132}, 24 {144x144}
+    );
+
+
+{* Data Codewords per RS-Block *}
 matrixdatablock : array[0..NbOfSymbols - 1] of NativeInt = (
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	3, 5, 5, 8, 10, 12, 16, 18, 22, 22, 30, 32, 36, 44, 49, 62, 86, 114, 144,
-//	174, 102, 140, 92, 114, 144, 174, 136, 175, 163, 156 );
-    { 0}   3, { 10x10 }   5, { 12x12 }   5, {  8x18 }   8, { 14x14 }
-    { 4}  10, {  8x32 }  12, { 16x16 }  16, { 12x26 }  18, { 18x18 }
-    { 8}  18, {  8x48 }  22, { 20x20 }  22, { 12x36 }  24, {  8x64 }
-    {12}  30, { 22x22 }  32, { 16x36 }  36, { 24x24 }  43, { 12x64 }
-    {16}  44, { 26x26 }  49, { 16x48 }  62, { 32x32 }  62, { 16x64 }
-    {20}  70, { 26x40 }  80, { 24x48 }  86, { 36x36 }  90, { 26x48 }
-    {24} 108, { 24x64 } 114, { 40x40 } 118, { 26x64 } 144, { 44x44 }
-    {28} 174, { 48x48 } 102, { 52x52 } 140, { 64x64 }  92, { 72x72 }
-    {32} 114, { 80x80 } 144, { 88x88 } 174, { 96x96 } 136, {104x104}
-    {36} 175, {120x120} 163, {132x132} 156 { 144x144}
+    { 0}   3 {10x10},     5 {12x12},     5 {8x18},      8 {14x14},
+    { 4}  10 {8x32},     12 {16x16},    16 {12x26},    18 {18x18},
+    { 8}  18 {8x48},     22 {20x20},    22 {12x36},    24 {8x64},
+    {12}  30 {22x22},    32 {16x36},    32 {8x80},     36 {24x24},
+    {16}  38 {8x96},     43 {12x64},    44 {26x26},    44 {20x36},
+    {20}  49 {16x48},    49 {8x120},    56 {20x44},    62 {32x32},
+    {24}  62 {16x64},    63 {8x144},    64 {12x88},    70 {26x40},
+    {28}  72 {22x48},    80 {24x48},    84 {20x64},    86 {36x36},
+    {32}  90 {26x48},   108 {24x64},   114 {40x40},   118 {26x64},
+    {36} 144 {44x44},   174 {48x48},   102 {52x52},   140 {64x64},
+    {40}  92 {72x72},   114 {80x80},   144 {88x88},   174 {96x96},
+    {44} 136 {104x104}, 175 {120x120}, 163 {132x132}, 156 {144x144}
     );
 
 
+{* ECC Codewords per RS-Block *}
 matrixrsblock : array[0..NbOfSymbols - 1] of NativeInt = (
-
-  {fs 02/04/2018 added DMRE sizes and adjusted against the C file}
-//	5, 7, 7, 10, 11, 12, 14, 14, 18, 18, 20, 24, 24, 28, 28, 36, 42, 48, 56, 68,
-//	42, 56, 36, 48, 56, 68, 56, 68, 62, 62 );
-    { 0}  5, { 10x10 }  7, { 12x12 }  7, {  8x18 } 10, { 14x14 }
-    { 4} 11, {  8x32 } 12, { 16x16 } 14, { 12x26 } 14, { 18x18 }
-    { 8} 15, {  8x48 } 18, { 20x20 } 18, { 12x36 } 18, {  8x64 }
-    {12} 20, { 22x22 } 24, { 16x36 } 24, { 24x24 } 27, { 12x64 }
-    {16} 28, { 26x26 } 28, { 16x48 } 36, { 32x32 } 36, { 16x64 }
-    {20} 38, { 26x40 } 41, { 24x48 } 42, { 36x36 } 42, { 26x48 }
-    {24} 46, { 24x64 } 48, { 40x40 } 50, { 26x64 } 56, { 44x44 }
-    {28} 68, { 48x48 } 42, { 52x52 } 56, { 64x64 } 36, { 72x72 }
-    {32} 48, { 80x80 } 56, { 88x88 } 68, { 96x96 } 56, {104x104}
-    {36} 68, {120x120} 62, {132x132} 62 {144x144}
+    { 0}  5 {10x10},    7 {12x12},    7 {8x18},    10 {14x14},
+    { 4} 11 {8x32},    12 {16x16},   14 {12x26},   14 {18x18},
+    { 8} 15 {8x48},    18 {20x20},   18 {12x36},   18 {8x64},
+    {12} 20 {22x22},   24 {16x36},   22 {8x80},    24 {24x24},
+    {16} 28 {8x96},    27 {12x64},   28 {26x26},   28 {20x36},
+    {20} 28 {16x48},   32 {8x120},   34 {20x44},   36 {32x32},
+    {24} 36 {16x64},   36 {8x144},   36 {12x88},   38 {26x40},
+    {28} 38 {22x48},   41 {24x48},   42 {20x64},   42 {36x36},
+    {32} 42 {26x48},   46 {24x64},   48 {40x40},   50 {26x64},
+    {36} 56 {44x44},   68 {48x48},   42 {52x52},   56 {64x64},
+    {40} 36 {72x72},   48 {80x80},   56 {88x88},   68 {96x96},
+    {44} 56 {104x104}, 68 {120x120}, 62 {132x132}, 62 {144x144}
     );
 
 
@@ -814,7 +844,7 @@ end;
 
 
 function dm200encode(symbol : zint_symbol; source : TArrayOfByte; var target : TArrayOfByte; var last_mode : Integer;
-                    var _length : Integer; process_Buffer: TArrayOfInteger; var process_p: integer) : Integer;
+                    var _length : Integer; process_Buffer: TArrayOfInteger; var process_p: integer; var Binlen_p: Integer) : Integer;
 { Encodes data using ASCII, C40, Text, X12, EDIFACT or Base 256 modes as appropriate }
 { Supports encoding FNC1 in supporting systems }
 var
@@ -828,7 +858,7 @@ var
   prn, temp : Integer;
 begin
   inputlen := _length;
-  SetLength(binary, inputlen * 2);
+  SetLength(binary, Max(4, inputlen * 2) {Needs a minimum length !!});
 
   sp := 0;
   tp := 0;
@@ -867,7 +897,7 @@ begin
     if (gs1 <> 0) then
     begin
       strcpy(symbol.errtxt, 'Cannot encode in GS1 mode and Reader Initialisation at the same time');
-      result := ZERROR_INVALID_OPTION; exit;
+      exit(ZERROR_INVALID_OPTION);
     end
     else
     begin
@@ -1014,20 +1044,25 @@ begin
           value := c40_value[Ord(source[sp])];
         end;
 
-        if ((gs1 <> 1) and (source[sp] = ord('['))) then
-        begin
-          shift_set := 2;
-          value := 27; { FNC1 }
-        end;
+        if ((gs1 <> 0{1}) and (source[sp] = ord('['))) then
+          if gs1 = 2 then begin
+            shift_set := c40_shift[29];
+            value := c40_value[29];  {* GS *}
+          end
+          else begin
+            shift_set := 2;
+            value := 27; { FNC1 }
+          end;
 
         if (shift_set <> 0) then
         begin
-          process_buffer[process_p] := shift_set - 1; Inc(process_p);
+          process_buffer[process_p] := shift_set - 1;
+          Inc(process_p);
         end;
-        process_buffer[process_p] := value; Inc(process_p);
+        process_buffer[process_p] := value;
+        Inc(process_p);
 
-        if (process_p >= 3) then
-        begin
+        while (process_p >= 3) do begin
           iv := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + (process_buffer[2]) + 1;
           target[tp] := iv div 256; Inc(tp);
           target[tp] := iv mod 256; Inc(tp);
@@ -1073,10 +1108,14 @@ begin
         end;
 
         if ((gs1 <> 0) and (source[sp] = ord('['))) then
-        begin
-          shift_set := 2;
-          value := 27; { FNC1 }
-        end;
+          if gs1 = 2 then begin
+            shift_set := text_shift[29];
+            value := text_value[29];  {* GS *}
+          end
+          else begin
+            shift_set := 2;
+            value := 27; { FNC1 }
+          end;
 
         if (shift_set <> 0) then
         begin
@@ -1084,8 +1123,7 @@ begin
         end;
         process_buffer[process_p] := value; Inc(process_p);
 
-        if (process_p >= 3) then
-        begin
+        while (process_p >= 3) do begin
           iv := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + (process_buffer[2]) + 1;
           target[tp] := iv div 256; Inc(tp);
           target[tp] := iv mod 256; Inc(tp);
@@ -1128,8 +1166,7 @@ begin
 
         process_buffer[process_p] := value; Inc(process_p);
 
-        if (process_p >= 3) then
-        begin
+        while (process_p >= 3) do begin
           iv := (1600 * process_buffer[0]) + (40 * process_buffer[1]) + (process_buffer[2]) + 1;
           target[tp] := iv div 256; Inc(tp);
           target[tp] := iv mod 256; Inc(tp);
@@ -1150,28 +1187,31 @@ begin
     { step (f) EDIFACT encodation }
     if (current_mode = DM_EDIFACT) then
     begin
-      value := 0;
-
       next_mode := DM_EDIFACT;
       if (process_p = 3) then
         next_mode := look_ahead_test(source, inputlen, sp, current_mode, gs1);
 
       if (next_mode <> DM_EDIFACT) then
       begin
-        process_buffer[process_p] := 31; Inc(process_p);
+        process_buffer[process_p] := 31;
+        Inc(process_p);
         next_mode := DM_ASCII;
       end
       else
       begin
-        if ((source[sp] >= ord('@')) and (source[sp] <= ord('^'))) then value := Ord(source[sp]) - Ord('@');
-        if ((source[sp] >= ord(' ')) and (source[sp] <= ord('?'))) then value := Ord(source[sp]);
+        {fs 02/06/2020}
+        value := source[sp];
+        //if ((source[sp] >= ord('@')) and (source[sp] <= ord('^'))) then value := Ord(source[sp]) - Ord('@');
+        //if ((source[sp] >= ord(' ')) and (source[sp] <= ord('?'))) then value := Ord(source[sp]);
+
+        if source[sp] >= ord('@') then
+          value := Ord(source[sp]) - Ord('@');
 
         process_buffer[process_p] := value; Inc(process_p);
         Inc(sp);
       end;
 
-      if (process_p >= 4) then
-      begin
+      while (process_p >= 4) do begin
         target[tp] := (process_buffer[0] shl 2) + ((process_buffer[1] and $30) shr 4); Inc(tp);
         target[tp] := ((process_buffer[1] and $0f) shl 4) + ((process_buffer[2] and $3c) shr 2); Inc(tp);
         target[tp] := ((process_buffer[2] and $03) shl 6) + process_buffer[3]; Inc(tp);
@@ -1196,7 +1236,7 @@ begin
 
       if (next_mode = DM_BASE256) then
       begin
-        target[tp] := Ord(source[sp]);
+        target[tp] := source[sp];
         Inc(tp);
         Inc(sp);
         concat(binary, 'b');
@@ -1207,7 +1247,8 @@ begin
 
     if (tp > 1558) then
     begin
-      result := 0; exit;
+      strcpy(symbol.errtxt, 'Data too long to fit in symbol');
+      exit(ZERROR_TOO_LONG);
     end;
 
   end; { while }
@@ -1223,7 +1264,7 @@ begin
       begin
         { start of binary data }
         binary_count := 0;
-        while (binary[binary_count + i] = 'b') do
+        while (binary_count + i < tp) and (binary[binary_count + i] = 'b') do
           Inc(binary_count);
 
         if (binary_count <= 249) then
@@ -1249,12 +1290,16 @@ begin
     begin
       prn := ((149 * (i + 1)) mod 255) + 1;
       temp := target[i] + prn;
-      if (temp <= 255) then target[i] := temp else target[i] := temp - 256;
+      if (temp <= 255) then
+        target[i] := temp
+      else
+        target[i] := temp - 256;
     end;
   end;
 
   last_mode := current_mode;
-  result := tp;
+  Binlen_p := tp;
+  result := 0;
 end;
 
 procedure add_tail(var target : TArrayOfByte; tp : Integer; tail_length : Integer {; last_mode : Integer});
@@ -1266,17 +1311,19 @@ begin
   begin
     if (i = tail_length) then
     begin
-      target[tp] := 129; Inc(tp); { Pad }
+      target[tp] := 129;
+      Inc(tp); { Pad }
     end
-    else
-    begin
+    else begin
       prn := ((149 * (tp + 1)) mod 253) + 1;
       temp := 129 + prn;
       if (temp <= 254) then begin
-        target[tp] := temp; Inc(tp);
+        target[tp] := temp;
+        Inc(tp);
       end
       else begin
-        target[tp] := temp - 254; Inc(tp);
+        target[tp] := temp - 254;
+        Inc(tp);
       end;
     end;
   end;
@@ -1412,18 +1459,15 @@ var
   v : Integer;
 begin
   skew := 0;
-  error_number := 0;
 
 //  inputlen := _length;
   SetLength(binary, 2200);
   SetLength(process_buffer, 8);
-  binlen := dm200encode(symbol, source, binary, last_mode, _length, process_buffer, process_p);
+  binlen := 0;
+  error_number := dm200encode(symbol, source, binary, last_mode, _length, process_buffer, process_p, binlen);
 
-  if (binlen = 0) then
-  begin
-    strcpy(symbol.errtxt, 'Data too long to fit in symbol');
-    result := ZERROR_TOO_LONG; exit;
-  end;
+  if (error_number <> 0) then
+    exit(error_number);
 
   if ((symbol.option_2 >= 1) and (symbol.option_2 <= NbOfSymbols)) then
     optionsize := intsymbol[symbol.option_2 - 1]
@@ -1432,10 +1476,8 @@ begin
 
   calcsize := NbOfSymbols - 1;
   for i := NbOfSymbols - 1 downto 0 do
-  begin
     if (matrixbytes[i] >= binlen + process_p) then
       calcsize := i;
-  end;
 
   if (symbol.option_3 = DM_SQUARE) then
   begin
@@ -1463,8 +1505,8 @@ begin
     if (optionsize <> -1) then
     begin
       { flag an error }
-      error_number := ZERROR_TOO_LONG;
       strcpy(symbol.errtxt, 'Data does not fit in selected symbol size');
+      Exit(ZERROR_TOO_LONG);
     end;
   end;
 
@@ -1474,8 +1516,8 @@ begin
   binlen := dm200encode_remainder(binary, binlen, source, _length, last_mode, process_buffer, process_p, symbols_left);
 
   if (binlen > matrixbytes[symbolsize]) then begin
-      error_number := ZERROR_TOO_LONG;
       strcpy(symbol.errtxt, 'Data too long to fit in symbol');
+      Exit(ZERROR_TOO_LONG);
   end;
 
   H := matrixH[symbolsize];
@@ -1494,7 +1536,8 @@ begin
   // ecc code
   if (symbolsize = NbOfSymbols - 1) then skew := 1;
   ecc200(binary, bytes, datablock, rsblock, skew);
-  begin      // placement
+
+//  begin      // placement
     NC := W - 2 * (W div FW);
     NR := H - 2 * (H div FH);
     SetLength(places, NC * NR);
@@ -1547,7 +1590,7 @@ begin
     end;
     SetLength(grid, 0);
     SetLength(places, 0);
-  end;
+//  end;
 
   symbol.rows := H;
   symbol.width := W;
