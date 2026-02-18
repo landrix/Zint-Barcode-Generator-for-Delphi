@@ -205,8 +205,11 @@ begin
 end;
 
 procedure Fill(var ADestination: TArrayOfChar; ACount: NativeInt; AChar: Char; AStartIndex: NativeInt);
+var
+  i : NativeInt;
 begin
-  FillChar(ADestination[AStartIndex], ACount, AChar);
+  for i := AStartIndex to AStartIndex + ACount - 1 do
+    ADestination[i] := AChar;
 end;
 
 procedure Fill(var ADestination: TArrayOfSmallInt; ACount: NativeInt; AValue: Smallint; AStartIndex: NativeInt);

@@ -1385,7 +1385,7 @@ begin
   end;
 
   { Invert the data so that actual data is on the outside and reed-solomon on the inside }
-  FillChar(bit_pattern[0], Length(bit_pattern), '0');
+  Fill(bit_pattern, Length(bit_pattern), '0', 0);
 
   total_bits := (data_blocks + ecc_blocks) * codeword_size;
   for i := 0 to total_bits - 1 do

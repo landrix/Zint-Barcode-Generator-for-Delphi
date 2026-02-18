@@ -165,7 +165,7 @@ begin
 
     { Add leading zeros as required }
     zeroes := 8 - _length;
-    FillChar(localstr[0], zeroes, '0');
+    Fill(localstr, zeroes, '0', 0);
     localstr[8] := #0;
   end;
 
