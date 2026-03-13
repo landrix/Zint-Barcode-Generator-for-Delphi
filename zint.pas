@@ -2246,7 +2246,7 @@ begin
 		BARCODE_EANX: error_number := eanx(symbol, preprocessed, _length);
 		BARCODE_EAN128: error_number := ean_128(symbol, preprocessed, _length);
 		BARCODE_CODE39: error_number := c39(symbol, preprocessed, _length);
-		BARCODE_PZN: error_number := pharmazentral(symbol, preprocessed, _length);
+		BARCODE_PZN: error_number := pzn(symbol, preprocessed, _length);
 		BARCODE_EXCODE39: error_number := ec39(symbol, preprocessed, _length);
 		BARCODE_CODABAR: error_number := codabar(symbol, preprocessed, _length);
 		BARCODE_CODE93: error_number := c93(symbol, preprocessed, _length);

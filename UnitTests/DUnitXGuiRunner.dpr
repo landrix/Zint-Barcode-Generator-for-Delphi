@@ -13,7 +13,8 @@ uses
   //Test_Code128,
   Test_Telepen,
   Test_Medical,
-  Test_Plessey
+  Test_Plessey,
+  Test_PZN
   ;
 
 begin

@@ -10,7 +10,7 @@ unit zint_medical;
   License: Apache License 2.0
 
   Status:
-    b3a3c0d updated to Zint 2.16.0.9 (2026-03-13) - pharma_one, pharma_two, code32
+    b3a3c0d updated to Zint 2.16.0.9 (2026-03-13) - pharma_one, pharma_two, code32, pzn
     3432bc9 complete - codabar (unchanged, to be moved to own unit later)
 }
 
@@ -27,6 +27,7 @@ function pharma_one(symbol : zint_symbol; source : TArrayOfByte; _length : Integ
 function pharma_two(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function codabar(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function code32(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+function pzn(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 
 implementation
 
@@ -373,6 +374,88 @@ begin
   uconcat(symbol.text, localstr);
 
   result := error_number; exit;
+end;
+
+{ Pharmazentralnummer (PZN) }
+{ PZN https://www.ifaffm.de/mandanten/1/documents/04_ifa_coding_system/IFA_Info_Code_39_EN.pdf }
+{ PZN https://www.ifaffm.de/mandanten/1/documents/04_ifa_coding_system/
+       IFA-Info_Check_Digit_Calculations_PZN_PPN_UDI_EN.pdf }
+function pzn(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+var
+  i, error_number, zeroes : Integer;
+  count, check_digit : Integer;
+  have_check_digit : Byte;
+  local_source : TArrayOfByte; { '-' prefix + 8 digits }
+  pzn7 : Integer;
+  saved_option_2 : Integer;
+begin
+  if symbol.option_2 = 1 then pzn7 := 1 else pzn7 := 0;
+  saved_option_2 := symbol.option_2;
+
+  if (_length > 8 - pzn7) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 325: Input length %d too long (maximum %d)', [_length, 8 - pzn7]));
+    result := ZERROR_TOO_LONG; exit;
+  end;
+
+  have_check_digit := 0;
+  if (_length = 8 - pzn7) then
+  begin
+    have_check_digit := source[7 - pzn7];
+    Dec(_length);
+  end;
+
+  for i := 0 to _length - 1 do
+  begin
+    if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 326: Invalid character at position %d in input (digits only)', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
+  end;
+
+  SetLength(local_source, 10); { '-' + up to 8 digits + null }
+  local_source[0] := Ord('-');
+  zeroes := 7 - pzn7 - _length + 1;
+  for i := 1 to zeroes - 1 do
+    local_source[i] := Ord('0');
+  Move(source[0], local_source[zeroes], _length);
+
+  count := 0;
+  for i := 1 to 7 - pzn7 do
+    count := count + (i + pzn7) * ctoi(Chr(local_source[i]));
+
+  check_digit := count mod 11;
+
+  if (check_digit = 10) then
+  begin
+    strcpy(symbol.errtxt, 'Error 327: Invalid PZN, check digit is ''10''');
+    result := ZERROR_INVALID_DATA; exit;
+  end;
+
+  if (have_check_digit <> 0) and (ctoi(Chr(have_check_digit)) <> check_digit) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 890: Invalid check digit ''%s'', expecting ''%s''',
+      [Chr(have_check_digit), itoc(check_digit)]));
+    result := ZERROR_INVALID_CHECK; exit;
+  end;
+
+  local_source[8 - pzn7] := Ord(itoc(check_digit));
+
+  if (symbol.option_2 = 1) or (symbol.option_2 = 2) then
+    symbol.option_2 := 0; { Need to overwrite so c39 doesn't add a check digit itself }
+
+  error_number := c39(symbol, local_source, 9 - pzn7);
+
+  if (saved_option_2 = 1) or (saved_option_2 = 2) then
+    symbol.option_2 := saved_option_2; { Restore }
+
+  { HRT }
+  ustrcpy(symbol.text, 'PZN - ');
+  for i := 1 to 8 - pzn7 do
+    uconcat(symbol.text, Chr(local_source[i]));
+
+  result := error_number;
 end;
 
 end.
