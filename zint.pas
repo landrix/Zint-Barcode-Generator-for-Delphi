@@ -813,6 +813,7 @@ const
       (DisplayName : 'Dotcode'; Symbology : zsDOTCODE));
 
 
+  BARCODE_BIND_TOP = 1;
   BARCODE_BIND = 2;
   BARCODE_BOX = 4;
   READER_INIT = 16;
@@ -2223,13 +2224,6 @@ begin
 		symbol.whitespace_width := 16;
 		symbol.border_width := 2;
 		symbol.output_options := BARCODE_BIND;
-	end;
-
-	if (symbol.symbology = BARCODE_ITF14) then
-  begin
-		symbol.whitespace_width := 20;
-		symbol.border_width := 8;
-		symbol.output_options := BARCODE_BOX;
 	end;
 
 	case symbol.input_mode of

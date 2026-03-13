@@ -44,7 +44,8 @@ uses
   Test_Plessey,
   Test_PZN,
   Test_Postal,
-  Test_Code
+  Test_Code,
+  Test_2of5
   ;
 
 var

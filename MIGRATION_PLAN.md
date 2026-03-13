@@ -40,8 +40,9 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_common.pas` | 🔧 Bugfix | – | `posn()` gab 0 statt -1 zurück bei "nicht gefunden" |
 | `zint.pas` | 🔧 Erweitert | – | +BARCODE_CEPNET=54, +ZWARN_NONCOMPLIANT=4, +BARCODE_VIN=73, Dispatch |
 | `zint_code.pas` | ✅ b3a3c0d | ✅ `Test_Code.pas` (86 Tests) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 |
+| `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (79 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT |
 
-**Gesamtstand: 263 Tests, 263 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand: 342 Tests, 342 bestanden, 0 fehlgeschlagen** ✅
 
 ---
 
