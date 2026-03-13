@@ -1,0 +1,507 @@
+unit Test_Telepen;
+
+{
+  DUnitX-Tests fuer zint_telepen.pas
+  Testdaten aus test_telepen.c (Zint commit b3a3c0d, 2026-03-13)
+}
+
+interface
+
+uses
+  DUnitX.TestFramework,
+  System.SysUtils,
+  TestHelper_Zint,
+  zint;
+
+type
+  [TestFixture]
+  TTestTelepen = class
+  public
+    { test_large: Grenzwerte fuer maximale Eingabelaenge }
+    [Test] procedure Large_MaxAlpha_OK;
+    [Test] procedure Large_MaxAlpha_Plus1_TooLong;
+
+    { test_input: Zeichenvalidierung }
+    [Test] procedure Input_PrintableASCII;
+    [Test] procedure Input_HighASCII_And_Controls;
+    [Test] procedure Input_NUL_And_DEL;
+    [Test] procedure Input_ExtendedASCII_Rejected;
+
+    { test_encode: Korrekte Barcode-Muster }
+    [Test] procedure Encode_1A;
+    [Test] procedure Encode_ABC;
+    [Test] procedure Encode_RST;
+    [Test] procedure Encode_QuestionAt;
+    [Test] procedure Encode_NUL;
+  end;
+
+  [TestFixture]
+  TTestTelepenNum = class
+  public
+    { test_large: Grenzwerte fuer maximale Eingabelaenge }
+    [Test] procedure Large_MaxNum_OK;
+    [Test] procedure Large_MaxNum_Plus1_TooLong;
+
+    { test_input: Zeichenvalidierung }
+    [Test] procedure Input_Digits_OK;
+    [Test] procedure Input_InvalidChar_Rejected;
+    [Test] procedure Input_DigitX_OK;
+    [Test] procedure Input_XDigit_Rejected;
+    [Test] procedure Input_MultipleX_OK;
+
+    { test_encode: Korrekte Barcode-Muster }
+    [Test] procedure Encode_1234567890;
+    [Test] procedure Encode_123456789_OddPadded;
+    [Test] procedure Encode_123X;
+    [Test] procedure Encode_1X3X;
+    [Test] procedure Encode_3637;
+  end;
+
+implementation
+
+{ ---------- TTestTelepen ---------- }
+
+procedure TTestTelepen.Large_MaxAlpha_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_large[0]: "\177" * 69 -> OK, 1 row, width 1152
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat(#127, 69));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(1152, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Large_MaxAlpha_Plus1_TooLong;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_large[1]: "\177" * 70 -> ERROR_TOO_LONG
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat(#127, 70));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 390: Input length 70 too long (maximum 69)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Input_PrintableASCII;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[0]: printable ASCII range
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ' !"#$%&''()*+,-./0123456789:;<');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(512, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Input_HighASCII_And_Controls;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[1]: AZaz~SOH
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'AZaz' + #126 + #1);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(144, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Input_NUL_And_DEL;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+  b: TArrayOfByte;
+begin
+  // test_input[2]: NUL + DEL (bytes 0 and 127), length 2
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    SetLength(b, 3);
+    b[0] := 0;    // NUL
+    b[1] := 127;  // DEL
+    b[2] := 0;    // terminator
+    ret := TZintTestHelper.EncodeData(sym, b, 2);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(80, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Input_ExtendedASCII_Rejected;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+  b: TArrayOfByte;
+begin
+  // test_input[3]: byte 233 (e-acute) -> INVALID_DATA
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    SetLength(b, 2);
+    b[0] := 233; // e-acute
+    b[1] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 1);
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual(
+      'Error 391: Invalid character at position 1 in input, extended ASCII not allowed',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Encode_1A;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[0]: "1A" -> BSiH Example
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1A');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(80, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001011101000100010101110111011100010100010001110101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Encode_ABC;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[1]: "ABC" -> E2326U Example
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'ABC');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(96, sym.width, 'width');
+    Assert.AreEqual(
+      '101010101011100010111011101110001110001110111000101011101110101011101000101000101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Encode_RST;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[2]: "RST"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'RST');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(96, sym.width, 'width');
+    Assert.AreEqual(
+      '101010101011100011100011100010101010111010111000111010111000101010111000111011101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Encode_QuestionAt;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[3]: "?@" - ASCII count 127, check 0
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '?@');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(80, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001010101010101110111011101110101011101110111011101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepen.Encode_NUL;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+  b: TArrayOfByte;
+begin
+  // test_encode[4]: "\000" length 1
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    SetLength(b, 2);
+    b[0] := 0;
+    b[1] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 1);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1010101010111000111011101110111011101110111011101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+{ ---------- TTestTelepenNum ---------- }
+
+procedure TTestTelepenNum.Large_MaxNum_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_large[2]: "1" * 136 -> OK, 1 row, width 1136
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 136));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(1136, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Large_MaxNum_Plus1_TooLong;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_large[3]: "1" * 137 -> ERROR_TOO_LONG
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 137));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 392: Input length 137 too long (maximum 136)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Input_Digits_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[4]: "1234567890"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1234567890');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(128, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Input_InvalidChar_Rejected;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[5]: "123456789A" -> INVALID_DATA
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456789A');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual(
+      'Error 393: Invalid character at position 10 in input (digits and "X" only)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Input_DigitX_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[6]: "123456789X" -> [0-9]X allowed
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456789X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(128, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Input_XDigit_Rejected;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[7]: "12345678X9" -> X[0-9] not allowed (X at odd position)
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '12345678X9');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual(
+      'Error 394: Invalid odd position 9 of "X" in Telepen data',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Input_MultipleX_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[8]: "1X34567X9X" -> [0-9]X allowed multiple times
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1X34567X9X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(128, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Encode_1234567890;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[5]: "1234567890" even-length
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1234567890');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(128, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001010101110101110101000101010001010101110101110001011101010001000101110001010101010101011101010101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Encode_123456789_OddPadded;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[6]: "123456789" odd -> zero-padded to "012345679"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456789');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(128, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001110101010111010111000100010001011101110001110001000101010001010111010100010100010111000101110101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Encode_123X;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[7]: "123X"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(80, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001010101110101110111010111000111011101011101110001110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Encode_1X3X;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[8]: "1X3X"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1X3X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(80, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001110001110001110111010111000111010111010101110001110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestTelepenNum.Encode_3637;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_encode[9]: "3637" - glyph count 127, check 0
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '3637');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(80, sym.width, 'width');
+    Assert.AreEqual(
+      '10101010101110001010101010101110111011101110101011101110111011101110001010101010',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally
+    sym.Free;
+  end;
+end;
+
+initialization
+  TDUnitX.RegisterTestFixture(TTestTelepen);
+  TDUnitX.RegisterTestFixture(TTestTelepenNum);
+
+end.

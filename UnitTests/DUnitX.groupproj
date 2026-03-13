@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CF31F16F-7F14-4BE7-8459-28F392D7C5AC}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="DUnitXGuiRunner.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="DUnitXCmdTest.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DUnitXGuiRunner">
+        <MSBuild Projects="DUnitXGuiRunner.dproj"/>
+    </Target>
+    <Target Name="DUnitXGuiRunner:Clean">
+        <MSBuild Projects="DUnitXGuiRunner.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DUnitXGuiRunner:Make">
+        <MSBuild Projects="DUnitXGuiRunner.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DUnitXCmdTest">
+        <MSBuild Projects="DUnitXCmdTest.dproj"/>
+    </Target>
+    <Target Name="DUnitXCmdTest:Clean">
+        <MSBuild Projects="DUnitXCmdTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DUnitXCmdTest:Make">
+        <MSBuild Projects="DUnitXCmdTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DUnitXGuiRunner;DUnitXCmdTest"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DUnitXGuiRunner:Clean;DUnitXCmdTest:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DUnitXGuiRunner:Make;DUnitXCmdTest:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
