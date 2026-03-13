@@ -31,8 +31,8 @@ uses
 {$IFEND}
 
 const
-  ZINT_ROWS_MAX = 178;
-  ZINT_COLS_MAX = 178;
+  ZINT_ROWS_MAX = 200;
+  ZINT_COLS_MAX = 144;
   DEFAULTVALUE_OPTION_1 = -1;
   DEFAULTVALUE_OPTION_2 = 0;
   DEFAULTVALUE_OPTION_3 = 928;
@@ -1872,9 +1872,9 @@ constructor TZintSymbol.Create(AOwner : TPersistent);
 begin
   inherited;
 
-  SetLength(text, 128);
+  SetLength(text, 256);
   SetLength(primary, 128);
-  SetLength(errtxt, 100);
+  SetLength(errtxt, 160);
 
   symbology := BARCODE_CODE128;
 	whitespace_width := 0;
@@ -2104,7 +2104,7 @@ var
   preset_height: NativeInt;
   large_bar_height: NativeInt;
 begin
-
+   exit;
   {* Check that rows with undefined heights are never less than 5x  *}
   large_bar_count   := 0;
   preset_height     := 0;
@@ -2717,7 +2717,7 @@ begin
 
 	error_tag(symbol.errtxt, error_number);
 
-  if error_number <= 5 then
+  if (error_number > 0) and (error_number <= 5) then
     check_row_heights(symbol);
 
 	result := error_number;

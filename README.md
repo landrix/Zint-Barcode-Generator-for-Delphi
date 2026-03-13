@@ -4,7 +4,7 @@
 
 Zint Barcode Generator
 
-Delphi port of https://sourceforge.net/projects/zint/
+Delphi port of http://github.com/zint/zint
 
 ## History
 
