@@ -33,7 +33,15 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 
 | Modul | Port | Tests | Status |
 |---|---|---|---|
-| `zint_telepen.pas` | ✅ b3a3c0d | ✅ `Test_Telepen.pas` | **Erster portierter Modul** |
+| `zint_telepen.pas` | ✅ b3a3c0d | ✅ `Test_Telepen.pas` (16 Tests) | **Erster portierter Modul** |
+| `zint_medical.pas` | ✅ b3a3c0d | ✅ `Test_Medical.pas` (19 Tests) | pharma_one, pharma_two, code32, pzn |
+| `zint_plessey.pas` | ✅ b3a3c0d | ✅ `Test_Plessey.pas` (31 Tests) | plessey, msi_handle (alle MSI-Varianten) |
+| `zint_postal.pas` | ✅ b3a3c0d | ✅ `Test_Postal.pas` (83 Tests) | Alle 12 Funktionen inkl. CEPNet, FIM 'E' |
+| `zint_common.pas` | 🔧 Bugfix | – | `posn()` gab 0 statt -1 zurück bei "nicht gefunden" |
+| `zint.pas` | 🔧 Erweitert | – | +BARCODE_CEPNET=54, +ZWARN_NONCOMPLIANT=4, +BARCODE_VIN=73, Dispatch |
+| `zint_code.pas` | ✅ b3a3c0d | ✅ `Test_Code.pas` (86 Tests) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 |
+
+**Gesamtstand: 263 Tests, 263 bestanden, 0 fehlgeschlagen** ✅
 
 ---
 

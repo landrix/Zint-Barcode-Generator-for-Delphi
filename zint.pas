@@ -95,6 +95,7 @@ type
                     zsRM4SCC,
                     zsDATAMATRIX,
                     zsEAN14,
+                    zsVIN,
                     zsCODABLOCKF,
                     zsNVE18,
                     zsJAPANPOST,
@@ -660,6 +661,7 @@ const
   BARCODE_RM4SCC = 70;
   BARCODE_DATAMATRIX = 71;
   BARCODE_EAN14 = 72;
+  BARCODE_VIN = 73;
   BARCODE_CODABLOCKF = 74;
   BARCODE_NVE18 = 75;
   BARCODE_JAPANPOST = 76;
@@ -722,7 +724,7 @@ type
   end;
 
 const
-  ZintSymbologyInfos : array[0..84] of TZintSymbologyInfoEntry =
+  ZintSymbologyInfos : array[0..85] of TZintSymbologyInfoEntry =
      ((DisplayName : 'Code 11'; Symbology : zsCODE11),
       (DisplayName : 'Standard Code 2 of 5'; Symbology : zsC25MATRIX),
       (DisplayName : 'Interleaved 2 of 5'; Symbology : zsC25INTER),
@@ -767,6 +769,7 @@ const
       (DisplayName : 'Royal Mail 4 State (RM4SCC)'; Symbology : zsRM4SCC),
       (DisplayName : 'Data Matrix'; Symbology : zsDATAMATRIX),
       (DisplayName : 'EAN-14'; Symbology : zsEAN14),
+      (DisplayName : 'VIN (Vehicle Identification Number)'; Symbology : zsVIN),
       (DisplayName : 'CODABLOCKF'; Symbology : zsCODABLOCKF),
       (DisplayName : 'NVE-18'; Symbology : zsNVE18),
       (DisplayName : 'Japanese Postal Code'; Symbology : zsJAPANPOST),
@@ -912,6 +915,7 @@ begin
     zsRM4SCC : Result := BARCODE_RM4SCC;
     zsDATAMATRIX : Result := BARCODE_DATAMATRIX;
     zsEAN14 : Result := BARCODE_EAN14;
+    zsVIN : Result := BARCODE_VIN;
     zsCODABLOCKF : Result := BARCODE_CODABLOCKF;
     zsNVE18 : Result := BARCODE_NVE18;
     zsJAPANPOST : Result := BARCODE_JAPANPOST;
@@ -1005,6 +1009,7 @@ begin
     BARCODE_RM4SCC : Result := zsRM4SCC;
     BARCODE_DATAMATRIX : Result := zsDATAMATRIX;
     BARCODE_EAN14 : Result := zsEAN14;
+    BARCODE_VIN : Result := zsVIN;
     BARCODE_CODABLOCKF : Result := zsCODABLOCKF;
     BARCODE_NVE18 : Result := zsNVE18;
     BARCODE_JAPANPOST : Result := zsJAPANPOST;
@@ -2018,9 +2023,9 @@ var
   to_process, temp : TArrayOfChar;
   check_digit : Char;
 begin
-  SetLength(to_process, 40); SetLength(temp, 2);
+  SetLength(to_process, 114); SetLength(temp, 2);
 
-	if (_length > 36) then
+	if (_length > 110) then
   begin
 		strcpy(symbol.errtxt, 'Data too long for HIBC LIC');
 		result := ZERROR_TOO_LONG; exit;
@@ -2256,6 +2261,7 @@ begin
 		BARCODE_CODABAR: error_number := codabar(symbol, preprocessed, _length);
 		BARCODE_CODE93: error_number := c93(symbol, preprocessed, _length);
 	  BARCODE_LOGMARS: error_number := c39(symbol, preprocessed, _length);
+		BARCODE_VIN: error_number := vin(symbol, preprocessed, _length);
 		BARCODE_CODE128: error_number := code_128(symbol, preprocessed, _length);
 		BARCODE_CODE128B: error_number := code_128(symbol, preprocessed, _length);
 		BARCODE_NVE18: error_number := nve_18(symbol, preprocessed, _length);
@@ -2552,10 +2558,6 @@ begin
 
 	else if ((symbol.symbology = 64) or (symbol.symbology = 65)) then
     symbol.symbology := BARCODE_AUSPOST
-	else if (symbol.symbology = 73) then begin
-    strcpy(symbol.errtxt, 'Codablock E not supported');
-    error_number := ZERROR_INVALID_OPTION;
-  end
 	else if (symbol.symbology = 78) then
     symbol.symbology := BARCODE_RSS14
 	else if (symbol.symbology = 83) then

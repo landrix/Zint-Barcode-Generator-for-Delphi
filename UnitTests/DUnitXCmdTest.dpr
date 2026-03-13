@@ -43,7 +43,8 @@ uses
   Test_Medical,
   Test_Plessey,
   Test_PZN,
-  Test_Postal
+  Test_Postal,
+  Test_Code
   ;
 
 var

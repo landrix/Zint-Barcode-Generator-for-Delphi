@@ -10,7 +10,7 @@ unit zint_code;
   License: Apache License 2.0
 
   Status:
-    3432bc9aff311f2aea40f0e9883abfe6564c080b complete
+    b3a3c0d updated to Zint 2.16.0.9 (2026-03-13) - code_11, c39, ec39, c93, vin
 }
 
 {$IFDEF FPC}
@@ -24,9 +24,9 @@ uses
 
 function code_11(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function c39(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
-function pharmazentral(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function ec39(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function c93(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+function vin(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function channel_code(symbol : zint_symbol; const source : TArrayOfByte; _length : Integer) : Integer;
 
 procedure NextB(Chan : Integer; i : Integer; MaxB : Integer; MaxS : Integer; var S, B : TArrayOfInteger; var value, target_value : Integer; var pattern : TArrayOfChar);
@@ -88,122 +88,162 @@ const C93Table : array[0..46] of String = ('131112', '111213', '111312', '111411
 { Code 11 }
 function code_11(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  i : Cardinal;
+  i, j : Integer;
   h, c_digit, c_weight, c_count, k_digit, k_weight, k_count : Integer;
-  weight : array[0..127] of Integer;
+  weight : array[0..140] of Integer;
   error_number : Integer;
-  dest : TArrayOfChar; { 6 +  121 * 6 + 2 * 6 + 5 + 1 ~ 1024}
-  checkstr : TArrayOfChar;
+  num_check_digits : Integer;
+  dest : TArrayOfChar; { 6 + 140 * 6 + 2 * 6 + 5 + 1 = 864 }
+  d : Integer;
+  checkstr : TArrayOfByte;
 begin
-  SetLength(dest, 1024);
+  SetLength(dest, 870);
   SetLength(checkstr, 3);
-  //error_number := 0;
+  error_number := 0;
 
-  if (_length > 121) then
+  if (_length > 140) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 320: Input length %d too long (maximum 140)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end;
-  error_number := is_sane(SODIUM, source, _length);
-  if (error_number = ZERROR_INVALID_DATA) then
-  begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
-  end;
-  c_weight := 1;
-  c_count := 0;
-  k_weight := 1;
-  k_count := 0;
 
-  { start character }
+  for i := 0 to _length - 1 do
+  begin
+    if not ((source[i] >= Ord('0')) and (source[i] <= Ord('9')) or (source[i] = Ord('-'))) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 321: Invalid character at position %d in input (digits and "-" only)', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
+  end;
+
+  if (symbol.option_2 < 0) or (symbol.option_2 > 2) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 339: Invalid check digit version ''%d'' (1 or 2 only)', [symbol.option_2]));
+    result := ZERROR_INVALID_OPTION; exit;
+  end;
+
+  if symbol.option_2 = 2 then
+    num_check_digits := 0
+  else if symbol.option_2 = 1 then
+    num_check_digits := 1
+  else
+    num_check_digits := 2;
+
+  { Start character }
   strcpy(dest, '112211');
+  d := 6;
 
   { Draw main body of barcode }
   for i := 0 to _length - 1 do
   begin
-    lookup(SODIUM, C11Table, source[i], dest);
     if (source[i] = Ord('-')) then
       weight[i] := 10
     else
       weight[i] := ctoi(Chr(source[i]));
+    lookup(SODIUM, C11Table, source[i], dest);
+    Inc(d, 6);
   end;
 
-  { Calculate C checksum }
-  for h := _length - 1 downto 0 do
+  if (num_check_digits > 0) then
   begin
-    Inc(c_count, (c_weight * weight[h]));
-    Inc(c_weight);
+    c_weight := 1;
+    c_count := 0;
+    { Calculate C checksum }
+    for h := _length - 1 downto 0 do
+    begin
+      Inc(c_count, c_weight * weight[h]);
+      Inc(c_weight);
+      if (c_weight > 10) then
+        c_weight := 1;
+    end;
+    c_digit := c_count mod 11;
 
-    if (c_weight > 10) then
-      c_weight := 1;
-  end;
-  c_digit := c_count mod 11;
+    checkstr[0] := Ord(SODIUM[c_digit + 1]); { 1-based string index }
+    lookup(SODIUM, C11Table, Chr(checkstr[0]), dest);
+    Inc(d, 6);
 
-  weight[_length] := c_digit;
-
-  { Calculate K checksum }
-  for h := _length downto 0 do
-  begin
-    Inc(k_count, (k_weight * weight[h]));
-    Inc(k_weight);
-
-    if (k_weight > 9) then
+    if (num_check_digits = 2) then
+    begin
       k_weight := 1;
-  end;
-  k_digit := k_count mod 11;
+      k_count := 0;
+      weight[_length] := c_digit;
+      { Calculate K checksum }
+      for h := _length downto 0 do
+      begin
+        Inc(k_count, k_weight * weight[h]);
+        Inc(k_weight);
+        if (k_weight > 9) then
+          k_weight := 1;
+      end;
+      k_digit := k_count mod 11;
 
-  checkstr[0] := itoc(c_digit);
-  checkstr[1] := itoc(k_digit);
-  if (checkstr[0] = 'A') then checkstr[0] := '-';
-  if (checkstr[1] = 'A') then checkstr[1] := '-';
-  checkstr[2] := #0;
-  lookup(SODIUM, C11Table, checkstr[0], dest);
-  lookup(SODIUM, C11Table, checkstr[1], dest);
+      checkstr[1] := Ord(SODIUM[k_digit + 1]); { 1-based string index }
+      lookup(SODIUM, C11Table, Chr(checkstr[1]), dest);
+      Inc(d, 6);
+    end;
+  end;
 
   { Stop character }
-  concat (dest, '11221');
+  concat(dest, '11221');
 
   expand(symbol, dest);
 
   ustrcpy(symbol.text, source);
-  uconcat(symbol.text, ArrayOfCharToArrayOfByte(checkstr));
+  if (num_check_digits > 0) then
+  begin
+    { Append num_check_digits bytes from checkstr to symbol.text }
+    j := ustrlen(symbol.text);
+    for i := 0 to num_check_digits - 1 do
+      symbol.text[j + i] := checkstr[i];
+    symbol.text[j + num_check_digits] := 0;
+  end;
+
   result := error_number; exit;
 end;
 
 { Code 39 }
 function c39(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  i : Cardinal;
-  counter : Cardinal;
+  i : Integer;
+  counter : Integer;
   check_digit : Char;
   error_number : Integer;
   dest : TArrayOfChar;
-  localstr : TArrayOfChar;
 begin
-  SetLength(dest, 755);
-  SetLength(localstr, 2); FillChar(localstr[0], Length(localstr), #0);
-  //error_number := 0;
+  SetLength(dest, 890); { 10 (Start) + 86*10 + 10 (Check) + 9 (Stop) + 1 = 890 }
+  error_number := 0;
   counter := 0;
 
-  if ((symbol.option_2 < 0) or (symbol.option_2 > 1)) then
+  if (symbol.option_2 < 0) or (symbol.option_2 > 2) then
     symbol.option_2 := 0;
 
-  if ((symbol.symbology = BARCODE_LOGMARS) and (_length > 59)) then
+  { LOGMARS MIL-STD-1189 Rev. B Section 5.2.6.2 }
+  if (symbol.symbology = BARCODE_LOGMARS) and (_length > 30) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 322: Input length %d too long (maximum 30)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end
-  else if (_length > 74) then
+  { Prevent encoded_data out-of-bounds for BARCODE_HIBC_39 due to wider bars }
+  else if (symbol.symbology = BARCODE_HIBC_39) and (_length > 70) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 319: Input length %d too long (maximum 68)', [_length - 2]));
+    result := ZERROR_TOO_LONG; exit;
+  end
+  else if (_length > 86) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 323: Input length %d too long (maximum 86)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end;
+
   to_upper(source);
-  error_number := is_sane(SILVER , source, _length);
-  if (error_number = ZERROR_INVALID_DATA) then
+
+  for i := 0 to _length - 1 do
   begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
+    if posn(SILVER, Chr(source[i])) = -1 then
+    begin
+      strcpy(symbol.errtxt, Format('Error 324: Invalid character at position %d in input (alphanumerics, space and "-.$/+%%" only)', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
   end;
 
   { Start character }
@@ -212,55 +252,24 @@ begin
   for i := 0 to _length - 1 do
   begin
     lookup(SILVER, C39Table, source[i], dest);
-    Inc(counter, posn(SILVER, source[i]));
+    Inc(counter, posn(SILVER, Chr(source[i])));
   end;
 
-  if ((symbol.symbology = BARCODE_LOGMARS) or (symbol.option_2 = 1)) then
+  check_digit := #0;
+  if (symbol.option_2 = 1) or (symbol.option_2 = 2) then
   begin
     counter := counter mod 43;
-    if (counter < 10) then
-    begin
-      check_digit := itoc(counter);
-    end
-    else
-    begin
-      if (counter < 36) then
-      begin
-        check_digit := Char((counter - 10) + Ord('A'));
-      end
-      else
-      begin
-        case counter of
-          36: check_digit := '-';
-          37: check_digit := '.';
-          38: check_digit := ' ';
-          39: check_digit := '$';
-          40: check_digit := '/';
-          41: check_digit := '+';
-          42: check_digit := #37;
-          else
-            check_digit := ' ';
-        end;
-      end;
-    end;
-    lookup(SILVER, C39Table, check_digit, dest);
-
-    { Display a space check digit as _, otherwise it looks like an error }
-    if (check_digit = ' ') then
-      check_digit := '_';
-
-    localstr[0] := check_digit;
-    localstr[1] := #0;
+    check_digit := SILVER[counter + 1]; { 1-based string index }
+    lookup(SILVER, C39Table, Ord(check_digit), dest);
   end;
 
   { Stop character }
-  concat (dest, '121121211');
+  concat(dest, '121121211');
 
-  if ((symbol.symbology = BARCODE_LOGMARS) or (symbol.symbology = BARCODE_HIBC_39)) then
+  if (symbol.symbology = BARCODE_LOGMARS) or (symbol.symbology = BARCODE_HIBC_39) then
   begin
-    { LOGMARS uses wider 'wide' bars than normal Code 39 }
-    counter := strlen(dest);
-    for i := 0 to counter - 1 do
+    { LOGMARS and HIBC use wider 'wide' bars than normal Code 39 }
+    for i := 0 to strlen(dest) - 1 do
     begin
       if (dest[i] = '2') then
         dest[i] := '3';
@@ -269,67 +278,36 @@ begin
 
   expand(symbol, dest);
 
+  { Display a space check digit as _, otherwise it looks like an error }
+  if (symbol.option_2 = 1) and (check_digit = ' ') then
+    check_digit := '_';
+
   if (symbol.symbology = BARCODE_CODE39) then
   begin
     ustrcpy(symbol.text, '*');
     uconcat(symbol.text, source);
-    uconcat(symbol.text, localstr);
-    uconcat(symbol.text, '*');
+    if (symbol.option_2 = 1) then { Visible check digit }
+    begin
+      symbol.text[_length + 1] := Ord(check_digit);
+      symbol.text[_length + 2] := Ord('*');
+      symbol.text[_length + 3] := 0;
+    end
+    else
+    begin
+      symbol.text[_length + 1] := Ord('*');
+      symbol.text[_length + 2] := 0;
+    end;
   end
   else
   begin
     ustrcpy(symbol.text, source);
-    uconcat(symbol.text, localstr);
-  end;
-  result := error_number; exit;
-end;
-
-{ Pharmazentral Nummer (PZN) }
-function pharmazentral(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
-var
-  i, error_number, zeroes : Integer;
-  count, check_digit : Cardinal;
-  localstr : TArrayOfChar;
-begin
-  SetLength(localstr, 10);
-  //error_number := 0;
-
-  count := 0;
-  if (_length > 6) then
-  begin
-    strcpy(symbol.errtxt, 'Input wrong _length');
-    result := ZERROR_TOO_LONG; exit;
-  end;
-  error_number := is_sane(NEON, source, _length);
-  if (error_number = ZERROR_INVALID_DATA) then
-  begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
+    if (symbol.option_2 = 1) then { Visible check digit }
+    begin
+      symbol.text[_length] := Ord(check_digit);
+      symbol.text[_length + 1] := 0;
+    end;
   end;
 
-  localstr[0] := '-';
-  zeroes := 6 - _length + 1;
-  for i := 1 to zeroes - 1 do
-    localstr[i] := '0';
-  localstr[zeroes] := #0;
-  concat(localstr, source);
-
-  for i := 1 to 6 do
-    Inc(count, (i + 1) * ctoi(localstr[i]));
-
-  check_digit := count  mod 11;
-  if (check_digit = 11) then check_digit := 0;
-  localstr[7] := itoc(check_digit);
-  localstr[8] := #0;
-
-  if (localstr[7] = 'A') then
-  begin
-    strcpy(symbol.errtxt, 'Invalid PZN Data');
-    result := ZERROR_INVALID_DATA; exit;
-  end;
-  error_number := c39(symbol, ArrayOfCharToArrayOfByte(localstr), strlen(localstr));
-  ustrcpy(symbol.text, 'PZN');
-  uconcat(symbol.text, localstr);
   result := error_number; exit;
 end;
 
@@ -339,39 +317,86 @@ end;
 function ec39(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   buffer : TArrayOfByte;
-  i : Cardinal;
+  i : Integer;
+  b : Integer;
   error_number : Integer;
+  check_digit : Byte;
+  have_option_2 : Integer;
 begin
-  SetLength(buffer, 150); buffer[0] := 0;
-  //error_number := 0;
+  SetLength(buffer, 174); buffer[0] := 0; { 86 * 2 + 1 }
+  b := 0;
+  have_option_2 := symbol.option_2;
 
-  if (_length > 74) then
+  if (_length > 86) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
-    Result := ZERROR_TOO_LONG; exit;
+    strcpy(symbol.errtxt, Format('Error 328: Input length %d too long (maximum 86)', [_length]));
+    result := ZERROR_TOO_LONG; exit;
   end;
 
-  { Creates a buffer string and places control characters into it }
+  { Create a buffer string and place control characters into it }
   for i := 0 to _length - 1 do
   begin
     if (source[i] > 127) then
     begin
-      { Cannot encode extended ASCII }
-      strcpy(symbol.errtxt, 'Invalid characters in input data');
+      strcpy(symbol.errtxt, Format('Error 329: Invalid character at position %d in input, extended ASCII not allowed', [i + 1]));
       result := ZERROR_INVALID_DATA; exit;
     end;
-    uconcat(buffer, EC39Ctrl[source[i]]);
+    if Length(EC39Ctrl[source[i]]) = 2 then
+    begin
+      buffer[b] := Ord(EC39Ctrl[source[i]][1]); Inc(b);
+      buffer[b] := Ord(EC39Ctrl[source[i]][2]); Inc(b);
+    end
+    else
+    begin
+      buffer[b] := Ord(EC39Ctrl[source[i]][1]); Inc(b);
+    end;
   end;
 
-  { Then sends the buffer to the C39 function }
-  error_number := c39(symbol, buffer, ustrlen(buffer));
+  if (b > 86) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 317: Input too long, requires %d symbol characters (maximum 86)', [b]));
+    result := ZERROR_TOO_LONG; exit;
+  end;
+  buffer[b] := 0;
 
+  { If option_2=2, temporarily make it 1 so c39 generates a visible check digit in HRT }
+  if symbol.option_2 = 2 then
+    symbol.option_2 := 1;
+
+  { Then send the buffer to the C39 function }
+  error_number := c39(symbol, buffer, b);
+  if (error_number >= ZERROR_TOO_LONG) then
+  begin
+    result := error_number; exit;
+  end;
+
+  { Save visible check digit if applicable }
+  check_digit := 0;
+  if (symbol.option_2 = 1) then
+  begin
+    { For non-CODE39 symbologies, c39 writes check at position b (no leading *) }
+    check_digit := symbol.text[b];
+  end;
+
+  { Restore option_2 if it was hidden }
+  { (option_2 was already set to 1 by us if it was 2) }
+
+  { Copy over source to HRT, subbing space for unprintables }
   for i := 0 to _length - 1 do
-    if source[i] <> 0 then
-    symbol.text[i] := source[i]
+  begin
+    if (source[i] <> 0) and (source[i] >= 32) and (source[i] < 127) then
+      symbol.text[i] := source[i]
+    else
+      symbol.text[i] := Ord(' ');
+  end;
+
+  if (have_option_2 = 1) and (check_digit <> 0) then
+  begin
+    symbol.text[_length] := check_digit;
+    symbol.text[_length + 1] := 0;
+  end
   else
-    symbol.text[i] := Ord(' ');
-  symbol.text[_length] := 0;
+    symbol.text[_length] := 0;
 
   result := error_number; exit;
 end;
@@ -387,20 +412,20 @@ var
 
   i : Integer;
   h, weight, c, k, error_number : Integer;
-  values : array[0..127] of Integer;
+  values : array[0..124] of Integer; { 123 + 2 (Checks) }
   buffer : TArrayOfChar;
   dest : TArrayOfChar;
   set_copy : TArrayOfChar;
 begin
-  SetLength(buffer, 220);
-  SetLength(dest, 670);
+  SetLength(buffer, 248); { 123*2 + 1 }
+  SetLength(dest, 770); { 6 (Start) + 123*6 + 2*6 (Checks) + 7 (Stop) + 1 = 764 }
   set_copy := StrToArrayOfChar(SILVER);
   error_number := 0;
   strcpy(buffer, '');
 
-  if (_length > 107) then
+  if (_length > 123) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 330: Input length %d too long (maximum 123)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end;
 
@@ -409,23 +434,17 @@ begin
   begin
     if (source[i] > 127) then
     begin
-      { Cannot encode extended ASCII }
-      strcpy(symbol.errtxt, 'Invalid characters in input data');
+      strcpy(symbol.errtxt, Format('Error 331: Invalid character at position %d in input, extended ASCII not allowed', [i + 1]));
       result := ZERROR_INVALID_DATA; exit;
     end;
     concat(buffer, C93Ctrl[source[i]]);
-
-    if source[i] <> 0 then
-      symbol.text[i] := source[i]
-    else
-      symbol.text[i] := Ord(' ');
   end;
 
   { Now we can check the true _length of the barcode }
   h := strlen(buffer);
-  if (h > 107) then
+  if (h > 123) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 332: Input too long, requires %d symbol characters (maximum 123)', [h]));
     result := ZERROR_TOO_LONG; exit;
   end;
 
@@ -446,7 +465,6 @@ begin
   end;
   c := c mod 47;
   values[h] := c;
-  buffer[h] := set_copy[c] ;
 
   { Check digit K }
   k := 0;
@@ -459,28 +477,129 @@ begin
       weight := 1;
   end;
   k := k mod 47;
-  Inc(h);
-  buffer[h] := set_copy[k];
-  Inc(h);
-  buffer[h] := #0;
+  values[h + 1] := k;
+  Inc(h, 2);
 
   { Start character }
   strcpy(dest, '111141');
 
   for i := 0 to h - 1 do
-    lookup(SILVER, C93Table, buffer[i], dest);
+    lookup(SILVER, C93Table, set_copy[values[i]], dest);
 
   { Stop character }
   concat(dest, '1111411');
   expand(symbol, dest);
 
-  symbol.text[_length] := Ord(set_copy[c]);
-  symbol.text[_length + 1] := Ord(set_copy[k]);
-  symbol.text[_length + 2] := 0;
+  { HRT: by default just the source, check digits shown only if option_2=1 }
+  for i := 0 to _length - 1 do
+  begin
+    if (source[i] <> 0) and (source[i] >= 32) and (source[i] < 127) then
+      symbol.text[i] := source[i]
+    else
+      symbol.text[i] := Ord(' ');
+  end;
+
+  if (symbol.option_2 = 1) then
+  begin
+    symbol.text[_length] := Ord(set_copy[c]);
+    symbol.text[_length + 1] := Ord(set_copy[k]);
+    symbol.text[_length + 2] := 0;
+  end
+  else
+    symbol.text[_length] := 0;
 
   result := error_number; exit;
 end;
 
+
+{ ******************** VIN ******************** }
+
+{ Vehicle Identification Number (VIN) }
+function vin(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+const
+  vin_weight : array[0..16] of Integer = (8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2);
+var
+  dest : TArrayOfChar;
+  input_check, output_check : Char;
+  sum, value, i : Integer;
+begin
+  SetLength(dest, 210); { 10 + 10 + 17*10 + 9 + 1 = 200 }
+
+  { Check length }
+  if (_length <> 17) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 336: Input length %d wrong (17 characters required)', [_length]));
+    result := ZERROR_TOO_LONG; exit;
+  end;
+
+  to_upper(source);
+
+  { Check input characters, I, O and Q are not allowed }
+  for i := 0 to _length - 1 do
+  begin
+    if not (((source[i] >= Ord('0')) and (source[i] <= Ord('9'))) or
+            ((source[i] >= Ord('A')) and (source[i] <= Ord('Z')))) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 337: Invalid character at position %d in input (alphanumerics only, excluding "IOQ")', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
+    if (source[i] = Ord('I')) or (source[i] = Ord('O')) or (source[i] = Ord('Q')) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 337: Invalid character at position %d in input (alphanumerics only, excluding "IOQ")', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
+  end;
+
+  { Check digit only valid for North America (positions 1-5) }
+  if (source[0] >= Ord('1')) and (source[0] <= Ord('5')) then
+  begin
+    input_check := Chr(source[8]);
+
+    sum := 0;
+    for i := 0 to 16 do
+    begin
+      if (source[i] <= Ord('9')) then
+        value := source[i] - Ord('0')
+      else if (source[i] <= Ord('H')) then
+        value := (source[i] - Ord('A')) + 1
+      else if (source[i] <= Ord('R')) then
+        value := (source[i] - Ord('J')) + 1
+      else { S..Z }
+        value := (source[i] - Ord('S')) + 2;
+      Inc(sum, value * vin_weight[i]);
+    end;
+
+    output_check := Chr(Ord('0') + (sum mod 11));
+    if (output_check = ':') then
+      output_check := 'X'; { Check digit was 10 }
+
+    if (input_check <> output_check) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 338: Invalid check digit ''%s'' (position 9), expecting ''%s''', [input_check, output_check]));
+      result := ZERROR_INVALID_CHECK; exit;
+    end;
+  end;
+
+  { Start character }
+  strcpy(dest, '1211212111');
+
+  { Import character 'I' prefix? }
+  if (symbol.option_2 = 1) then
+    lookup(SILVER, C39Table, Ord('I'), dest);
+
+  { Copy glyphs to symbol }
+  for i := 0 to 16 do
+    lookup(SILVER, C39Table, source[i], dest);
+
+  { Stop character }
+  concat(dest, '121121211');
+
+  expand(symbol, dest);
+
+  ustrcpy(symbol.text, source);
+
+  result := 0;
+end;
 
 { NextS() and NextB() are from ANSI/AIM BC12-1998 and are Copyright (c) AIM 1997 }
 { Their are used here on the understanding that they form part of the specification
