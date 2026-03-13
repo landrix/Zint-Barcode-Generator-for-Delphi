@@ -81,6 +81,7 @@ type
                     zsPHARMA,
                     zsPZN,
                     zsPHARMA_TWO,
+                    zsCEPNET,
                     zsPDF417,
                     zsPDF417TRUNC,
                     zsMAXICODE,
@@ -645,6 +646,7 @@ const
   BARCODE_PHARMA = 51;
   BARCODE_PZN = 52;
   BARCODE_PHARMA_TWO = 53;
+  BARCODE_CEPNET = 54;
   BARCODE_PDF417 = 55;
   BARCODE_PDF417TRUNC = 56;
   BARCODE_MAXICODE = 57;
@@ -828,6 +830,7 @@ const
   DM_RECT   = 102;
 
   ZWARN_INVALID_OPTION = 2;
+  ZWARN_NONCOMPLIANT = 4;
   ZERROR_TOO_LONG = 5;
   ZERROR_INVALID_DATA = 6;
   ZERROR_INVALID_CHECK = 7;
@@ -895,6 +898,7 @@ begin
     zsPHARMA : Result := BARCODE_PHARMA;
     zsPZN : Result := BARCODE_PZN;
     zsPHARMA_TWO : Result := BARCODE_PHARMA_TWO;
+    zsCEPNET : Result := BARCODE_CEPNET;
     zsPDF417 : Result := BARCODE_PDF417;
     zsPDF417TRUNC : Result := BARCODE_PDF417TRUNC;
     zsMAXICODE : Result := BARCODE_MAXICODE;
@@ -987,6 +991,7 @@ begin
     BARCODE_PHARMA : Result := zsPHARMA;
     BARCODE_PZN : Result := zsPZN;
     BARCODE_PHARMA_TWO : Result := zsPHARMA_TWO;
+    BARCODE_CEPNET : Result := zsCEPNET;
     BARCODE_PDF417 : Result := zsPDF417;
     BARCODE_PDF417TRUNC : Result := zsPDF417TRUNC;
     BARCODE_MAXICODE : Result := zsMAXICODE;
@@ -2264,6 +2269,7 @@ begin
 		BARCODE_FLAT: error_number := flattermarken(symbol, preprocessed, _length);
 		BARCODE_FIM: error_number := fim(symbol, preprocessed, _length);
 		BARCODE_POSTNET: error_number := post_plot(symbol, preprocessed, _length);
+		BARCODE_CEPNET: error_number := post_plot(symbol, preprocessed, _length);
 		BARCODE_PLANET: error_number := planet_plot(symbol, preprocessed, _length);
 		BARCODE_RM4SCC: error_number := royal_plot(symbol, preprocessed, _length);
 		BARCODE_AUSPOST: error_number := australia_post(symbol, preprocessed, _length);
@@ -2535,11 +2541,8 @@ begin
 	else if (symbol.symbology = 48) then
     symbol.symbology := BARCODE_NVE18
 
-	else if (symbol.symbology = 54) then begin
-    strcpy(symbol.errtxt, 'General Parcel Code not supported, using Code 128');
-    symbol.symbology := BARCODE_CODE128;
-    error_number := ZWARN_INVALID_OPTION;
-  end
+	else if (symbol.symbology = 54) then
+    symbol.symbology := BARCODE_CEPNET
 
 	else if ((symbol.symbology = 59) or (symbol.symbology = 61)) then
     symbol.symbology := BARCODE_CODE128

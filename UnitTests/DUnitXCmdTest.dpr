@@ -42,7 +42,8 @@ uses
   Test_Telepen,
   Test_Medical,
   Test_Plessey,
-  Test_PZN
+  Test_PZN,
+  Test_Postal
   ;
 
 var

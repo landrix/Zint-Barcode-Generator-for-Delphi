@@ -287,7 +287,7 @@ begin
   for i := 0 to n - 1 do
     if (data = set_string[i]) then
       exit(i);
-  result := 0;
+  result := -1;
 end;
 
 function posn(const ASet_string: String; const AData: Byte): Integer;
