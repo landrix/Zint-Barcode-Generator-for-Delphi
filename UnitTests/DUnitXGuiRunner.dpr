@@ -12,7 +12,8 @@ uses
   TestHelper_Zint,
   //Test_Code128,
   Test_Telepen,
-  Test_Medical
+  Test_Medical,
+  Test_Plessey
   ;
 
 begin

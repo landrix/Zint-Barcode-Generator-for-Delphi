@@ -45,6 +45,9 @@ type
     /// <summary>Liest errtxt als Delphi-String</summary>
     class function GetErrTxt(ASymbol: TZintSymbol): String;
 
+    /// <summary>Liest text (HRT) als Delphi-String</summary>
+    class function GetText(ASymbol: TZintSymbol): String;
+
     /// <summary>Erzeugt einen String aus den Modulen einer Zeile (0/1)</summary>
     class function ModulesDumpRow(ASymbol: TZintSymbol; ARow: Integer): String;
 
@@ -129,6 +132,18 @@ begin
     Result := Result.Substring(Length(PrefixError))
   else if Result.StartsWith(PrefixWarning) then
     Result := Result.Substring(Length(PrefixWarning));
+end;
+
+class function TZintTestHelper.GetText(ASymbol: TZintSymbol): String;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to High(ASymbol.text) do
+  begin
+    if ASymbol.text[i] = 0 then Break;
+    Result := Result + Chr(ASymbol.text[i]);
+  end;
 end;
 
 class function TZintTestHelper.ModulesDumpRow(ASymbol: TZintSymbol; ARow: Integer): String;
