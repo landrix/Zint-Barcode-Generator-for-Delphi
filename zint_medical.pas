@@ -10,7 +10,8 @@ unit zint_medical;
   License: Apache License 2.0
 
   Status:
-    3432bc9aff311f2aea40f0e9883abfe6564c080b complete
+    b3a3c0d updated to Zint 2.16.0.9 (2026-03-13) - pharma_one, pharma_two, code32
+    3432bc9 complete - codabar (unchanged, to be moved to own unit later)
 }
 
 {$IFDEF FPC}
@@ -51,6 +52,7 @@ function pharma_one(symbol : zint_symbol; source : TArrayOfByte; _length : Integ
   { This code uses the One Track Pharamacode calculating algorithm as recommended by
      the specification at http://www.laetus.com/laetus.php?request=file&id=69 }
 var
+  i : Integer;
   tester : Cardinal;
   counter, error_number, h : Integer;
   inter : TArrayOfChar; { 131070 . 17 bits }
@@ -60,25 +62,27 @@ begin
   Fill(inter, 18, #0);
   SetLength(dest, 64);
 
-  //error_number := 0;
+  error_number := 0;
 
   if (_length > 6) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 350: Input length %d too long (maximum 6)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end;
-  error_number := is_sane(NEON, source, _length);
-  if (error_number = ZERROR_INVALID_DATA) then
+  for i := 0 to _length - 1 do
   begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
+    if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 351: Invalid character at position %d in input (digits only)', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
   end;
 
   tester := StrToIntDef(ArrayOfByteToString(source), 0);
 
   if ((tester < 3) or (tester > 131070)) then
   begin
-    strcpy(symbol.errtxt, 'Data out of range');
+    strcpy(symbol.errtxt, Format('Error 352: Input value ''%d'' out of range (3 to 131070)', [tester]));
     result := ZERROR_INVALID_DATA; exit;
   end;
 
@@ -110,27 +114,18 @@ begin
   result := error_number; exit;
 end;
 
-function pharma_two_calc(symbol : zint_symbol; source : TArrayOfByte; var dest : TArrayOfChar) : Integer;
+function pharma_two_calc(tester : Cardinal; var dest : TArrayOfChar) : Integer;
   { This code uses the Two Track Pharamacode defined in the document at
      http://www.laetus.com/laetus.php?request=file&id=69 and using a modified
-     algorithm from the One Track system. This standard accepts integet values
+     algorithm from the One Track system. This standard accepts integer values
      from 4 to 64570080. }
 var
-  tester : Cardinal;
   counter, h : Integer;
   inter : TArrayOfChar;
-  error_number : Integer;
 begin
   SetLength(inter, 17);
-  tester := StrToIntDef(ArrayOfByteToString(source), 0);
-
-  if ((tester < 4) or (tester > 64570080)) then
-  begin
-    strcpy(symbol.errtxt, 'Data out of range');
-    result := ZERROR_INVALID_DATA; exit;
-  end;
-  error_number := 0;
   strcpy(inter, '');
+
   repeat
     case tester mod 3 of
       0:
@@ -157,40 +152,48 @@ begin
 
   dest[h + 1] := #0;
 
-  result := error_number; exit;
+  result := h + 1;
 end;
 
 { Draws the patterns for two track pharmacode }
 function pharma_two(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
+  i : Integer;
+  tester : Cardinal;
   height_pattern : TArrayOfChar;
   loopey, h : Cardinal;
   writer : Integer;
   error_number : Integer;
 begin
   SetLength(height_pattern, 200);
-  //error_number := 0;
+  error_number := 0;
   strcpy(height_pattern, '');
 
   if (_length > 8) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 354: Input length %d too long (maximum 8)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end;
-  error_number := is_sane(NEON, source, _length);
-  if (error_number = ZERROR_INVALID_DATA) then
+  for i := 0 to _length - 1 do
   begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
-  end;
-  error_number := pharma_two_calc(symbol, source, height_pattern);
-  if (error_number <> 0) then
-  begin
-    result := error_number; exit;
+    if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 355: Invalid character at position %d in input (digits only)', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
   end;
 
+  tester := StrToIntDef(ArrayOfByteToString(source), 0);
+
+  if ((tester < 4) or (tester > 64570080)) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 353: Input value ''%d'' out of range (4 to 64570080)', [tester]));
+    result := ZERROR_INVALID_DATA; exit;
+  end;
+
+  h := pharma_two_calc(tester, height_pattern);
+
   writer := 0;
-  h := strlen(height_pattern);
   for loopey := 0 to h - 1 do
   begin
     if ((height_pattern[loopey] = '2') or (height_pattern[loopey] = '3')) then
@@ -205,7 +208,6 @@ begin
   end;
   symbol.rows := 2;
   symbol.width := writer - 1;
-
 
   result := error_number; exit;
 end;
@@ -290,20 +292,23 @@ var
   pharmacode, remainder, devisor : Integer;
   codeword : array[0..5] of Integer;
   tabella : TArrayOfChar;
+  saved_option_2 : Integer;
 begin
   SetLength(tabella, 34);
 
   { Validate the input }
   if (_length > 8) then
   begin
-    strcpy(symbol.errtxt, 'Input too long');
+    strcpy(symbol.errtxt, Format('Error 360: Input length %d too long (maximum 8)', [_length]));
     result := ZERROR_TOO_LONG; exit;
   end;
-  error_number := is_sane(NEON, source, _length);
-  if (error_number = ZERROR_INVALID_DATA) then
+  for i := 0 to _length - 1 do
   begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
+    if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 361: Invalid character at position %d in input (digits only)', [i + 1]));
+      result := ZERROR_INVALID_DATA; exit;
+    end;
   end;
 
   { Add leading zeros as required }
@@ -352,7 +357,15 @@ begin
   risultante[6] := #0;
 
   { Plot the barcode using Code 39 }
+  saved_option_2 := symbol.option_2;
+  if (symbol.option_2 = 1) or (symbol.option_2 = 2) then
+    symbol.option_2 := 0; { Don't let c39 add its own check digit }
+
   error_number := c39(symbol, ArrayOfCharToArrayOfByte(risultante), strlen(risultante));
+
+  if (saved_option_2 = 1) or (saved_option_2 = 2) then
+    symbol.option_2 := saved_option_2; { Restore }
+
   if (error_number <> 0) then begin result := error_number; exit; end;
 
   { Override the normal text output with the Pharmacode number }

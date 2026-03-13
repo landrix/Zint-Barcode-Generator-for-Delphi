@@ -11,7 +11,8 @@ uses
   DUnitX.Loggers.GUI.VCL,
   TestHelper_Zint,
   //Test_Code128,
-  Test_Telepen
+  Test_Telepen,
+  Test_Medical
   ;
 
 begin
