@@ -38,7 +38,7 @@ uses
   DUnitX.Attributes,
   DUnitX.Linux.Console,
   TestHelper_Zint,
-  //Test_Code128,
+  Test_Code128,
   Test_Telepen,
   Test_Medical,
   Test_Plessey,

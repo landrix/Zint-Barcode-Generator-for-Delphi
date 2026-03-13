@@ -10,7 +10,7 @@ unit zint_code128;
   License: Apache License 2.0
 
   Status:
-    3432bc9aff311f2aea40f0e9883abfe6564c080b complete
+    b3a3c0d complete (code128.c + code128_based.c)
 }
 
 {$IFDEF FPC}
@@ -24,6 +24,7 @@ uses
 
 function code_128(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function ean_128(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+function gs1_128_cc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer; cc_mode : Integer; cc_rows : Integer) : Integer;
 function nve_18(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function ean_14(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 
@@ -33,14 +34,20 @@ uses
   SysUtils, zint_common, zint_gs1, zint_helper;
 
 const
-  DPDSET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ*';
+  C128_SYMBOL_MAX   = 102;   { 102 * 10 + 10 (check digit) + 13 (Stop) = 1043 }
+  C128_MAX          = 256;
+  C128_VALUES_MAX   = C128_SYMBOL_MAX + 2; { Allow for check digit and Stop }
 
-type
-  TGlobalList = array[0..1] of array[0..169] of Integer;
+  { Code Set states }
+  C128_A0     = 1;
+  C128_B0     = 2;
+  C128_A1     = 3;
+  C128_B1     = 4;
+  C128_C0     = 5;
+  C128_C1     = 6;
+  C128_STATES = 7;
 
-const
-  {Code 128 tables checked against ISO/IEC 15417:2007 }
-
+  { Code 128 tables checked against ISO/IEC 15417:2007 }
   C128Table : array[0..106] of String = ('212222', '222122', '222221', '121223', '121322', '131222', '122213',
   	'122312', '132212', '221213', '221312', '231212', '112232', '122132', '122231', '113222',
   	'123122', '123221', '223211', '221132', '221231', '213212', '223112', '312131', '311222',
@@ -54,1100 +61,718 @@ const
   	'421211', '212141', '214121', '412121', '111143', '111341', '131141', '114113', '114311',
   	'411113', '411311', '113141', '114131', '311141', '411131', '211412', '211214', '211232',
   	'2331112');
-  { Code 128 character encodation - Table 1 }
 
- {
- * bring together same type blocks
- }
-procedure grwp(var indexliste : Integer; var list : TGlobalList);
+  { Latch sequences between Code Set states [prior_cset][cset][0..2] }
+  c128_latch_seq : array[0..6, 0..6, 0..2] of Byte = (
+    { 0 (unused) }
+    ((0,0,0), (0,0,0), (0,0,0), (0,0,0), (0,0,0), (0,0,0), (0,0,0)),
+    { A0 }
+    ((0,0,0), (0,0,0), (100,0,0), (101,101,0), (100,100,100), (99,0,0), (101,101,99)),
+    { B0 }
+    ((0,0,0), (101,0,0), (0,0,0), (101,101,101), (100,100,0), (99,0,0), (100,100,99)),
+    { A1 }
+    ((0,0,0), (101,101,0), (100,100,100), (0,0,0), (100,0,0), (101,101,99), (99,0,0)),
+    { B1 }
+    ((0,0,0), (101,101,101), (100,100,0), (101,0,0), (0,0,0), (100,100,99), (99,0,0)),
+    { C0 }
+    ((0,0,0), (101,0,0), (100,0,0), (101,101,101), (100,100,100), (0,0,0), (0,0,0)),
+    { C1 }
+    ((0,0,0), (101,101,101), (100,100,100), (101,0,0), (100,0,0), (0,0,0), (0,0,0))
+  );
+
+  { Lengths of latch sequences }
+  c128_latch_len : array[0..6, 0..6] of Byte = (
+    (0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 1, 2, 3, 1, 3),  { A0 }
+    (0, 1, 0, 3, 2, 1, 3),  { B0 }
+    (0, 2, 3, 0, 1, 3, 1),  { A1 }
+    (0, 3, 2, 1, 0, 3, 1),  { B1 }
+    (0, 1, 1, 3, 3, 0, 64), { C0 }
+    (0, 3, 3, 1, 1, 64, 0)  { C1 }
+  );
+
+  { Start latch sequences for Normal[0], GS1_MODE[1], READER_INIT[2] }
+  c128_start_latch_seq : array[0..2, 0..6, 0..3] of Byte = (
+    { Normal }
+    ((0,0,0,0), (103,0,0,0), (104,0,0,0), (103,101,101,0), (104,100,100,0), (105,0,0,0), (0,0,0,0)),
+    { GS1_MODE }
+    ((0,0,0,0), (103,102,0,0), (104,102,0,0), (103,102,101,101), (104,102,100,100), (105,102,0,0), (0,0,0,0)),
+    { READER_INIT }
+    ((0,0,0,0), (103,96,0,0), (104,96,0,0), (103,96,101,101), (104,96,100,100), (104,96,99,0), (0,0,0,0))
+  );
+
+  { Lengths of start latch sequences }
+  c128_start_latch_len : array[0..2, 0..6] of Byte = (
+    (0, 1, 1, 3, 3, 1, 64),  { Normal }
+    (0, 2, 2, 4, 4, 2, 64),  { GS1_MODE }
+    (0, 2, 2, 4, 4, 3, 64)   { READER_INIT }
+  );
+
+type
+  TCostRow = array[0..6] of SmallInt;
+  TModeRow = array[0..6] of ShortInt;
+  TCostsArray = array of TCostRow;
+  TModesArray = array of TModeRow;
+  TPriorityArray = array[0..6] of Byte;
+  TFncManualArray = array[0..C128_MAX - 1] of Byte;
+  TValuesArray = array[0..C128_VALUES_MAX - 1] of Integer;
+
+{ Output cost (length) for Code Sets A/B }
+function c128_cost_ab(cset : Integer; ch : Byte; var p_mode : Integer) : Integer;
 var
-  i, j : Integer;
+  mask_0x60 : Byte;
+  is_a : Boolean;
 begin
-	if (indexliste <= 1) then
-    exit;
+  mask_0x60 := ch and $60;
+  is_a := (cset and 1) <> 0; { C128_A0A1 }
+  Result := 1;
 
-  //because i is modified inside the loop, we have to use "while"
-  i := 1;
-	while i < indexliste do
+  { SHIFT }
+  if (is_a and (mask_0x60 = $60)) or ((not is_a) and (mask_0x60 = 0)) then
   begin
-		if (list[1][i - 1] = list[1][i]) then
-    begin
-			{ bring together }
-			list[0][i - 1] := list[0][i - 1] + list[0][i];
+    Inc(Result);
+    p_mode := p_mode or $10;
+  end;
 
-			{ decreace the list }
-			for j := i + 1 to indexliste - 1 do
-      begin
-				list[0][j - 1] := list[0][j];
-				list[1][j - 1] := list[1][j];
-      end;
-			Dec(indexliste);
-			Dec(i);
-		end;
-    Inc(i);
-	end;
+  { FNC4 }
+  if (cset <= C128_B0) = (ch >= 128) then
+  begin
+    Inc(Result);
+    p_mode := p_mode or $20;
+  end;
 end;
 
- {
- * Implements rules from ISO 15417 Annex E
- }
-procedure dxsmooth(var indexliste : Integer; var list : TGlobalList);
+{ Calculate encoding cost from position i starting in prior_cset (DAC-DM) }
+function c128_cost(const source : TArrayOfByte; _length, i, prior_cset, start_idx : Integer;
+  const priority : TPriorityArray; const fncs : TFncManualArray; const manuals : TFncManualArray;
+  var costs : TCostsArray; var modes : TModesArray) : Integer;
 var
-	i, current, _length, last, next : Integer;
+  ch : Byte;
+  is_fnc1, can_c, manual_c_fail : Boolean;
+  min_cost, min_mode, p, cset, cost, mode, incr : Integer;
+  latch_len_ptr : Integer; { 0 = use start_latch_len, 1..6 = use c128_latch_len[prior_cset] }
 begin
-	for i := 0  to indexliste - 1 do
+  ch := source[i];
+  latch_len_ptr := prior_cset;
+  is_fnc1 := (ch = $1D) and (fncs[i] <> 0);
+  can_c := is_fnc1 or ((ch >= Ord('0')) and (ch <= Ord('9')) and (source[i + 1] >= Ord('0')) and (source[i + 1] <= Ord('9')));
+  manual_c_fail := (not can_c) and (manuals[i] = C128_C0);
+  min_cost := 999999;
+  min_mode := 0;
+
+  p := 0;
+  while priority[p] <> 0 do
   begin
-		current := list[1][i];
-		_length := list[0][i];
-
-		if (i <> 0) then
-      last := list[1][i - 1]
-    else
-      last := _FALSE;
-
-		if (i <> indexliste - 1) then
-      next := list[1][i + 1]
-    else
-      next := _FALSE;
-
-		if(i = 0) then
-    begin { first block }
-			if ((indexliste = 1) and ((_length = 2) and (current = ABORC))) then
-        { Rule 1a }
-        list[1][i] := LATCHC;
-
-			if (current = ABORC) then
+    cset := priority[p];
+    if cset >= C128_C0 then { C128_C0C1 }
+    begin
+      if can_c and ((manuals[i] = 0) or (manuals[i] = C128_C0)) then
       begin
-				if (_length >= 4) then
-          { Rule 1b }
-          list[1][i] := LATCHC
-        else
+        if is_fnc1 then incr := 1 else incr := 2;
+        mode := prior_cset;
+        cost := 1;
+        if prior_cset <> cset then
         begin
-          list[1][i] := AORB; current := AORB;
+          if latch_len_ptr = 0 then
+            Inc(cost, c128_start_latch_len[start_idx][cset])
+          else
+            Inc(cost, c128_latch_len[latch_len_ptr][cset]);
+          mode := cset;
         end;
-			end;
-
-			if (current = SHIFTA) then
-        { Rule 1c }
-        list[1][i] := LATCHA;
-			if ((current = AORB) and (next = SHIFTA)) then
-      begin
-        { Rule 1c }
-        list[1][i] := LATCHA; current := LATCHA;
+        if i + incr < _length then
+        begin
+          if costs[i + incr][cset] <> 0 then
+            Inc(cost, costs[i + incr][cset])
+          else
+            Inc(cost, c128_cost(source, _length, i + incr, cset, 0, priority, fncs, manuals, costs, modes));
+        end;
+        if cost < min_cost then
+        begin
+          min_cost := cost;
+          min_mode := mode;
+        end;
       end;
-			if (current = AORB) then
-        { Rule 1d }
-        list[1][i] := LATCHB;
-		end
+    end
     else
     begin
-			if ((current = ABORC) and (_length >= 4)) then
+      { A/B sets }
+      { C128_AB(cset): maps A0,A1->1, B0,B1->2 }
+      if (manuals[i] = 0) or (manuals[i] = (cset shr Ord(cset > C128_B0))) or manual_c_fail then
       begin
-        { Rule 3 }
-        list[1][i] := LATCHC; current := LATCHC;
+        mode := cset;
+        if is_fnc1 then
+          cost := 1
+        else
+          cost := c128_cost_ab(cset, ch, mode);
+        if prior_cset <> cset then
+        begin
+          if latch_len_ptr = 0 then
+            Inc(cost, c128_start_latch_len[start_idx][cset])
+          else
+            Inc(cost, c128_latch_len[latch_len_ptr][cset]);
+        end;
+        if i + 1 < _length then
+        begin
+          if costs[i + 1][cset] <> 0 then
+            Inc(cost, costs[i + 1][cset])
+          else
+            Inc(cost, c128_cost(source, _length, i + 1, cset, 0, priority, fncs, manuals, costs, modes));
+        end;
+        if cost < min_cost then
+        begin
+          min_cost := cost;
+          min_mode := mode;
+        end;
       end;
-			if (current = ABORC) then
-      begin
-        list[1][i] := AORB; current := AORB;
-      end;
-			if ((current = AORB) and (last = LATCHA)) then
-      begin
-        list[1][i] := LATCHA; current := LATCHA;
-      end;
-			if ((current = AORB) and (last = LATCHB)) then
-      begin
-        list[1][i] := LATCHB; current := LATCHB;
-      end;
-			if ((current = AORB) and (next = SHIFTA)) then
-      begin
-        list[1][i] := LATCHA; current := LATCHA;
-      end;
-			if ((current = AORB) and (next = SHIFTB)) then
-      begin
-        list[1][i] := LATCHB; current := LATCHB;
-      end;
-			if (current = AORB) then
-      begin
-        list[1][i] := LATCHB; current := LATCHB;
-      end;
-			if ((current = SHIFTA) and (_length > 1)) then
-      begin
-        { Rule 4 }
-        list[1][i] := LATCHA; current := LATCHA;
-      end;
-			if ((current = SHIFTB) and (_length > 1)) then
-      begin
-        { Rule 5 }
-        list[1][i] := LATCHB; current := LATCHB;
-      end;
-			if ((current = SHIFTA) and (last = LATCHA)) then
-      begin
-        list[1][i] := LATCHA; current := LATCHA;
-      end;
-			if ((current = SHIFTB) and (last = LATCHB)) then
-      begin
-        list[1][i] := LATCHB; current := LATCHB;
-      end;
-			if ((current = SHIFTA) and (last = LATCHC)) then
-      begin
-        list[1][i] := LATCHA; current := LATCHA;
-      end;
-			if ((current = SHIFTB) and (last = LATCHC)) then
-      begin
-        list[1][i] := LATCHB; //current := LATCHB;
-      end;
-		end; { Rule 2 is implimented elsewhere, Rule 6 is implied }
-	end;
-	grwp(indexliste, list);
+    end;
+    Inc(p);
+  end;
+
+  costs[i][prior_cset] := min_cost;
+  modes[i][prior_cset] := min_mode;
+  Result := min_cost;
 end;
 
- {
- * Translate Code 128 Set A characters into barcodes.
- * This set handles all control characters NULL to US.
- }
-procedure c128_set_a(source : Byte; var dest : TArrayOfChar; var values : TArrayOfInteger; var bar_chars : Integer);
-begin
-  { limit the range to 0-127 }
-  source := source and 127;
-
-	if (source < 32) then
-		source := source + 64
-	else
-		source := source - 32;
-
-	concat(dest, C128Table[source]);
-	values[bar_chars] := source;
-  Inc(bar_chars);
-end;
-
- {
- * Translate Code 128 Set B characters into barcodes.
- * This set handles all characters which are not part of long numbers and not
- * control characters.
- }
-procedure c128_set_b(source : Byte; var dest : TArrayOfChar; var values : TArrayOfInteger; var bar_chars : Integer);
-begin
-	{ limit the range to 0-127 }
-	source := source and 127;
-	source := source - 32;
-
-	concat(dest, C128Table[source]);
-	values[bar_chars] := source;
-  Inc(bar_chars);
-end;
-
- {
- * Translate Code 128 Set C characters into barcodes.
- * This set handles numbers in a compressed form.
- }
-procedure c128_set_c(source_a : Byte; source_b : Byte; var dest : TArrayOfChar; var values : TArrayOfInteger; var bar_chars : Integer);
+{ Build optimal encoding sequence using DAC-DM }
+function c128_set_values(const source : TArrayOfByte; _length, start_idx : Integer;
+  const priority : TPriorityArray; const fncs : TFncManualArray; const manuals : TFncManualArray;
+  var values : TValuesArray; p_final_cset : PInteger) : Integer;
 var
-  weight : Integer;
- begin
-	weight := (10 * StrToInt(Chr(source_a))) + StrToInt(Chr(source_b));
-	concat(dest, C128Table[weight]);
-	values[bar_chars] := weight;
-	Inc(bar_chars);
+  costs : TCostsArray;
+  modes : TModesArray;
+  glyph_count, cset, i, j : Integer;
+  ch : Byte;
+  is_fnc1 : Boolean;
+  mode, prior_cset : Integer;
+begin
+  SetLength(costs, _length);
+  SetLength(modes, _length);
+  for i := 0 to _length - 1 do
+  begin
+    FillChar(costs[i], SizeOf(TCostRow), 0);
+    FillChar(modes[i], SizeOf(TModeRow), 0);
+  end;
+
+  c128_cost(source, _length, 0, 0, start_idx, priority, fncs, manuals, costs, modes);
+
+  if costs[0][0] > C128_SYMBOL_MAX then
+  begin
+    Result := costs[0][0];
+    Exit;
+  end;
+
+  { Output codewords }
+  glyph_count := 0;
+  cset := 0;
+  i := 0;
+  while i < _length do
+  begin
+    ch := source[i];
+    is_fnc1 := (ch = $1D) and (fncs[i] <> 0);
+    mode := modes[i][cset];
+    prior_cset := cset;
+
+    cset := mode and $0F;
+    if cset <> prior_cset then
+    begin
+      if prior_cset = 0 then
+      begin
+        for j := 0 to c128_start_latch_len[start_idx][cset] - 1 do
+        begin
+          values[glyph_count] := c128_start_latch_seq[start_idx][cset][j];
+          Inc(glyph_count);
+        end;
+      end
+      else
+      begin
+        for j := 0 to c128_latch_len[prior_cset][cset] - 1 do
+        begin
+          values[glyph_count] := c128_latch_seq[prior_cset][cset][j];
+          Inc(glyph_count);
+        end;
+      end;
+    end;
+
+    if mode >= $30 then
+    begin
+      { Extended Shift A/B }
+      values[glyph_count] := 100 + Ord((cset and 1) <> 0); { FNC4 }
+      Inc(glyph_count);
+      values[glyph_count] := 98; { SHIFT }
+      Inc(glyph_count);
+    end
+    else if mode >= $20 then
+    begin
+      { Extended A/B }
+      values[glyph_count] := 100 + Ord((cset and 1) <> 0); { FNC4 }
+      Inc(glyph_count);
+    end
+    else if mode >= $10 then
+    begin
+      { Shift A/B }
+      values[glyph_count] := 98; { SHIFT }
+      Inc(glyph_count);
+    end;
+
+    if is_fnc1 then
+    begin
+      values[glyph_count] := 102; { FNC1 }
+      Inc(glyph_count);
+    end
+    else if cset >= C128_C0 then
+    begin
+      values[glyph_count] := (ch - Ord('0')) * 10 + source[i + 1] - Ord('0');
+      Inc(glyph_count);
+      Inc(i); { Extra increment for Code C pair }
+    end
+    else
+    begin
+      { (ch & 0x7F) < 32 ? (ch & 0x7F) + 64 : (ch & 0x7F) - 32 }
+      if (ch and $60) = 0 then
+        values[glyph_count] := (ch and $7F) + 64
+      else
+        values[glyph_count] := (ch and $7F) - 32;
+      Inc(glyph_count);
+    end;
+    Inc(i);
+  end;
+
+  if p_final_cset <> nil then
+    p_final_cset^ := cset;
+
+  Result := glyph_count;
 end;
 
- {
- * Handle Code 128 and NVE-18.
- }
+{ Write output symbol, calculating check digit }
+procedure c128_expand(symbol : zint_symbol; var values : TValuesArray; glyph_count : Integer);
+var
+  dest : TArrayOfChar;
+  total_sum, i : Integer;
+begin
+  SetLength(dest, 1000);
+  strcpy(dest, '');
+
+  { Start character and check digit calculation }
+  concat(dest, C128Table[values[0]]);
+  total_sum := values[0];
+
+  for i := 1 to glyph_count - 1 do
+  begin
+    concat(dest, C128Table[values[i]]);
+    Inc(total_sum, values[i] * i);
+  end;
+  total_sum := total_sum mod 103;
+  concat(dest, C128Table[total_sum]);
+
+  { Stop character }
+  concat(dest, C128Table[106]);
+
+  expand(symbol, dest);
+end;
+
+{ Set priority array based on data classification }
+procedure c128_set_priority(var priority : TPriorityArray; have_a, have_b, have_c, have_extended : Boolean);
+var
+  i : Integer;
+begin
+  i := 0;
+  if have_c then
+  begin
+    priority[i] := C128_C0;
+    Inc(i);
+  end;
+  if have_b or (not have_a) then
+  begin
+    priority[i] := C128_B0;
+    Inc(i);
+  end;
+  if have_a then
+  begin
+    priority[i] := C128_A0;
+    Inc(i);
+  end;
+  if have_extended then
+  begin
+    if have_c then
+    begin
+      priority[i] := C128_C1;
+      Inc(i);
+    end;
+    if have_b or (not have_a) then
+    begin
+      priority[i] := C128_B1;
+      Inc(i);
+    end;
+    if have_a then
+    begin
+      priority[i] := C128_A1;
+      Inc(i);
+    end;
+  end;
+  priority[i] := 0;
+end;
+
+{ GS1 check digit - weight factor 1,3 alternating }
+function gs1_check_digit(const source : TArrayOfByte; _length : Integer) : Byte;
+var
+  i, count, factor : Integer;
+begin
+  count := 0;
+  if Odd(_length) then factor := 3 else factor := 1;
+  for i := 0 to _length - 1 do
+  begin
+    Inc(count, factor * ctoi(Chr(source[i])));
+    factor := factor xor $02;
+  end;
+  Result := Ord(itoc((10 - (count mod 10)) mod 10));
+end;
+
+{ Handle Code 128, Code 128AB and HIBC 128 }
 function code_128(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  i, j, k, bar_characters, read, total_sum : Integer;
-  values : TArrayOfInteger;
-  error_number, indexchaine, indexliste, sourcelen, f_state : Integer;
-  _set, fset : TArrayOfChar;
-  last_set, current_set : Char;
-  mode : Integer;
-  glyph_count : Single;
-  dest : TArrayOfChar;
-  list : TGlobalList;
+  i : Integer;
+  manuals : TFncManualArray;
+  fncs : TFncManualArray;
+  have_a, have_b, have_c, have_extended : Boolean;
+  priority : TPriorityArray;
+  values : TValuesArray;
+  glyph_count : Integer;
+  ab_only : Boolean;
+  start_idx : Integer;
+  ch, mask_0x60 : Byte;
+  prev_digit, digit : Boolean;
 begin
-  SetLength(_set, 170);
-  Fill(_set, Length(_set), ' ');
-  SetLength(fset, 170);
-  Fill(fset, Length(fset), ' ');
-  SetLength(dest, 1000);
-  SetLength(values, 170);
-  FillChar(values[0], Length(values), 0);
-  current_set := ' ';
-	error_number := 0;
-	strcpy(dest, '');
+  FillChar(manuals, SizeOf(manuals), 0);
+  FillChar(fncs, SizeOf(fncs), 0);
+  FillChar(values, SizeOf(values), 0);
 
-	sourcelen := _length;
+  ab_only := (symbol.symbology = BARCODE_CODE128B);
+  if (symbol.output_options and READER_INIT) <> 0 then
+    start_idx := 2
+  else
+    start_idx := 0;
 
-	bar_characters := 0;
-	f_state := 0;
-
-	if (sourcelen > 160) then
+  if _length > C128_MAX then
   begin
-		{ This only blocks rediculously long input - the actual length of the
-		   resulting barcode depends on the type of data, so this is trapped later }
-		strcpy(symbol.errtxt, 'Input too long');
-		result := ZERROR_TOO_LONG; exit;
-	end;
-
-	{ Detect extended ASCII characters }
-	for i := 0 to sourcelen - 1 do
-  begin
-		if (source[i] >= 128) then
-			fset[i] := 'f';
-	end;
-  fset[sourcelen] := #0;
-
-	{ Decide when to latch to extended mode - Annex E note 3 }
-	j := 0;
-	for i := 0 to sourcelen - 1 do
-  begin
-		if (fset[i] = 'f') then
-			Inc(j)
-		else
-			j := 0;
-
-		if (j >= 5) then
-    begin
-			for k := i downto (i - 4) do
-				fset[k] := 'F';
-		end;
-
-		if ((j >= 3) and (i = sourcelen - 1)) then
-    begin
-			for k := i downto i - 2 do
-				fset[k] := 'F';
-		end;
-	end;
-
-	{ Decide if it is worth reverting to 646 encodation for a few
-	   characters as described in 4.3.4.2 (d) }
-	for i := 1 to sourcelen - 1 do
-  begin
-		if ((fset[i - 1] = 'F') and (fset[i] = ' ')) then
-    begin
-			{ Detected a change from 8859-1 to 646 - count how long for }
-      j := 0;
-      while (fset[i + j] = ' ') and ((i + j) < sourcelen) do
-        Inc(j);
-
-			if ((j < 5) or ((j < 3) and ((i + j) = sourcelen - 1))) then
-      begin
-				{ Uses the same figures recommended by Annex E note 3 }
-				{ Change to shifting back rather than latching back }
-				for k := 0 to j - 1 do
-					fset[i + k] := 'n';
-			end;
-		end;
-	end;
-
-	{ Decide on mode using same system as PDF417 and rules of ISO 15417 Annex E }
-	indexliste := 0;
-	indexchaine := 0;
-
-	mode := parunmodd(source[indexchaine]);
-	if((symbol.symbology = BARCODE_CODE128B) and (mode = ABORC)) then
-		mode := AORB;
-
-  FillChar(list[0], 170, 0);
-
-	repeat
-		list[1][indexliste] := mode;
-		while ((list[1][indexliste] = mode) and (indexchaine < sourcelen)) do
-    begin
-			Inc(list[0][indexliste]);
-			Inc(indexchaine);
-			mode := parunmodd(source[indexchaine]);
-			if ((symbol.symbology = BARCODE_CODE128B) and (mode = ABORC)) then
-				mode := AORB;
-		end;
-		Inc(indexliste);
-	until not (indexchaine < sourcelen);
-
-	dxsmooth(indexliste, list);
-
-	{ Resolve odd length LATCHC blocks }
-	if ((list[1][0] = LATCHC) and ((list[0][0] and 1) <> 0)) then
-  begin
-		{ Rule 2 }
-		Inc(list[0][1]);
-		Dec(list[0][0]);
-		if (indexliste = 1) then
-    begin
-			list[0][1] := 1;
-			list[1][1] := LATCHB;
-			indexliste := 2;
-		end;
-	end;
-	if (indexliste > 1) then
-  begin
-		for i := 1 to indexliste - 1 do
-    begin
-			if ((list[1][i] = LATCHC) and ((list[0][i] and 1) <> 0)) then
-      begin
-				{ Rule 3b }
-				Inc(list[0][i - 1]);
-				Dec(list[0][i]);
-			end;
-		end;
-	end;
-
-	{ Put set data into set[] }
-
-	read := 0;
-	for i := 0 to indexliste - 1 do
-  begin
-		for j := 0 to list[0][i] - 1 do
-    begin
-			case(list[1][i]) of
-  			SHIFTA: _set[read] := 'a';
-	  		LATCHA: _set[read] := 'A';
-		  	SHIFTB: _set[read] := 'b';
-			  LATCHB: _set[read] := 'B';
-  			LATCHC: _set[read] := 'C';
-	    end;
-			Inc(read);
-    end;
-	end;
-
-	{ Adjust for strings which start with shift characters - make them latch instead }
-  i := 0;
-  while _set[i] = 'a' do
-  begin
-    _set[i] := 'A';
-    Inc(i);
+    strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, C128_MAX]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
   end;
 
-  i := 0;
-  while _set[i] = 'b' do
+  { Ensure NUL terminator for c128_cost source[i+1] look-ahead }
+  if _length < Length(source) then
+    source[_length] := 0;
+
+  { Classify data to detect which Code Set states are needed }
+  have_a := False;
+  have_b := False;
+  have_c := False;
+  have_extended := False;
+
+  if ab_only then
   begin
-    _set[i] := 'B';
-    Inc(i);
-  end;
-
-	{ Now we can calculate how long the barcode is going to be - and stop it from
-	   being too long }
-	last_set := ' ';
-	glyph_count := 0.0;
-	for i := 0 to sourcelen - 1 do
-  begin
-		if ((_set[i] = 'a') or (_set[i] = 'b')) then
-			glyph_count := glyph_count + 1.0;
-
-		if ((fset[i] = 'f') or (fset[i] = 'n')) then
-			glyph_count := glyph_count + 1.0;
-
-		if (((_set[i] = 'A') or (_set[i] = 'B')) or (_set[i] = 'C')) then
+    for i := 0 to _length - 1 do
     begin
-			if (_set[i] <> last_set) then
-      begin
-				last_set := _set[i];
-				glyph_count := glyph_count + 1.0;
-			end;
-		end;
-		if (i = 0) then
-    begin
-			if (fset[i] = 'F') then
-				glyph_count := glyph_count + 2.0;
-		end
-    else
-    begin
-			if ((fset[i] = 'F') and (fset[i - 1] <> 'F')) then
-				glyph_count := glyph_count + 2.0;
-
-			if ((fset[i] <> 'F') and (fset[i - 1] = 'F')) then
-				glyph_count := glyph_count + 2.0;
-		end;
-
-		if(_set[i] = 'C') then
-			glyph_count := glyph_count + 0.5
-		else
-			glyph_count := glyph_count + 1.0;
-	end;
-	if (glyph_count > 80.0) then
-  begin
-		strcpy(symbol.errtxt, 'Input too long');
-		result := ZERROR_TOO_LONG; exit;
-	end;
-
-	{ So now we know what start character to use - we can get on with it! }
-	if (symbol.output_options and READER_INIT) <> 0 then
-  begin
-		{ Reader Initialisation mode }
-		case _set[0] of
-			'A': { Start A }
-      begin
-			  concat(dest, C128Table[103]);
-				values[0] := 103;
-				current_set := 'A';
-				concat(dest, C128Table[96]); { FNC3 }
-				values[1] := 96;
-				Inc(bar_characters);
-      end;
-      'B': { Start B }
-      begin
-				concat(dest, C128Table[104]);
-				values[0] := 104;
-				current_set := 'B';
-				concat(dest, C128Table[96]);{ FNC3 }
-				values[1] := 96;
-				Inc(bar_characters);
-      end;
-      'C': { Start C }
-      begin
-				concat(dest, C128Table[104]); { Start B }
-				values[0] := 105;
-				concat(dest, C128Table[96]); { FNC3 }
-				values[1] := 96;
-				concat(dest, C128Table[99]); { Code C }
-				values[2] := 99;
-				Inc(bar_characters, 2);
-				current_set := 'C';
-      end;
+      ch := source[i];
+      mask_0x60 := ch and $60;
+      have_extended := have_extended or (ch >= 128);
+      have_a := have_a or (mask_0x60 = 0);
+      have_b := have_b or (mask_0x60 = $60);
     end;
   end
-	else
+  else
   begin
-		{ Normal mode }
-		case _set[0] of
-			'A': { Start A }
-      begin
-				concat(dest, C128Table[103]);
-				values[0] := 103;
-				current_set := 'A';
-      end;
-			'B': { Start B }
-      begin
-				concat(dest, C128Table[104]);
-				values[0] := 104;
-				current_set := 'B';
-			end;
-			'C': { Start C }
-      begin
-				concat(dest, C128Table[105]);
-				values[0] := 105;
-				current_set := 'C';
-			end;
-		end;
-	end;
-	Inc(bar_characters);
-	//last_set := _set[0];
-
-	if(fset[0] = 'F') then
-  begin
-		case current_set of
-			'A':
-      begin
-				concat(dest, C128Table[101]);
-				concat(dest, C128Table[101]);
-				values[bar_characters] := 101;
-				values[bar_characters + 1] := 101;
-			end;
-			'B':
-      begin
-				concat(dest, C128Table[100]);
-				concat(dest, C128Table[100]);
-				values[bar_characters] := 100;
-				values[bar_characters + 1] := 100;
-			end;
-		end;
-		Inc(bar_characters, 2);
-		f_state := 1;
-	end;
-
-	{ Encode the data }
-	read := 0;
-	repeat
-		if ((read <> 0) and (_set[read] <> current_set)) then
-		begin { Latch different code set }
-			case _set[read] of
-				'A':
-        begin
-          concat(dest, C128Table[101]);
-					values[bar_characters] := 101;
-					Inc(bar_characters);
-					current_set := 'A';
-				end;
-				'B':
-        begin
-          concat(dest, C128Table[100]);
-					values[bar_characters] := 100;
-					Inc(bar_characters);
-					current_set := 'B';
-				end;
-				'C':
-        begin
-          concat(dest, C128Table[99]);
-					values[bar_characters] := 99;
-					Inc(bar_characters);
-					current_set := 'C';
-				end;
-			end;
-		end;
-
-		if (read <> 0) then
+    digit := False;
+    for i := 0 to _length - 1 do
     begin
-			if ((fset[read] = 'F') and (f_state = 0)) then
-      begin
-				{ Latch beginning of extended mode }
-				case current_set of
-					'A':
-          begin
-						concat(dest, C128Table[101]);
-						concat(dest, C128Table[101]);
-						values[bar_characters] := 101;
-						values[bar_characters + 1] := 101;
-					end;
-					'B':
-          begin
-						concat(dest, C128Table[100]);
-						concat(dest, C128Table[100]);
-						values[bar_characters] := 100;
-						values[bar_characters + 1] := 100;
-					end;
-				end;
-				Inc(bar_characters, 2);
-				f_state := 1;
-			end;
-			if ((fset[read] = ' ') and (f_state = 1)) then
-      begin
-				{ Latch end of extended mode }
-				case current_set of
-					'A':
-          begin
-						concat(dest, C128Table[101]);
-						concat(dest, C128Table[101]);
-						values[bar_characters] := 101;
-						values[bar_characters + 1] := 101;
-          end;
-          'B':
-          begin
-						concat(dest, C128Table[100]);
-						concat(dest, C128Table[100]);
-						values[bar_characters] := 100;
-						values[bar_characters + 1] := 100;
-          end;
-        end;
-				Inc(bar_characters, 2);
-				f_state := 0;
-			end;
-		end;
-
-		if ((fset[read] = 'f') or (fset[read] = 'n')) then
-    begin
-			{ Shift to or from extended mode }
-			case current_set of
-				'A':
-        begin
-					concat(dest, C128Table[101]); { FNC 4 }
-					values[bar_characters] := 101;
-        end;
-        'B':
-        begin
-					concat(dest, C128Table[100]); { FNC 4 }
-					values[bar_characters] := 100;
-        end;
-      end;
-			Inc(bar_characters);
+      ch := source[i];
+      mask_0x60 := ch and $60;
+      have_extended := have_extended or (ch >= 128);
+      have_a := have_a or (mask_0x60 = 0);
+      have_b := have_b or (mask_0x60 = $60);
+      prev_digit := digit;
+      digit := (ch >= Ord('0')) and (ch <= Ord('9'));
+      have_c := have_c or (prev_digit and digit);
     end;
-
-		if ((_set[read] = 'a') or (_set[read] = 'b')) then
-    begin
-			{ Insert shift character }
-			concat(dest, C128Table[98]);
-			values[bar_characters] := 98;
-			Inc(bar_characters);
-    end;
-
-		case _set[read] of
-		{ Encode data characters }
-		  'a',
-			'A':
-      begin
-        c128_set_a(source[read], dest, values, bar_characters);
-				Inc(read);
-			end;
-			'b',
-			'B':
-      begin
-        c128_set_b(source[read], dest, values, bar_characters);
-				Inc(read);
-			end;
-			'C':
-      begin
-        c128_set_c(source[read], source[read + 1], dest, values, bar_characters);
-				Inc(read, 2);
-      end;
-    end;
-	until not (read < sourcelen);
-
-	{ check digit calculation }
-	total_sum := 0;
-
-	for i := 0 to bar_characters - 1 do
-  begin
-		if (i > 0) then
-			values[i] := values[i] * i;
-		Inc(total_sum, values[i]);
   end;
-	concat(dest, C128Table[total_sum mod 103]);
 
-	{ Stop character }
-	concat(dest, C128Table[106]);
-	expand(symbol, dest);
-	result := error_number; exit;
+  c128_set_priority(priority, have_a, have_b, have_c, have_extended);
+
+  glyph_count := c128_set_values(source, _length, start_idx, priority, fncs, manuals, values, nil);
+
+  { Check if barcode is too long }
+  if glyph_count > C128_SYMBOL_MAX then
+  begin
+    strcpy(symbol.errtxt, Format('Input too long, requires %d symbol characters (maximum %d)', [glyph_count, C128_SYMBOL_MAX]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
+  end;
+
+  c128_expand(symbol, values, glyph_count);
+
+  { HRT is set by caller in zint.pas for CODE128/CODE128B }
+
+  Result := 0;
 end;
 
-{ Handle EAN-128 (Now known as GS1-128) }
-function ean_128(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+{ Handle GS1-128 with composite support }
+function gs1_128_cc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer; cc_mode : Integer; cc_rows : Integer) : Integer;
 var
-  values : TArrayOfInteger;
-  bar_characters, read, total_sum : Integer;
-  error_number, indexchaine, indexliste : Integer;
-  _set : TArrayOfChar;
-  mode : Integer;
-  last_set : Char;
-  glyph_count : Single;
-  dest : TArrayOfChar;
-  separator_row, linkage_flag, c_count : Integer;
+  i : Integer;
+  error_number : Integer;
+  manuals : TFncManualArray;
+  fncs : TFncManualArray;
+  priority : TPriorityArray;
+  values : TValuesArray;
+  glyph_count : Integer;
+  final_cset : Integer;
+  separator_row : Integer;
   reduced : TArrayOfChar;
-  i, j : Integer;
-  list : TGlobalList;
+  reduced_buf : TArrayOfByte;
+  reduced_length : Integer;
 begin
-  SetLength(dest, 1000);
-  SetLength(values, 170);
-  SetLength(_set, 170);
+  FillChar(manuals, SizeOf(manuals), 0);
+  FillChar(values, SizeOf(values), 0);
+  separator_row := 0;
+  error_number := 0;
+
+  { Cannot use Reader Initialisation in GS1 mode }
+  if (symbol.output_options and READER_INIT) <> 0 then
+  begin
+    strcpy(symbol.errtxt, 'Cannot use Reader Initialisation in GS1 mode, ignoring');
+    error_number := ZWARN_INVALID_OPTION;
+    symbol.output_options := symbol.output_options and (not READER_INIT);
+  end;
+
+  if _length > C128_MAX then
+  begin
+    strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, C128_MAX]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
+  end;
+
+  { If part of a composite symbol make room for the separator pattern }
+  if symbol.symbology = BARCODE_EAN128_CC then
+  begin
+    separator_row := symbol.rows;
+    symbol.row_height[symbol.rows] := 1;
+    Inc(symbol.rows);
+  end;
+
   SetLength(reduced, _length + 1);
-	error_number := 0;
-  strcpy(dest, '');
-	linkage_flag := 0;
-
-	bar_characters := 0;
-	separator_row := 0;
-
-  FillChar(values[0], Length(Values), 0);
-  Fill(_set, Length(_set), ' ');
-
-	if(_length > 160) then
+  if symbol.input_mode <> GS1_MODE then
   begin
-		{ This only blocks rediculously long input - the actual Length(source) of the
-		resulting barcode depends on the type of data, so this is trapped later }
-		strcpy(symbol.errtxt, 'Input too long');
-		result := ZERROR_TOO_LONG; exit;
-	end;
-
-	for i := 0 to _length - 1 do
-  begin
-		if (source[i] = 0) then
+    i := gs1_verify(symbol, source, _length, reduced);
+    if i <> 0 then
     begin
-			{ Null characters not allowed! }
-			strcpy(symbol.errtxt, 'NULL character in input data');
-			result := ZERROR_INVALID_DATA; exit;
-		end;
-	end;
-
-	{ if part of a composite symbol make room for the separator pattern }
-	if (symbol.symbology = BARCODE_EAN128_CC) then
+      Result := i;
+      Exit;
+    end;
+  end
+  else
   begin
-		separator_row := symbol.rows;
-		symbol.row_height[symbol.rows] := 1;
-		Inc(symbol.rows);
-	end;
-
-	if(symbol.input_mode <> GS1_MODE) then
-  begin
-		{ GS1 data has not been checked yet }
-		error_number := gs1_verify(symbol, source, _length, reduced);
-		if (error_number <> 0) then begin result := error_number; exit; end;
-	end;
-
-	{ Decide on mode using same system as PDF417 and rules of ISO 15417 Annex E }
-	indexliste := 0;
-	indexchaine := 0;
-
-	mode := parunmodd(Ord(reduced[indexchaine]));
-	if(reduced[indexchaine] = '[') then
-  begin
-		mode := ABORC;
-	end;
-
-  FillChar(list[0], Length(list[0]), 0);
-
-	repeat
-		list[1][indexliste] := mode;
-		while ((list[1][indexliste] = mode) and (indexchaine < zint_common.strlen(reduced))) do
-    begin
-			Inc(list[0][indexliste]);
-			Inc(indexchaine);
-			mode := parunmodd(reduced[indexchaine]);
-			if (reduced[indexchaine] = '[') then mode := ABORC;
-		end;
-		Inc(indexliste);
-	until not (indexchaine < zint_common.strlen(reduced));
-
-	dxsmooth(indexliste, list);
-
-	{ Put set data into _set[] }
-	read := 0;
-	for i := 0 to indexliste - 1 do
-  begin
-		for j := 0 to list[0][i] - 1 do
-    begin
-			case list[1][i] of
-			  SHIFTA:
-				  _set[read] := 'a';
-			  LATCHA:
-				  _set[read] := 'A';
-			  SHIFTB:
-				  _set[read] := 'b';
-			  LATCHB:
-				  _set[read] := 'B';
-			  LATCHC:
-				  _set[read] := 'C';
-			end;
-			Inc(read);
-		end;
-	end;
-
-	{ Watch out for odd-Length(source) Mode C blocks }
-	c_count := 0;
-	for i := 0 to read - 1 do
-  begin
-		if (_set[i] = 'C') then
-    begin
-			if (reduced[i] = '[') then
-      begin
-				if (c_count and 1) <> 0 then
-        begin
-					if ((i - c_count) <> 0) then
-						_set[i - c_count] := 'B'
-          else
-						_set[i - 1] := 'B';
-        end;
-			  c_count := 0;
-		  end
-      else
-		    Inc(c_count);
-	  end
-    else
-    begin
-	    if (c_count and 1) <> 0 then
-      begin
-		    if ((i - c_count) <> 0) then
-			    _set[i - c_count] := 'B'
-        else
-				  _set[i - 1] := 'B';
-		  end;
-		  c_count := 0;
-	  end;
+    { GS1 data already verified - copy as-is }
+    for i := 0 to _length - 1 do
+      reduced[i] := Chr(source[i]);
+    reduced[_length] := #0;
   end;
 
-	if (c_count and 1) <> 0 then
+  reduced_length := strlen(reduced);
+
+  { Convert reduced to byte array, replacing '[' with $1D for FNC1 }
+  SetLength(reduced_buf, reduced_length + 1);
+  FillChar(fncs[0], reduced_length, 1); { All positions are FNC1-capable }
+  for i := 0 to reduced_length - 1 do
   begin
-		if (read - c_count <> 0) then
-			_set[read - c_count] := 'B'
+    if reduced[i] = '[' then
+      reduced_buf[i] := $1D
     else
-			_set[read - 1] := 'B';
-	end;
+      reduced_buf[i] := Ord(reduced[i]);
+  end;
+  reduced_buf[reduced_length] := 0; { NUL terminator }
 
-	for i := 1 to read - 2 do
+  { GS1-128 only needs B and C code sets }
+  c128_set_priority(priority, False, True, True, False);
+
+  final_cset := 0;
+  glyph_count := c128_set_values(reduced_buf, reduced_length, 1 {GS1_MODE}, priority, fncs, manuals, values, @final_cset);
+
+  { Check length including linkage flag }
+  if glyph_count + Ord(cc_mode <> 0) > C128_SYMBOL_MAX then
   begin
-		if ((_set[i] = 'C') and ((_set[i - 1] = 'B') and (_set[i + 1] = 'B'))) then
-			_set[i] := 'B';
-	end;
+    strcpy(symbol.errtxt, Format('Input too long, requires %d symbol characters (maximum %d)',
+      [glyph_count + Ord(cc_mode <> 0), C128_SYMBOL_MAX]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
+  end;
 
-	{ Now we can calculate how long the barcode is going to be - and stop it from
-	   being too long }
-	last_set := ' ';
-	glyph_count := 0.0;
-	for i := 0 to strlen(reduced) - 1 do
-  begin
-		if ((_set[i] = 'a') or (_set[i] = 'b')) then
-			glyph_count := glyph_count + 1.0;
-
-		if (((_set[i] = 'A') or (_set[i] = 'B')) or (_set[i] = 'C')) then
+  { Linkage flags - determined by ISO/IEC 24723 section 7.4 }
+  case cc_mode of
+    1, 2:
     begin
-			if (_set[i] <> last_set) then
+      { CC-A or CC-B 2D component }
+      if final_cset = C128_B0 then
       begin
-				last_set := _set[i];
-				glyph_count := glyph_count + 1.0;
-			end;
-		end;
+        values[glyph_count] := 99;
+        Inc(glyph_count);
+      end
+      else if final_cset = C128_C0 then
+      begin
+        values[glyph_count] := 101;
+        Inc(glyph_count);
+      end;
+    end;
+    3:
+    begin
+      { CC-C 2D component }
+      if final_cset = C128_B0 then
+      begin
+        values[glyph_count] := 101;
+        Inc(glyph_count);
+      end
+      else if final_cset = C128_C0 then
+      begin
+        values[glyph_count] := 100;
+        Inc(glyph_count);
+      end;
+    end;
+  end;
 
-		if ((_set[i] = 'C') and (reduced[i] <> '[')) then
-			glyph_count := glyph_count + 0.5
+  c128_expand(symbol, values, glyph_count);
+
+  { Add the separator pattern for composite symbols }
+  if symbol.symbology = BARCODE_EAN128_CC then
+  begin
+    for i := 0 to symbol.width - 1 do
+    begin
+      if module_is_set(symbol, separator_row + 1, i) = 0 then
+        set_module(symbol, separator_row, i);
+    end;
+  end;
+
+  { Set HRT: replace [ ] with ( ) }
+  for i := 0 to _length - 1 do
+  begin
+    if source[i] = Ord('[') then
+      symbol.text[i] := Ord('(')
+    else if source[i] = Ord(']') then
+      symbol.text[i] := Ord(')')
     else
-			glyph_count := glyph_count + 1.0;
-	end;
-	if(glyph_count > 80.0) then
-  begin
-		strcpy(symbol.errtxt, 'Input too long');
-		result := ZERROR_TOO_LONG; exit;
-	end;
+      symbol.text[i] := source[i];
+  end;
+  symbol.text[_length] := 0;
 
-	{ So now we know what start character to use - we can get on with it! }
-	case _set[1] of
-		'A': { Start A }
-    begin
-			concat(dest, C128Table[103]);
-			values[0] := 103;
-    end;
-		'B': { Start B }
-    begin
-			concat(dest, C128Table[104]);
-			values[0] := 104;
-    end;
-		'C': { Start C }
-    begin
-			concat(dest, C128Table[105]);
-			values[0] := 105;
-    end;
-	end;
-	Inc(bar_characters);
-
-	concat(dest, C128Table[102]);
-	values[1] := 102;
-	Inc(bar_characters);
-
-	{ Encode the data }
-	read := 0;
-	repeat
-		if ((read <> 0) and (_set[read] <> _set[read - 1])) then
-		begin { Latch different code set }
-			case (_set[read]) of
-			  'A':
-        begin
-				  concat(dest, C128Table[101]);
-				  values[bar_characters] := 101;
-				  Inc(bar_characters);
-				end;
-			  'B':
-        begin
-				  concat(dest, C128Table[100]);
-				  values[bar_characters] := 100;
-				  Inc(bar_characters);
-				end;
-			  'C':
-        begin
-				  concat(dest, C128Table[99]);
-				  values[bar_characters] := 99;
-				  Inc(bar_characters);
-				end
-			end;
-		end;
-
-		if ((_set[read] = 'a') or (_set[read] = 'b')) then
-    begin
-			{ Insert shift character }
-			concat(dest, C128Table[98]);
-			values[bar_characters] := 98;
-			Inc(bar_characters);
-		end;
-
-		if (reduced[read] <> '[') then
-    begin
-			{ Encode data characters }
-			case _set[read] of
-				'A',
-				'a':
-        begin
-					c128_set_a(Ord(reduced[read]), dest, values, bar_characters);
-					Inc(read);
-				end;
-				'B',
-				'b':
-        begin
-					c128_set_b(Ord(reduced[read]), dest, values, bar_characters);
-					Inc(read);
-				end;
-				'C':
-        begin
-					c128_set_c(Ord(reduced[read]), Ord(reduced[read + 1]), dest, values, bar_characters);
-					Inc(read, 2);
-				end;
-			end;
-		end
-    else
-    begin
-			concat(dest, C128Table[102]);
-			values[bar_characters] := 102;
-			Inc(bar_characters);
-			Inc(read);
-		end;
-  until not (read < strlen(reduced));
-
-	{ "...note that the linkage flag is an extra code set character between
-	   the last data character and the Symbol Check Character"
-	   (GS1 Specification) }
-
-	{ Linkage flags in GS1-128 are determined by ISO/IEC 24723 section 7.4 }
-
-	case symbol.option_1 of
-		1,
-		2:
-    begin
-			{ CC-A or CC-B 2D component }
-			case _set[strlen(reduced )- 1] of
-				'A': linkage_flag := 100;
-				'B': linkage_flag := 99;
-				'C': linkage_flag := 101;
-			end;
-    end;
-		3:
-    begin
-			{ CC-C 2D component }
-			case _set[strlen(reduced) - 1] of
-				'A': linkage_flag := 99;
-				'B': linkage_flag := 101;
-				'C': linkage_flag := 100;
-			end;
-    end;
-	end;
-
-	if (linkage_flag <> 0) then
-  begin
-		concat(dest, C128Table[linkage_flag]);
-		values[bar_characters] := linkage_flag;
-		Inc(bar_characters);
-	end;
-
-	{ check digit calculation }
-	total_sum := 0;
-	for i := 0 to bar_characters do
-  begin
-		if(i > 0) then
-			values[i] := values[i] * i;
-		Inc(total_sum, values[i]);
-	end;
-	concat(dest, C128Table[total_sum mod 103]);
-	values[bar_characters] := total_sum mod 103;
-	Inc(bar_characters);
-
-	{ Stop character }
-	concat(dest, C128Table[106]);
-	values[bar_characters] := 106;
-	Inc(bar_characters);
-	expand(symbol, dest);
-
-	{ Add the separator pattern for composite symbols }
-	if (symbol.symbology = BARCODE_EAN128_CC) then
-  begin
-		for i := 0 to symbol.width - 1 do
-    begin
-			if ((module_is_set(symbol, separator_row + 1, i)) = 0) then
-				set_module(symbol, separator_row, i);
-		end;
-	end;
-
-  symbol.text[0] := 0;
-	for i := 0 to _length - 1 do
-  begin
-		if ((source[i] <> Ord('[')) and (source[i] <> Ord(']'))) then
-			symbol.text[i] := source[i];
-
-		if (source[i] = Ord('[')) then
-			symbol.text[i] := Ord('(');
-
-		if (source[i] = Ord(']')) then
-			symbol.text[i] := Ord(')');
-	end;
-
-	result := error_number; exit;
+  Result := error_number;
 end;
 
-function nve_18(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+{ Handle GS1-128 (formerly known as EAN-128) }
+function ean_128(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+begin
+  Result := gs1_128_cc(symbol, source, _length, 0, 0);
+end;
+
+{ Unified NVE-18 / EAN-14 helper }
+function nve18_or_ean14(symbol : zint_symbol; source : TArrayOfByte; _length : Integer; data_len : Integer) : Integer;
+var
+  i, zeroes : Integer;
+  ean128_equiv : TArrayOfByte;
+  have_check_digit, check_digit : Byte;
+  error_number : Integer;
+  prefix_paren, prefix_bracket : String;
+begin
+  if data_len = 17 then
+  begin
+    prefix_paren := '(00)';
+    prefix_bracket := '[00]';
+  end
+  else
+  begin
+    prefix_paren := '(01)';
+    prefix_bracket := '[01]';
+  end;
+
+  { Allow and ignore any AI prefix }
+  if ((_length = data_len + 4) or (_length = data_len + 1 + 4)) and
+     ((_length >= 4) and
+      ((Chr(source[0]) + Chr(source[1]) + Chr(source[2]) + Chr(source[3]) = prefix_paren) or
+       (Chr(source[0]) + Chr(source[1]) + Chr(source[2]) + Chr(source[3]) = prefix_bracket))) then
+  begin
+    source := Copy(source, 4, _length - 4);
+    Dec(_length, 4);
+  end
+  else if ((_length = data_len + 2) or (_length = data_len + 1 + 2)) and
+          (source[0] = Ord(prefix_paren[2])) and (source[1] = Ord(prefix_paren[3])) then
+  begin
+    source := Copy(source, 2, _length - 2);
+    Dec(_length, 2);
+  end;
+
+  if _length > data_len + 1 then
+  begin
+    strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, data_len + 1]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
+  end;
+
+  { Validate numeric }
+  for i := 0 to _length - 1 do
+  begin
+    if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+    begin
+      strcpy(symbol.errtxt, Format('Invalid character at position %d in input (digits only)', [i + 1]));
+      Result := ZERROR_INVALID_DATA;
+      Exit;
+    end;
+  end;
+
+  have_check_digit := 0;
+  if _length = data_len + 1 then
+  begin
+    have_check_digit := source[data_len];
+    Dec(_length);
+  end;
+
+  zeroes := data_len - _length;
+  SetLength(ean128_equiv, data_len + 6);
+  FillChar(ean128_equiv[0], Length(ean128_equiv), 0);
+
+  { Build [01] or [00] prefixed string }
+  ean128_equiv[0] := Ord('[');
+  ean128_equiv[1] := Ord(prefix_paren[2]);
+  ean128_equiv[2] := Ord(prefix_paren[3]);
+  ean128_equiv[3] := Ord(']');
+  for i := 0 to zeroes - 1 do
+    ean128_equiv[4 + i] := Ord('0');
+  for i := 0 to _length - 1 do
+    ean128_equiv[4 + zeroes + i] := source[i];
+
+  check_digit := gs1_check_digit(Copy(ean128_equiv, 4, data_len), data_len);
+
+  if (have_check_digit <> 0) and (have_check_digit <> check_digit) then
+  begin
+    strcpy(symbol.errtxt, Format('Invalid check digit ''%s'', expecting ''%s''',
+      [Chr(have_check_digit), Chr(check_digit)]));
+    Result := ZERROR_INVALID_CHECK;
+    Exit;
+  end;
+
+  ean128_equiv[data_len + 4] := check_digit;
+  ean128_equiv[data_len + 5] := 0;
+
+  error_number := ean_128(symbol, ean128_equiv, data_len + 5);
+  Result := error_number;
+end;
+
 { Add check digit if encoding an NVE18 symbol }
-var
-  error_number, zeroes, nve_check, total_sum, sourcelen : Integer;
-  ean128_equiv : TArrayOfByte;
-  i : Integer;
+function nve_18(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 begin
-  SetLength(ean128_equiv, 25);
-  FillChar(ean128_equiv[0], 25, 0);
-	sourcelen := _length;
-
-	if (sourcelen > 17) then
-  begin
-		strcpy(symbol.errtxt, 'Input too long');
-		result := ZERROR_TOO_LONG; exit;
-  end;
-
-	error_number := is_sane(NEON, source, _length);
-	if (error_number = ZERROR_INVALID_DATA) then
-  begin
-		strcpy(symbol.errtxt, 'Invalid characters in data');
-		result := error_number; exit;
-	end;
-
-	zeroes := 17 - sourcelen;
-	ustrcpy(ean128_equiv, '[00]');
-  FillChar(ean128_equiv[4], zeroes, Ord('0'));
-  ean128_equiv[4 + zeroes] := 0;
-  uconcat(ean128_equiv, source);
-
-	total_sum := 0;
-	for i := sourcelen - 1 downto 0 do
-  begin
-		Inc(total_sum, ctoi(Chr(source[i])));
-
-		if(((sourcelen - 1 - i) and 1) = 0) then
-			Inc(total_sum, 2 * ctoi(Chr(source[i])));
-	end;
-	nve_check := 10 - total_sum mod 10;
-
-  if (nve_check = 10) then nve_check := 0;
-  ean128_equiv[21] := Ord(itoc(nve_check));
-  ean128_equiv[22] := 0;
-
-	error_number := ean_128(symbol, ean128_equiv, ustrlen(ean128_equiv));
-
-	result := error_number; exit;
+  Result := nve18_or_ean14(symbol, source, _length, 17);
 end;
 
+{ EAN-14 - A version of GS1-128 }
 function ean_14(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
-{ EAN-14 - A version of EAN-128 }
-var
-  count, check_digit : Integer;
-  error_number, zeroes : Integer;
-  ean128_equiv : TArrayOfByte;
-  i : Integer;
 begin
-  SetLength(ean128_equiv, 20);
-
-	if (_length > 13) then
-  begin
-		strcpy(symbol.errtxt, 'Input wrong length');
-		result := ZERROR_TOO_LONG; exit;
-	end;
-
-	error_number := is_sane(NEON, source, _length);
-	if (error_number = ZERROR_INVALID_DATA) then
-  begin
-		strcpy(symbol.errtxt, 'Invalid character in data');
-		result := error_number; exit;
-	end;
-
-	zeroes := 13 - _length;
-	ustrcpy(ean128_equiv, '[01]');
-  FillChar(ean128_equiv[4], zeroes, '0');
-  ean128_equiv[4 + zeroes] := 0;
-  uconcat(ean128_equiv, source);
-
-	count := 0;
-	for i := _length - 1 downto 0 do
-  begin
-		Inc(count, ctoi(Chr(source[i])));
-
-		if (((_length - 1 - i) and 1) = 0) then
-			Inc(count, 2 * ctoi(Chr(source[i])));
-	end;
-	check_digit := 10 - (count mod 10);
-  if (check_digit = 10) then check_digit := 0;
-	ean128_equiv[17] := Ord(itoc(check_digit));
-  ean128_equiv[18] := 0;
-
-	error_number := ean_128(symbol, ean128_equiv, ustrlen(ean128_equiv));
-
-	result := error_number; exit;
+  Result := nve18_or_ean14(symbol, source, _length, 13);
 end;
 
 end.
