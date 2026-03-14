@@ -45,6 +45,16 @@ type
     [Test] procedure Large_KIX_19_TooLong;
     [Test] procedure Large_DAFT_576_OK;
     [Test] procedure Large_DAFT_577_TooLong;
+    [Test] procedure Large_PostNet_38_Warn;
+    [Test] procedure Large_CEPNet_9_Warn;
+    [Test] procedure Large_Planet_38_Warn;
+
+    { === test_japanpost === }
+    [Test] procedure JapanPost_123;
+    [Test] procedure JapanPost_123456_AB;
+    [Test] procedure JapanPost_123456;
+    [Test] procedure JapanPost_999980_KZ;
+    [Test] procedure JapanPost_987654_TU;
 
     { === test_input === }
     [Test] procedure Input_Flat_Digits_OK;
@@ -80,9 +90,28 @@ type
     [Test] procedure Input_DAFT_OK;
     [Test] procedure Input_DAFT_Lower_OK;
     [Test] procedure Input_DAFT_Invalid;
+    [Test] procedure Input_PostNet_4_Warn;
+    [Test] procedure Input_PostNet_6_Warn;
+    [Test] procedure Input_PostNet_12_Warn;
+    [Test] procedure Input_FIM_ad_TooLong;
+    [Test] procedure Input_JapanPost_20SymChars_OK;
+    [Test] procedure Input_JapanPost_Overflow2;
+    [Test] procedure Input_JapanPost_NoHyphen_OK;
+    [Test] procedure Input_Planet_10_Warn;
+    [Test] procedure Input_Planet_12_Warn;
+    [Test] procedure Input_Planet_14_Warn;
 
     { === test_hrt === }
     [Test] procedure HRT_KoreaPost_123456;
+    [Test] procedure HRT_Flat_Empty;
+    [Test] procedure HRT_PostNet_Empty;
+    [Test] procedure HRT_FIM_Empty;
+    [Test] procedure HRT_CEPNet_Empty;
+    [Test] procedure HRT_RM4SCC_Empty;
+    [Test] procedure HRT_JapanPost_Empty;
+    [Test] procedure HRT_Planet_Empty;
+    [Test] procedure HRT_KIX_Empty;
+    [Test] procedure HRT_DAFT_Empty;
 
     { === test_encode === }
     [Test] procedure Encode_Flat_1304056;
@@ -104,6 +133,16 @@ type
     [Test] procedure Encode_KIX_2500GG30250;
     [Test] procedure Encode_KIX_2130VA80430;
     [Test] procedure Encode_DAFT_DAFTTFADFATDTATFT;
+    [Test] procedure Encode_RM4SCC_FullAlpha;
+    [Test] procedure Encode_JapanPost_1234567BCDEFG;
+    [Test] procedure Encode_JapanPost_8901234HIJKLM;
+    [Test] procedure Encode_JapanPost_0987654NOPQRS;
+    [Test] procedure Encode_JapanPost_3210987TUVWXY;
+    [Test] procedure Encode_Planet_5020140235635;
+    [Test] procedure Encode_KIX_1231GF156X2;
+    [Test] procedure Encode_KIX_1231FZ13Xhs;
+    [Test] procedure Encode_KIX_1234567890ABCDEFGH;
+    [Test] procedure Encode_KIX_IJKLMNOPQRSTUVWXYZ;
   end;
 
 implementation
@@ -1071,6 +1110,543 @@ begin
       TZintTestHelper.ModulesDumpRow(sym, 1));
     Assert.AreEqual(
       '100010000010001010000010000000100',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+{ ===== additional test_large ===== }
+
+procedure TTestPostal.Large_PostNet_38_Warn;
+var sym: TZintSymbol;
+begin
+  { test_large[4] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 38)));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(393, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Large_CEPNet_9_Warn;
+var sym: TZintSymbol;
+begin
+  { test_large[10] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CEPNET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 9)));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(103, sym.width);
+    Assert.AreEqual('Warning 780: Input length 9 wrong (should be 8 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Large_Planet_38_Warn;
+var sym: TZintSymbol;
+begin
+  { test_large[22] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLANET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 38)));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(393, sym.width);
+  finally sym.Free; end;
+end;
+
+{ ===== test_japanpost ===== }
+
+procedure TTestPostal.JapanPost_123;
+var sym: TZintSymbol;
+begin
+  { test_japanpost[0]: check 3 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.JapanPost_123456_AB;
+var sym: TZintSymbol;
+begin
+  { test_japanpost[1]: check 10 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456-AB'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.JapanPost_123456;
+var sym: TZintSymbol;
+begin
+  { test_japanpost[2]: check 11 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.JapanPost_999980_KZ;
+var sym: TZintSymbol;
+begin
+  { test_japanpost[3]: check 18 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '999980-KZ'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.JapanPost_987654_TU;
+var sym: TZintSymbol;
+begin
+  { test_japanpost[4]: check 0 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '987654-TU'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+{ ===== additional test_input ===== }
+
+procedure TTestPostal.Input_PostNet_4_Warn;
+var sym: TZintSymbol;
+begin
+  { test_input[6] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, '1234'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(53, sym.width);
+    Assert.AreEqual('Warning 479: Input length 4 is not standard (should be 5, 9 or 11 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_PostNet_6_Warn;
+var sym: TZintSymbol;
+begin
+  { test_input[7] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, '123456'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(73, sym.width);
+    Assert.AreEqual('Warning 479: Input length 6 is not standard (should be 5, 9 or 11 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_PostNet_12_Warn;
+var sym: TZintSymbol;
+begin
+  { test_input[8] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, '123456789012'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(133, sym.width);
+    Assert.AreEqual('Warning 479: Input length 12 is not standard (should be 5, 9 or 11 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_FIM_ad_TooLong;
+var sym: TZintSymbol;
+begin
+  { test_input[15] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_FIM);
+  try
+    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, 'ad'));
+    Assert.AreEqual('Error 486: Input length 2 too long (maximum 1)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_JapanPost_20SymChars_OK;
+var sym: TZintSymbol;
+begin
+  { test_input[23]: 20 symbol chars }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567890-ABCD1'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_JapanPost_Overflow2;
+var sym: TZintSymbol;
+begin
+  { test_input[25]: 21 symbol chars with extra digit }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, '1234567890-ABCD12'));
+    Assert.AreEqual('Error 477: Input too long, requires too many symbol characters (maximum 20)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_JapanPost_NoHyphen_OK;
+var sym: TZintSymbol;
+begin
+  { test_input[26]: 20 symbol chars without hyphen }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567890ABCDE'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_Planet_10_Warn;
+var sym: TZintSymbol;
+begin
+  { test_input[34] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLANET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, '1234567890'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(113, sym.width);
+    Assert.AreEqual('Warning 478: Input length 10 is not standard (should be 11 or 13 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_Planet_12_Warn;
+var sym: TZintSymbol;
+begin
+  { test_input[35] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLANET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, '123456789012'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(133, sym.width);
+    Assert.AreEqual('Warning 478: Input length 12 is not standard (should be 11 or 13 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_Planet_14_Warn;
+var sym: TZintSymbol;
+begin
+  { test_input[36] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLANET);
+  try
+    Assert.AreEqual(ZWARN_NONCOMPLIANT, TZintTestHelper.EncodeData(sym, '12345678901234'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(153, sym.width);
+    Assert.AreEqual('Warning 478: Input length 14 is not standard (should be 11 or 13 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+{ ===== additional test_hrt ===== }
+
+procedure TTestPostal.HRT_Flat_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[0]: FLAT has no HRT }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_FLAT);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_PostNet_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[2] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_FIM_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[4] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_FIM);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, 'e'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_CEPNet_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[6] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CEPNET);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345678'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_RM4SCC_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[8] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_RM4SCC);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, 'BX11LT1A'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_JapanPost_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[10] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_Planet_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[15] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLANET);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345678901'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_KIX_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[17] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_KIX);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '0123456789ABCDEFGH'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.HRT_DAFT_Empty;
+var sym: TZintSymbol;
+begin
+  { test_hrt[19] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_DAFT);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, 'DAFT'));
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+{ ===== additional test_encode ===== }
+
+procedure TTestPostal.Encode_RM4SCC_FullAlpha;
+var sym: TZintSymbol;
+begin
+  { test_encode[9] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_RM4SCC);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(299, sym.width);
+    Assert.AreEqual(
+      '10000010100000101000001010000010100000101000001010001000100010001000100010001000100010001000100010001010000010100000101000001010000010100000101000100000101000001010000010100000101000001010000010100010001000100010001000100010001000100010001000101000001010000010100000101000001010000010100000101000001',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '00000010100010001000101000100000101000100010100000000010100010001000101000100000101000100010100000000010100010001000101000100000101000100010100000000010100010001000101000100000101000100010100000000010100010001000101000100000101000100010100000000010100010001000101000100000101000100010100000101000001',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_JapanPost_1234567BCDEFG;
+var sym: TZintSymbol;
+begin
+  { test_encode[13] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567BCDEFG'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+    Assert.AreEqual(
+      '1000101000100010001010101000100010001010101000001000101000001000100010001000001010001000101000001000100010001000001010000010101000001',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '1010101000101000101000100010100010100010001010100000101000100000101000100000101000100000100010100000100010100000100010001000100010101',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_JapanPost_8901234HIJKLM;
+var sym: TZintSymbol;
+begin
+  { test_encode[14] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '8901234HIJKLM'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+    Assert.AreEqual(
+      '1000100010001010100000101000100010001010101000001000101000001000100010001000001010000010100000000010101000000010100010000010100000001',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '1010001010001010100000101000101000101000100010100000001010100000001010100000001010100000100000100000101000100000101000001000000010101',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_JapanPost_0987654NOPQRS;
+var sym: TZintSymbol;
+begin
+  { test_encode[15] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '0987654NOPQRS'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+    Assert.AreEqual(
+      '1000100000001010100010101000001010100010101000000010001010000010101000000010100010000010001010000010101000000010100010000010100000001',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '1010100000001010001010001010100010100010100010100000101000100000100010100000100010100000100010100000001010100000001010001000001000101',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_JapanPost_3210987TUVWXY;
+var sym: TZintSymbol;
+begin
+  { test_encode[16] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_JAPANPOST);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '3210987TUVWXY'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(133, sym.width);
+    Assert.AreEqual(
+      '1000001010100010101000100000001010100010101000000010001010100000100000100000101000100000100010100000001010100000101000000010000010001',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '1010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '1010101000101000101000100000001010001010001010100000001010001000100000001000101000001000101000001000101000001000100010001000100000101',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_Planet_5020140235635;
+var sym: TZintSymbol;
+begin
+  { test_encode[21] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLANET);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '5020140235635'));
+    Assert.AreEqual(2, sym.rows);
+    Assert.AreEqual(143, sym.width);
+    Assert.AreEqual(
+      '10100010001000001010101010001000000010101010101000001000101000000010101010100010001010000010100010001010000010101010000010100010001010001010001',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_KIX_1231GF156X2;
+var sym: TZintSymbol;
+begin
+  { test_encode[24] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_KIX);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1231GF156X2'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(87, sym.width);
+    Assert.AreEqual(
+      '000010100000101000001010000010100010100000101000000010100000101000100010101000000000101',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '001000100010100010000010001000101000100010000010001000101010000000001010100000100010100',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_KIX_1231FZ13Xhs;
+var sym: TZintSymbol;
+begin
+  { test_encode[25] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_KIX);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1231FZ13Xhs'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(87, sym.width);
+    Assert.AreEqual(
+      '000010100000101000001010000010100010100010100000000010100000101010100000001010001000100',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '001000100010100010000010001000101000001010100000001000101000001010000010101000001000100',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_KIX_1234567890ABCDEFGH;
+var sym: TZintSymbol;
+begin
+  { test_encode[26] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_KIX);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567890ABCDEFGH'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(143, sym.width);
+    Assert.AreEqual(
+      '00001010000010100000101000001010000010100010001000100010001000100010001000001010001000100010001000101000001010000010100000101000001010000010100',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '00100010001010001000001010001000101000000000101000100010001010001000001000001010100010001010000000001010001000100010100010000010100010001010000',
+      TZintTestHelper.ModulesDumpRow(sym, 2));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Encode_KIX_IJKLMNOPQRSTUVWXYZ;
+var sym: TZintSymbol;
+begin
+  { test_encode[27] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_KIX);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, 'IJKLMNOPQRSTUVWXYZ'));
+    Assert.AreEqual(3, sym.rows);
+    Assert.AreEqual(143, sym.width);
+    Assert.AreEqual(
+      '10000010100000101000001010000010100000101000001010001000100010001000100010001000100010001000100010100000101000001010000010100000101000001010000',
+      TZintTestHelper.ModulesDumpRow(sym, 0));
+    Assert.AreEqual(
+      '10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101',
+      TZintTestHelper.ModulesDumpRow(sym, 1));
+    Assert.AreEqual(
+      '00001010001000100010100010000010100010001010000000001010001000100010100010000010100010001010000000001010001000100010100010000010100010001010000',
       TZintTestHelper.ModulesDumpRow(sym, 2));
   finally sym.Free; end;
 end;

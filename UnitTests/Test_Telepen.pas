@@ -27,6 +27,13 @@ type
     [Test] procedure Input_NUL_And_DEL;
     [Test] procedure Input_ExtendedASCII_Rejected;
 
+    { test_hrt: Human Readable Text }
+    [Test] procedure HRT_UpperAlpha;
+    [Test] procedure HRT_LowerAlpha;
+    [Test] procedure HRT_CtrlChar_Space;
+    [Test] procedure HRT_NUL_Space;
+    [Test] procedure HRT_ABK0;
+
     { test_encode: Korrekte Barcode-Muster }
     [Test] procedure Encode_1A;
     [Test] procedure Encode_ABC;
@@ -48,6 +55,12 @@ type
     [Test] procedure Input_DigitX_OK;
     [Test] procedure Input_XDigit_Rejected;
     [Test] procedure Input_MultipleX_OK;
+
+    { test_hrt: Human Readable Text }
+    [Test] procedure HRT_Digits;
+    [Test] procedure HRT_DigitX;
+    [Test] procedure HRT_LowerX_UpperHRT;
+    [Test] procedure HRT_OddLength_LeadZero;
 
     { test_encode: Korrekte Barcode-Muster }
     [Test] procedure Encode_1234567890;
@@ -277,6 +290,71 @@ begin
   end;
 end;
 
+procedure TTestTelepen.HRT_UpperAlpha;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[0]: "ABC1234.;$" -> HRT "ABC1234.;$" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'ABC1234.;$');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABC1234.;$', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_LowerAlpha;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[2]: "abc1234.;$" -> HRT "abc1234.;$" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'abc1234.;$');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('abc1234.;$', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_CtrlChar_Space;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[4]: "ABC1234\001" -> HRT "ABC1234 " (ctrl char replaced by space) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'ABC1234' + #1);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABC1234 ', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_NUL_Space;
+var sym: TZintSymbol; ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_hrt[6]: "ABC\0001234" (len 8) -> HRT "ABC 1234" (NUL replaced by space) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    SetLength(b, 9);
+    b[0] := Ord('A'); b[1] := Ord('B'); b[2] := Ord('C'); b[3] := 0;
+    b[4] := Ord('1'); b[5] := Ord('2'); b[6] := Ord('3'); b[7] := Ord('4');
+    b[8] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 8);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABC 1234', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_ABK0;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[8]: "ABK0" -> HRT "ABK0" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'ABK0');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABK0', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
 { ---------- TTestTelepenNum ---------- }
 
 procedure TTestTelepenNum.Large_MaxNum_OK;
@@ -398,6 +476,54 @@ begin
   finally
     sym.Free;
   end;
+end;
+
+procedure TTestTelepenNum.HRT_Digits;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[10]: "1234" -> HRT "1234" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1234');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('1234', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_DigitX;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[12]: "123X" -> HRT "123X" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_LowerX_UpperHRT;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[14]: "123x" -> HRT "123X" (lowercase x -> uppercase in HRT) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123x');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_OddLength_LeadZero;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[16]: "12345" -> HRT "012345" (leading zero added for odd length) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '12345');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('012345', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
 end;
 
 procedure TTestTelepenNum.Encode_1234567890;

@@ -28,7 +28,12 @@ type
     [Test] procedure Input_MaxValuePlus1_Rejected;
     [Test] procedure Input_MinValue_OK;
     [Test] procedure Input_BelowMin_Rejected;
+    [Test] procedure Input_TooLong_7Digits;
     [Test] procedure Input_InvalidChar_Rejected;
+    [Test] procedure Input_Value1_Rejected;
+
+    { test_hrt }
+    [Test] procedure HRT_Empty;
 
     { test_encode }
     [Test] procedure Encode_131070;
@@ -45,9 +50,15 @@ type
     { test_input }
     [Test] procedure Input_MaxValue_OK;
     [Test] procedure Input_MaxValuePlus1_Rejected;
+    [Test] procedure Input_TooLong_9Digits;
     [Test] procedure Input_MinValue_OK;
     [Test] procedure Input_BelowMin_Rejected;
+    [Test] procedure Input_Value2_Rejected;
+    [Test] procedure Input_Value1_Rejected;
     [Test] procedure Input_InvalidChar_Rejected;
+
+    { test_hrt }
+    [Test] procedure HRT_Empty;
 
     { test_encode }
     [Test] procedure Encode_64570080;
@@ -63,7 +74,17 @@ type
 
     { test_input }
     [Test] procedure Input_Valid_8Digits;
+    [Test] procedure Input_SingleDigit9_OK;
+    [Test] procedure Input_SingleDigit0_OK;
+    [Test] procedure Input_TooLong_9Digits;
     [Test] procedure Input_InvalidChar_Rejected;
+    [Test] procedure Input_99999999_OK;
+
+    { test_hrt }
+    [Test] procedure HRT_123456;
+    [Test] procedure HRT_12345678;
+    [Test] procedure HRT_12345678_Option2_1;
+    [Test] procedure HRT_12345678_Option2_2;
 
     { test_encode }
     [Test] procedure Encode_34567890;
@@ -194,6 +215,56 @@ begin
   end;
 end;
 
+procedure TTestPharmaOne.Input_TooLong_7Digits;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[1]: "1310700" (7 digits) -> ERROR_TOO_LONG
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1310700');
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 350: Input length 7 too long (maximum 6)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestPharmaOne.Input_Value1_Rejected;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[5]: "1" -> out of range
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 352: Input value ''1'' out of range (3 to 131070)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestPharmaOne.HRT_Empty;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_hrt[0]: Pharmacode One has no HRT
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'hrt');
+  finally
+    sym.Free;
+  end;
+end;
+
 procedure TTestPharmaOne.Encode_131070;
 var
   sym: TZintSymbol;
@@ -304,6 +375,23 @@ begin
   end;
 end;
 
+procedure TTestPharmaTwo.Input_TooLong_9Digits;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[9]: "064570080" (9 digits) -> ERROR_TOO_LONG
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '064570080');
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 354: Input length 9 too long (maximum 8)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
 procedure TTestPharmaTwo.Input_MinValue_OK;
 var
   sym: TZintSymbol;
@@ -338,6 +426,40 @@ begin
   end;
 end;
 
+procedure TTestPharmaTwo.Input_Value2_Rejected;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[12]: "2" -> out of range
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '2');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 353: Input value ''2'' out of range (4 to 64570080)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestPharmaTwo.Input_Value1_Rejected;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[13]: "1" -> out of range
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 353: Input value ''1'' out of range (4 to 64570080)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
 procedure TTestPharmaTwo.Input_InvalidChar_Rejected;
 var
   sym: TZintSymbol;
@@ -350,6 +472,22 @@ begin
     Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
     Assert.AreEqual('Error 355: Invalid character at position 4 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestPharmaTwo.HRT_Empty;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_hrt[2]: Pharmacode Two has no HRT
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -450,6 +588,57 @@ begin
   end;
 end;
 
+procedure TTestCode32.Input_SingleDigit9_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[16]: "9" -> OK, width 103
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '9');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(103, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.Input_SingleDigit0_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[17]: "0" -> OK, width 103
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '0');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(103, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.Input_TooLong_9Digits;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[18]: "123456789" -> ERROR_TOO_LONG
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456789');
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 360: Input length 9 too long (maximum 8)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
 procedure TTestCode32.Input_InvalidChar_Rejected;
 var
   sym: TZintSymbol;
@@ -462,6 +651,89 @@ begin
     Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
     Assert.AreEqual('Error 361: Invalid character at position 1 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.Input_99999999_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_input[20]: "99999999" -> OK, width 103
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '99999999');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(103, sym.width, 'width');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.HRT_123456;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_hrt[4]: "123456" -> HRT "A001234564"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('A001234564', TZintTestHelper.GetText(sym), 'hrt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.HRT_12345678;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_hrt[6]: "12345678" -> HRT "A123456788"
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.HRT_12345678_Option2_1;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_hrt[8]: option_2=1 "12345678" -> HRT "A123456788" (ignore option_2)
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCode32.HRT_12345678_Option2_2;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  // test_hrt[10]: option_2=2 "12345678" -> HRT "A123456788" (ignore option_2)
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
+  try
+    sym.option_2 := 2;
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;

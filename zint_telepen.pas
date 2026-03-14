@@ -123,7 +123,7 @@ begin
   { Set HRT (Human Readable Text) }
   for i := 0 to src_len - 1 do
   begin
-    if (source[i] = 0) then
+    if (source[i] < $20) or (source[i] = $7F) then
       symbol.text[i] := Ord(' ')
     else
       symbol.text[i] := source[i];

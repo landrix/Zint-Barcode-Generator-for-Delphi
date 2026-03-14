@@ -12,6 +12,7 @@ type
     [Test] procedure Large_OK;
     [Test] procedure Large_TooLong;
     [Test] procedure Large_CheckDigit_OK;
+    [Test] procedure Large_CheckDigit_TooLong;
     [Test] procedure Input_InvalidChar;
     [Test] procedure Input_InvalidCharPos5;
     [Test] procedure HRT_Default;
@@ -19,6 +20,7 @@ type
     [Test] procedure HRT_CheckDigitHidden;
     [Test] procedure Encode_Default;
     [Test] procedure Encode_WithCheck;
+    [Test] procedure Encode_1234567890;
   end;
 
   {--- C25 Interleaved ---}
@@ -27,6 +29,7 @@ type
     [Test] procedure Large_OK;
     [Test] procedure Large_TooLong;
     [Test] procedure Large_CheckDigit_OK;
+    [Test] procedure Large_CheckDigit_TooLong;
     [Test] procedure Input_InvalidChar;
     [Test] procedure HRT_OddLeadZero;
     [Test] procedure HRT_CheckDigit;
@@ -38,6 +41,7 @@ type
     [Test] procedure Encode_WithCheck;
     [Test] procedure Encode_Odd;
     [Test] procedure Encode_OddWithCheck;
+    [Test] procedure Encode_DX;
   end;
 
   {--- C25 IATA ---}
@@ -45,6 +49,8 @@ type
   public
     [Test] procedure Large_OK;
     [Test] procedure Large_TooLong;
+    [Test] procedure Large_CheckDigit_OK;
+    [Test] procedure Large_CheckDigit_TooLong;
     [Test] procedure Input_InvalidChar;
     [Test] procedure HRT_Default;
     [Test] procedure HRT_CheckDigit;
@@ -58,6 +64,8 @@ type
   public
     [Test] procedure Large_OK;
     [Test] procedure Large_TooLong;
+    [Test] procedure Large_CheckDigit_OK;
+    [Test] procedure Large_CheckDigit_TooLong;
     [Test] procedure Input_InvalidChar;
     [Test] procedure HRT_Default;
     [Test] procedure HRT_CheckDigit;
@@ -71,12 +79,15 @@ type
   public
     [Test] procedure Large_OK;
     [Test] procedure Large_TooLong;
+    [Test] procedure Large_CheckDigit_OK;
+    [Test] procedure Large_CheckDigit_TooLong;
     [Test] procedure Input_InvalidChar;
     [Test] procedure HRT_Default;
     [Test] procedure HRT_CheckDigit;
     [Test] procedure HRT_CheckDigitHidden;
     [Test] procedure Encode_Default;
     [Test] procedure Encode_WithCheck;
+    [Test] procedure Encode_1234567890;
   end;
 
   {--- DPLEIT ---}
@@ -90,6 +101,7 @@ type
     [Test] procedure Encode_Zeros;
     [Test] procedure Encode_Schwer;
     [Test] procedure Encode_Wiki;
+    [Test] procedure Encode_ZerosWithCheck;
   end;
 
   {--- DPIDENT ---}
@@ -104,6 +116,7 @@ type
     [Test] procedure Encode_Zeros;
     [Test] procedure Encode_Schwer;
     [Test] procedure Encode_Wiki;
+    [Test] procedure Encode_ZerosWithCheck;
   end;
 
   {--- ITF14 ---}
@@ -112,17 +125,28 @@ type
     [Test] procedure Large_OK;
     [Test] procedure Large_TooLong;
     [Test] procedure Input_InvalidChar;
+    [Test] procedure Input_InvalidCharPos14;
     [Test] procedure Input_13Digits;
     [Test] procedure Input_14Digits_OK;
+    [Test] procedure Input_14Digits_OK_Alt;
     [Test] procedure Input_14Digits_BadCheck;
-    [Test] procedure Input_AI_Prefix_01;
-    [Test] procedure Input_Paren_Prefix;
+    [Test] procedure Input_13Digits_01Start;
     [Test] procedure Input_Bare_01_Prefix;
+    [Test] procedure Input_Bare_01_Prefix_13;
+    [Test] procedure Input_AI_Prefix_01;
+    [Test] procedure Input_AI_Prefix_13;
+    [Test] procedure Input_Paren_Prefix;
+    [Test] procedure Input_Paren_Prefix_13;
+    [Test] procedure Input_TooLong_16;
+    [Test] procedure Input_TooLong_Bad_AI;
+    [Test] procedure Input_TooLong_MixBracket;
     [Test] procedure HRT_Short;
     [Test] procedure HRT_Full;
     [Test] procedure Encode_Default;
+    [Test] procedure Encode_DefaultWithCheck;
     [Test] procedure Encode_GS1_1;
     [Test] procedure Encode_GS1_2;
+    [Test] procedure Encode_GS1_3;
   end;
 
 implementation
@@ -1143,6 +1167,351 @@ begin
     Assert.AreEqual(1, sym.rows, 'rows');
     Assert.AreEqual(135, sym.width, 'width');
     Assert.AreEqual('101011100010100010111010101110001000111010001011101110100010001011101011100010001110101000111011101010111000100010001110001110101011101',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: C25 Standard additions ========== }
+
+procedure TTestC25Standard.Large_CheckDigit_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25MATRIX);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 113));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 301: Input length 113 too long (maximum 112)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25Standard.Encode_1234567890;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[2]: Standard, "1234567890" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25MATRIX);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1234567890');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(117, sym.width, 'width');
+    Assert.AreEqual('111101010111010111010001011101110001010101110111011101110101000111010101000111011101000101000100010101110001011110101',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: C25 Interleaved additions ========== }
+
+procedure TTestC25Inter.Large_CheckDigit_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25INTER);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 126));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 309: Input length 126 too long (maximum 125)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25Inter.Encode_DX;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[7]: DX cartridge barcode, "602003" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25INTER);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '602003');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(63, sym.width, 'width');
+    Assert.AreEqual('101010111011100010001010111010001000111010001000111011101011101',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: C25 IATA additions ========== }
+
+procedure TTestC25IATA.Large_CheckDigit_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25IATA);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 80));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(1143, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25IATA.Large_CheckDigit_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25IATA);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 81));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 305: Input length 81 too long (maximum 80)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: C25 Data Logic additions ========== }
+
+procedure TTestC25Logic.Large_CheckDigit_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25LOGIC);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 113));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(1149, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25Logic.Large_CheckDigit_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25LOGIC);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 114));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 307: Input length 114 too long (maximum 113)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: C25 Industrial additions ========== }
+
+procedure TTestC25Ind.Large_CheckDigit_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25IND);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 79));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(1139, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25Ind.Large_CheckDigit_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25IND);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 80));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 303: Input length 80 too long (maximum 79)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25Ind.Encode_1234567890;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[14]: Industrial, "1234567890" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25IND);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1234567890');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(159, sym.width, 'width');
+    Assert.AreEqual('111011101011101010101110101110101011101110111010101010101110101110111010111010101011101110101010101011101110111010101110101011101011101010101110111010111010111',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: DPLEIT addition ========== }
+
+procedure TTestDPLeit.Encode_ZerosWithCheck;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[16]: check digit option ignored }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_DPLEIT);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, '0000087654321');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+    Assert.AreEqual('101010101110001110001010101110001110001010001011101110001010100010001110111011101011100010100011101110001010100011101000100010111011101',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: DPIDENT addition ========== }
+
+procedure TTestDPIdent.Encode_ZerosWithCheck;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[20]: check digit option ignored }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_DPIDENT);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, '00087654321');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(117, sym.width, 'width');
+    Assert.AreEqual('101010101110001110001010001011101110001010100010001110111011101011100010100011101110001010100011101000100010111011101',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+{ ========== NEW: ITF14 additions ========== }
+
+procedure TTestITF14.Input_InvalidCharPos14;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[14] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '1234567890123A');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 312: Invalid character at position 14 in input (digits only)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_14Digits_OK_Alt;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[15]: 14 digits with correct check digit }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '01345678901235');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_13Digits_01Start;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[16]: 13 digits starting with 01 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '0134567890123');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_Bare_01_Prefix_13;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[18]: bare 01 prefix with 13 data digits }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '011234567890123');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_AI_Prefix_13;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[20]: [01] prefix with 13 data digits }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '[01]1234567890123');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_Paren_Prefix_13;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[22]: (01) prefix with 13 data digits }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '(01)1234567890123');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_TooLong_16;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[23]: 16 chars, no valid prefix }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '0012345678901231');
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 311: Input length 16 too long (maximum 14)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_TooLong_Bad_AI;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[24]: [00] not valid AI prefix }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '[00]12345678901231');
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 311: Input length 18 too long (maximum 14)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Input_TooLong_MixBracket;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[25]: mismatched brackets }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '[01)12345678901231');
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    Assert.AreEqual('Error 311: Input length 18 too long (maximum 14)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Encode_DefaultWithCheck;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[24]: check digit option ignored }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, '0000087654321');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+    Assert.AreEqual('101010101110001110001010101110001110001010001011101110001010100010001110111011101011100010100011101110001010100011101000101011100011101',
+      TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestITF14.Encode_GS1_3;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[27]: GS1 Figure 5.3.6-1 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_ITF14);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '0950110153001');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1, sym.rows, 'rows');
+    Assert.AreEqual(135, sym.width, 'width');
+    Assert.AreEqual('101010100011101110001011101011100010001011100010101011100010001011101110100011100010001110101010101110001110001011101010001000111011101',
       TZintTestHelper.ModulesDumpRow(sym, 0), 'modules');
   finally sym.Free; end;
 end;

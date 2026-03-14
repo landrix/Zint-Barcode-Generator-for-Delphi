@@ -57,21 +57,48 @@ type
     [Test] procedure Input_LowerConverted_OK;
     [Test] procedure Input_FullSet_OK;
     [Test] procedure Input_Bang_Rejected;
+    [Test] procedure Input_Quote_Rejected;
+    [Test] procedure Input_Hash_Rejected;
+    [Test] procedure Input_Amp_Rejected;
+    [Test] procedure Input_Apos_Rejected;
+    [Test] procedure Input_LParen_Rejected;
+    [Test] procedure Input_RParen_Rejected;
+    [Test] procedure Input_Star_Rejected;
+    [Test] procedure Input_Comma_Rejected;
+    [Test] procedure Input_Colon_Rejected;
+    [Test] procedure Input_At_Rejected;
+    [Test] procedure Input_LBracket_Rejected;
+    [Test] procedure Input_Backtick_Rejected;
+    [Test] procedure Input_LBrace_Rejected;
+    [Test] procedure Input_Null_Rejected;
+    [Test] procedure Input_HighByte_Rejected;
     [Test] procedure Input_Option2_0_NoCheck;
     [Test] procedure Input_Option2_1_Check;
     [Test] procedure Input_Option2_2_HiddenCheck;
+    [Test] procedure Input_Option2_3_ResetTo0;
 
     { test_hrt }
     [Test] procedure HRT_Default_Stars;
     [Test] procedure HRT_LowerToUpper;
     [Test] procedure HRT_WithCheck;
+    [Test] procedure HRT_Lower_WithCheck;
+    [Test] procedure HRT_Ab_WithCheck;
+    [Test] procedure HRT_Digits;
+    [Test] procedure HRT_Digits_WithCheck;
     [Test] procedure HRT_HiddenCheck;
     [Test] procedure HRT_CheckDigitDash;
 
     { test_encode }
     [Test] procedure Encode_1A;
     [Test] procedure Encode_1A_WithCheck;
+    [Test] procedure Encode_Z1_CheckDash;
+    [Test] procedure Encode_Z2_CheckDot;
+    [Test] procedure Encode_Z3_CheckSpace;
     [Test] procedure Encode_Z4_CheckDollar;
+    [Test] procedure Encode_Z5_CheckSlash;
+    [Test] procedure Encode_Z6_CheckPlus;
+    [Test] procedure Encode_Z7_CheckPercent;
+    [Test] procedure Encode_ExCode39Equiv;
     [Test] procedure Encode_FullSet;
   end;
 
@@ -84,21 +111,31 @@ type
     [Test] procedure Large_87_TooLong;
     [Test] procedure Large_LowerMax43_OK;
     [Test] procedure Large_Lower44_TooLong;
+    [Test] procedure Large_Lower86_TooLong;
 
     { test_input }
     [Test] procedure Input_Alpha_OK;
+    [Test] procedure Input_Option2_3;
     [Test] procedure Input_Lower_OK;
     [Test] procedure Input_Comma_OK;
     [Test] procedure Input_HighASCII_Rejected;
+    [Test] procedure Input_HighASCII_Mid_Rejected;
 
     { test_hrt }
     [Test] procedure HRT_Default;
     [Test] procedure HRT_WithCheck;
+    [Test] procedure HRT_Lower;
     [Test] procedure HRT_Lower_WithCheck;
     [Test] procedure HRT_HiddenCheck;
 
     { test_encode }
     [Test] procedure Encode_1A;
+    [Test] procedure Encode_1A_WithCheck;
+    [Test] procedure Encode_Z4_CheckDollar;
+    [Test] procedure Encode_Binary;
+    [Test] procedure Encode_CtrlChars;
+    [Test] procedure Encode_VisibleASCII_1;
+    [Test] procedure Encode_VisibleASCII_2;
   end;
 
   { ====================== LOGMARS ====================== }
@@ -109,9 +146,17 @@ type
     [Test] procedure Large_Max30_OK;
     [Test] procedure Large_31_TooLong;
 
+    { test_input }
+    [Test] procedure Input_Alpha_OK;
+    [Test] procedure Input_Lower_OK;
+    [Test] procedure Input_Comma_Rejected;
+    [Test] procedure Input_Option2_3;
+
     { test_hrt }
+    [Test] procedure HRT_Default;
     [Test] procedure HRT_LowerToUpper;
     [Test] procedure HRT_WithCheck;
+    [Test] procedure HRT_WithCheck_12345;
     [Test] procedure HRT_HiddenCheck;
 
     { test_encode }
@@ -131,6 +176,15 @@ type
     [Test] procedure Large_124_TooLong;
     [Test] procedure Large_LowerMax61_OK;
     [Test] procedure Large_Lower62_TooLong;
+    [Test] procedure Large_Lower124_TooLong;
+    [Test] procedure Large_Mixed82_OK;
+    [Test] procedure Large_Mixed83_TooLong;
+
+    { test_input }
+    [Test] procedure Input_Alpha_OK;
+    [Test] procedure Input_Lower_OK;
+    [Test] procedure Input_Comma_OK;
+    [Test] procedure Input_HighASCII_Rejected;
 
     { test_hrt }
     [Test] procedure HRT_Default_NoCheckShown;
@@ -140,8 +194,10 @@ type
 
     { test_encode }
     [Test] procedure Encode_C93;
+    [Test] procedure Encode_CODE15_93;
     [Test] procedure Encode_1A;
     [Test] procedure Encode_TEST93;
+    [Test] procedure Encode_VisibleASCII_Last;
   end;
 
   { ====================== VIN ====================== }
@@ -157,6 +213,10 @@ type
     { test_input }
     [Test] procedure Input_Valid_OK;
     [Test] procedure Input_BadCheckDigit;
+    [Test] procedure Input_European_OK;
+    [Test] procedure Input_I_Rejected;
+    [Test] procedure Input_O_Rejected;
+    [Test] procedure Input_Q_Rejected;
 
     { test_hrt }
     [Test] procedure HRT_Default;
@@ -174,6 +234,12 @@ type
     { test_large }
     [Test] procedure Large_Max68_OK;
     [Test] procedure Large_69_TooLong;
+
+    { test_input }
+    [Test] procedure Input_Lower_OK;
+    [Test] procedure Input_Comma_Rejected;
+    [Test] procedure Input_Option2_1;
+    [Test] procedure Input_Option2_2;
 
     { test_hrt }
     [Test] procedure HRT_Default;
@@ -487,6 +553,175 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestCode39.Input_Quote_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[3]: '"' at position 2 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'A"B');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Hash_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[4] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '#AB');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Amp_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[5] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '&');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Apos_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[6] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '''');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_LParen_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[7] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '(');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_RParen_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[8] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ')');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Star_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[9] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '*');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Comma_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[10] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ',');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Colon_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[11] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ':');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_At_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[12] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '@');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_LBracket_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[13] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '[');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Backtick_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[14] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '`');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_LBrace_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[15] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '{');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_Null_Rejected;
+var sym: TZintSymbol; ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_input[16]: byte 0 -> invalid }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    SetLength(b, 2); b[0] := 0; b[1] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 1);
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Input_HighByte_Rejected;
+var sym: TZintSymbol; ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_input[17]: byte 192 -> invalid }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    SetLength(b, 2); b[0] := 192; b[1] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 1);
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
 procedure TTestCode39.Input_Option2_0_NoCheck;
 var sym: TZintSymbol; ret: Integer;
 begin
@@ -526,6 +761,20 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestCode39.Input_Option2_3_ResetTo0;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[21]: option_2=3 invalid, resets to 0 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, '1');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(38, sym.width, 'width');
+    Assert.AreEqual(0, sym.option_2, 'option_2');
+  finally sym.Free; end;
+end;
+
 procedure TTestCode39.HRT_Default_Stars;
 var sym: TZintSymbol;
 begin
@@ -557,6 +806,53 @@ begin
     sym.option_2 := 1;
     TZintTestHelper.EncodeData(sym, 'ABC1234');
     Assert.AreEqual('*ABC12340*', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.HRT_Lower_WithCheck;
+var sym: TZintSymbol;
+begin
+  { test_hrt[6]: "abc1234" with check -> "*ABC12340*" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, 'abc1234');
+    Assert.AreEqual('*ABC12340*', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.HRT_Ab_WithCheck;
+var sym: TZintSymbol;
+begin
+  { test_hrt[8]: "ab" with check -> "*ABL*" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, 'ab');
+    Assert.AreEqual('*ABL*', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.HRT_Digits;
+var sym: TZintSymbol;
+begin
+  { test_hrt[10]: "123456789" -> "*123456789*" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    TZintTestHelper.EncodeData(sym, '123456789');
+    Assert.AreEqual('*123456789*', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.HRT_Digits_WithCheck;
+var sym: TZintSymbol;
+begin
+  { test_hrt[12]: "123456789" with check -> "*1234567892*" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '123456789');
+    Assert.AreEqual('*1234567892*', TZintTestHelper.GetText(sym), 'text');
   finally sym.Free; end;
 end;
 
@@ -617,6 +913,54 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestCode39.Encode_Z1_CheckDash;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[2]: "Z1" check digit '-' }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z1');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101011010010101101001010110110100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Encode_Z2_CheckDot;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[3]: "Z2" check digit '.' }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z2');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101010110010101101100101011010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Encode_Z3_CheckSpace;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[4]: "Z3" check digit space }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z3');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101011011001010101001101011010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
 procedure TTestCode39.Encode_Z4_CheckDollar;
 var sym: TZintSymbol; ret: Integer;
 begin
@@ -630,6 +974,69 @@ begin
     Assert.AreEqual(64, sym.width, 'width');
     Assert.AreEqual(
       '1001011011010100110110101010100110101101001001001010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Encode_Z5_CheckSlash;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[6]: "Z5" check digit '/' }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z5');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101011010011010101001001010010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Encode_Z6_CheckPlus;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[7]: "Z6" check digit '+' }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z6');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101010110011010101001010010010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Encode_Z7_CheckPercent;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[8]: "Z7" check digit '%' }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z7');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101010100101101101010010010010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode39.Encode_ExCode39Equiv;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[9]: "+A/E%U$A/D%T+Z" same as EXCODE39 binary }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '+A/E%U$A/D%T+Z');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(207, sym.width, 'width');
+    Assert.AreEqual(
+      '100101101101010010100100101101010010110100100101001011010110010101010010010010110010101011010010010010101101010010110100100101001010101100101101010010010010101011011001010010100100101001101101010100101101101',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally sym.Free; end;
 end;
@@ -701,6 +1108,17 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestExCode39.Large_Lower86_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[6]: 86 lowercase 'a' -> each 2 symbols = 172 > 86 max }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('a', 86));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
 procedure TTestExCode39.Input_Alpha_OK;
 var sym: TZintSymbol; ret: Integer;
 begin
@@ -710,6 +1128,20 @@ begin
     Assert.AreEqual(ZINT_OK, ret, 'ret');
     Assert.AreEqual(1, sym.rows, 'rows');
     Assert.AreEqual(38, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.Input_Option2_3;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[23]: option_2=3 invalid, resets to 0 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, 'A');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(38, sym.width, 'width');
+    Assert.AreEqual(0, sym.option_2, 'option_2');
   finally sym.Free; end;
 end;
 
@@ -754,6 +1186,19 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestExCode39.Input_HighASCII_Mid_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[28]: "ABCDé" -> extended ASCII at pos 5 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'ABCD' + Char(233));
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 329: Invalid character at position 5 in input, extended ASCII not allowed',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
 procedure TTestExCode39.HRT_Default;
 var sym: TZintSymbol;
 begin
@@ -774,6 +1219,17 @@ begin
     sym.option_2 := 1;
     TZintTestHelper.EncodeData(sym, 'ABC1234');
     Assert.AreEqual('ABC12340', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.HRT_Lower;
+var sym: TZintSymbol;
+begin
+  { test_hrt[20]: "abc1234" -> "abc1234" (no case conversion) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    TZintTestHelper.EncodeData(sym, 'abc1234');
+    Assert.AreEqual('abc1234', TZintTestHelper.GetText(sym), 'text');
   finally sym.Free; end;
 end;
 
@@ -817,6 +1273,101 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestExCode39.Encode_1A_WithCheck;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[12]: "1A" with check digit }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, '1A');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010110100101011011010100101101011010010110100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.Encode_Z4_CheckDollar;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[13]: "Z4" check digit '$' }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'Z4');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(64, sym.width, 'width');
+    Assert.AreEqual(
+      '1001011011010100110110101010100110101101001001001010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.Encode_Binary;
+var sym: TZintSymbol; ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_encode[14]: "a%\000\001$\177z" (7 bytes) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    SetLength(b, 8);
+    b[0] := Ord('a'); b[1] := Ord('%'); b[2] := 0; b[3] := 1;
+    b[4] := Ord('$'); b[5] := 127; b[6] := Ord('z'); b[7] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 7);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(207, sym.width, 'width');
+    Assert.AreEqual(
+      '100101101101010010100100101101010010110100100101001011010110010101010010010010110010101011010010010010101101010010110100100101001010101100101101010010010010101011011001010010100100101001101101010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.Encode_CtrlChars;
+var sym: TZintSymbol; ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_encode[15]: "\033\037!+/\\@A~" (8 bytes) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    SetLength(b, 9);
+    b[0] := $1B; b[1] := $1F; b[2] := Ord('!'); b[3] := Ord('+');
+    b[4] := Ord('/'); b[5] := Ord('\'); b[6] := Ord('@'); b[7] := Ord('A');
+    b[8] := 126;
+    ret := TZintTestHelper.EncodeData(sym, b, 9);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(246, sym.width, 'width');
+    Assert.AreEqual(
+      '100101101101010100100100101101010010110101001001001011010110010101001001010010110101001011010010010100101101010100110100100101001011010110100101010010010010101101010011010100100100101001101010110110101001011010100100100101011010110010100101101101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.Encode_VisibleASCII_1;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[16]: visible ASCII first 85 symbol chars }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ' !"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1130, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestExCode39.Encode_VisibleASCII_2;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[17]: visible ASCII last part }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_EXCODE39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, '^_`abcdefghijklmnopqrstuvwxyz{|}' + #126);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(883, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
 { ==================== TTestLogmars ==================== }
 
 procedure TTestLogmars.Large_Max30_OK;
@@ -843,6 +1394,66 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestLogmars.Input_Alpha_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[29]: "A" -> OK, width 47 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_LOGMARS);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'A');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(47, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestLogmars.Input_Lower_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[30]: "a" -> OK (auto-converted to upper) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_LOGMARS);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'a');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(47, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestLogmars.Input_Comma_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[31]: "," -> invalid }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_LOGMARS);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ',');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestLogmars.Input_Option2_3;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[34]: option_2=3 invalid, resets to 0 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_LOGMARS);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, 'A');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(47, sym.width, 'width');
+    Assert.AreEqual(0, sym.option_2, 'option_2');
+  finally sym.Free; end;
+end;
+
+procedure TTestLogmars.HRT_Default;
+var sym: TZintSymbol;
+begin
+  { test_hrt[32]: "ABC1234" -> "ABC1234" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_LOGMARS);
+  try
+    TZintTestHelper.EncodeData(sym, 'ABC1234');
+    Assert.AreEqual('ABC1234', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
 procedure TTestLogmars.HRT_LowerToUpper;
 var sym: TZintSymbol;
 begin
@@ -863,6 +1474,18 @@ begin
     sym.option_2 := 1;
     TZintTestHelper.EncodeData(sym, 'abc1234');
     Assert.AreEqual('ABC12340', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestLogmars.HRT_WithCheck_12345;
+var sym: TZintSymbol;
+begin
+  { test_hrt[38]: "12345/ABCDE" with check -> "12345/ABCDET" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_LOGMARS);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '12345/ABCDE');
+    Assert.AreEqual('12345/ABCDET', TZintTestHelper.GetText(sym), 'text');
   finally sym.Free; end;
 end;
 
@@ -1011,6 +1634,89 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestCode93.Large_Lower124_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[13]: 124 lowercase -> TOO_LONG (input too long) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('a', 124));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Large_Mixed82_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[14]: "a1" * 82 -> 123 symbol chars (61 from 'a' + 82 from '1' = approx) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('a1', 82));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1144, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Large_Mixed83_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[15]: "a1" * 83 -> 125 symbol chars > 123 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('a1', 83));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Input_Alpha_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[35]: "A" -> OK, width 46 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'A');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(46, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Input_Lower_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[36]: "a" -> OK, width 55 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'a');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(55, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Input_Comma_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[37]: "," -> OK, width 55 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ',');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(55, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Input_HighASCII_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[40]: "é" -> extended ASCII not allowed }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, Char(233));
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 331: Invalid character at position 1 in input, extended ASCII not allowed',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
 procedure TTestCode93.HRT_Default_NoCheckShown;
 var sym: TZintSymbol;
 begin
@@ -1073,6 +1779,23 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestCode93.Encode_CODE15_93;
+var sym: TZintSymbol; ret: Integer;
+  s: string;
+begin
+  { test_encode[24]: "CODE\01593" (with CR) ANSI/AIM BC5-1995 Figure B1 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    s := 'CODE' + Char(13) + '93';
+    ret := TZintTestHelper.EncodeData(sym, s);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(109, sym.width, 'width');
+    Assert.AreEqual(
+      '1010111101101000101001011001100101001100100101001001101010011001000010101010000101100101001000101101010111101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
 procedure TTestCode93.Encode_1A;
 var sym: TZintSymbol; ret: Integer;
 begin
@@ -1101,6 +1824,21 @@ begin
     Assert.AreEqual(91, sym.width, 'width');
     Assert.AreEqual(
       '1010111101101001101100100101101011001101001101000010101010000101011101101001000101010111101',
+      TZintTestHelper.ModulesDump(sym), 'modules');
+  finally sym.Free; end;
+end;
+
+procedure TTestCode93.Encode_VisibleASCII_Last;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_encode[29]: visible ASCII last part }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_CODE93);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'klmnopqrstuvwxyz{|}' + #126);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(397, sym.width, 'width');
+    Assert.AreEqual(
+      '1010111101001100101000110101001100101010110001001100101010011001001100101010001101001100101001011001001100101000101101001100101101101001001100101101100101001100101101011001001100101101001101001100101100101101001100101100110101001100101011011001001100101011001101001100101001101101001100101001110101110110101000101101110110101101101001110110101101100101110110101101011001101001001101100101010111101',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally sym.Free; end;
 end;
@@ -1178,6 +1916,57 @@ begin
     ret := TZintTestHelper.EncodeData(sym, '5GZCZ43D23S812715');
     Assert.AreEqual(ZINT_ERROR_INVALID_CHECK, ret, 'ret');
     Assert.AreEqual('Error 338: Invalid check digit ''2'' (position 9), expecting ''1''',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestVIN.Input_European_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[43]: European VIN without check constraint }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_VIN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'WP0ZZZ99ZTS392124');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(246, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestVIN.Input_I_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[44]: 'I' not allowed in VIN }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_VIN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'WP0ZZZ99ZTS392I24');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 337: Invalid character at position 15 in input (alphanumerics only, excluding "IOQ")',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestVIN.Input_O_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[45]: 'O' not allowed in VIN }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_VIN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'WPOZZZ99ZTS392124');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 337: Invalid character at position 3 in input (alphanumerics only, excluding "IOQ")',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestVIN.Input_Q_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[46]: 'Q' not allowed in VIN }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_VIN);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'WPQZZZ99ZTS392124');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    Assert.AreEqual('Error 337: Invalid character at position 3 in input (alphanumerics only, excluding "IOQ")',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally sym.Free; end;
 end;
@@ -1261,6 +2050,55 @@ begin
     Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
     Assert.AreEqual('Error 319: Input length 69 too long (maximum 68)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestHIBC39.Input_Lower_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[47]: "a" -> OK, auto-converted to upper }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_HIBC_39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, 'a');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(79, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestHIBC39.Input_Comma_Rejected;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[48]: "," -> invalid }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_HIBC_39);
+  try
+    ret := TZintTestHelper.EncodeData(sym, ',');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestHIBC39.Input_Option2_1;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[51]: option_2=1 "a" -> OK (check digit doesn't apply to HIBC) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_HIBC_39);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, 'a');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(79, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestHIBC39.Input_Option2_2;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[52]: option_2=2 "a" -> OK }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_HIBC_39);
+  try
+    sym.option_2 := 2;
+    ret := TZintTestHelper.EncodeData(sym, 'a');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(79, sym.width, 'width');
   finally sym.Free; end;
 end;
 

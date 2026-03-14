@@ -28,6 +28,18 @@ type
 
     { test_encode }
     [Test] procedure Encode_0123456789ABCDEF;
+
+    { test_hrt }
+    [Test] procedure HRT_Default_ABCDEF;
+    [Test] procedure HRT_ShowCheck_ABCDEF;
+    [Test] procedure HRT_Default_1;
+    [Test] procedure HRT_ShowCheck_1;
+    [Test] procedure HRT_Default_7;
+    [Test] procedure HRT_ShowCheck_7;
+    [Test] procedure HRT_Default_75;
+    [Test] procedure HRT_ShowCheck_75;
+    [Test] procedure HRT_Default_993;
+    [Test] procedure HRT_ShowCheck_993;
   end;
 
   [TestFixture]
@@ -78,8 +90,44 @@ type
 
     { test_large - max92 with various options }
     [Test] procedure Large_Max92_Mod10_OK;
+    [Test] procedure Large_93_Mod10_TooLong;
     [Test] procedure Large_Max92_Mod1010_OK;
+    [Test] procedure Large_93_Mod1010_TooLong;
+    [Test] procedure Large_92_Mod11_OK;
+    [Test] procedure Large_93_Mod11_TooLong;
+    [Test] procedure Large_92_Mod11_4_OK;
+    [Test] procedure Large_93_Mod11_4_TooLong;
+    [Test] procedure Large_92_Mod1110_OK;
+    [Test] procedure Large_93_Mod1110_TooLong;
+    [Test] procedure Large_92_Mod1110_4_OK;
+    [Test] procedure Large_93_Mod1110_4_TooLong;
+    [Test] procedure Large_92_Mod11NCR_OK;
+    [Test] procedure Large_93_Mod11NCR_TooLong;
+    [Test] procedure Large_92_Mod1110NCR_OK;
+    [Test] procedure Large_93_Mod1110NCR_TooLong;
     [Test] procedure Large_Max92_Mod1110_Max;
+
+    { test_hrt - additional }
+    [Test] procedure HRT_NoMod_Opt0_1234567;
+    [Test] procedure HRT_Mod10_NoShow_1234567;
+    [Test] procedure HRT_Mod10_9999999999;
+    [Test] procedure HRT_Mod1010_NoShow_1234567;
+    [Test] procedure HRT_Mod1010_9999999999;
+    [Test] procedure HRT_Mod11_NoShow_1234567;
+    [Test] procedure HRT_Mod11_9999999999;
+    [Test] procedure HRT_Mod1110_NoShow_1234567;
+    [Test] procedure HRT_Mod1110_9999999999;
+    [Test] procedure HRT_Mod11NCR_NoShow_1234567;
+    [Test] procedure HRT_Mod11NCR_9999999999;
+    [Test] procedure HRT_Mod1110NCR_NoShow_1234567;
+    [Test] procedure HRT_Mod1110NCR_9999999999;
+    [Test] procedure HRT_Mod10_123456;
+    [Test] procedure HRT_Mod1010_123456;
+    [Test] procedure HRT_Mod11_123456;
+    [Test] procedure HRT_Mod1110_123456;
+    [Test] procedure HRT_Mod11_NoShow_2211;
+    [Test] procedure HRT_Mod1110_2211;
+    [Test] procedure HRT_Mod1110_NoShow_2211;
   end;
 
 implementation
@@ -168,6 +216,123 @@ begin
   finally
     sym.Free;
   end;
+end;
+
+{ Plessey HRT tests }
+
+procedure TTestPlessey.HRT_Default_ABCDEF;
+var sym: TZintSymbol;
+begin
+  { test_hrt[56]: default -> HRT = "0123456789ABCDEF" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    TZintTestHelper.EncodeData(sym, '0123456789ABCDEF');
+    Assert.AreEqual('0123456789ABCDEF', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_ShowCheck_ABCDEF;
+var sym: TZintSymbol;
+begin
+  { test_hrt[58]: option_2=1 -> HRT = "0123456789ABCDEF90" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '0123456789ABCDEF');
+    Assert.AreEqual('0123456789ABCDEF90', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_Default_1;
+var sym: TZintSymbol;
+begin
+  { test_hrt[60]: "1" default -> HRT = "1" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    TZintTestHelper.EncodeData(sym, '1');
+    Assert.AreEqual('1', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_ShowCheck_1;
+var sym: TZintSymbol;
+begin
+  { test_hrt[62]: "1" option_2=1 -> HRT = "173" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '1');
+    Assert.AreEqual('173', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_Default_7;
+var sym: TZintSymbol;
+begin
+  { test_hrt[64]: "7" default -> HRT = "7" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    TZintTestHelper.EncodeData(sym, '7');
+    Assert.AreEqual('7', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_ShowCheck_7;
+var sym: TZintSymbol;
+begin
+  { test_hrt[66]: "7" option_2=1 -> HRT = "758" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '7');
+    Assert.AreEqual('758', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_Default_75;
+var sym: TZintSymbol;
+begin
+  { test_hrt[68]: "75" default -> HRT = "75" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    TZintTestHelper.EncodeData(sym, '75');
+    Assert.AreEqual('75', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_ShowCheck_75;
+var sym: TZintSymbol;
+begin
+  { test_hrt[70]: "75" option_2=1 -> HRT = "7580" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '75');
+    Assert.AreEqual('7580', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_Default_993;
+var sym: TZintSymbol;
+begin
+  { test_hrt[72]: "993" default -> HRT = "993" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    TZintTestHelper.EncodeData(sym, '993');
+    Assert.AreEqual('993', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestPlessey.HRT_ShowCheck_993;
+var sym: TZintSymbol;
+begin
+  { test_hrt[74]: "993" option_2=1 -> HRT = "993AA" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '993');
+    Assert.AreEqual('993AA', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
 end;
 
 { ---------- TTestMSIPlessey ---------- }
@@ -580,12 +745,250 @@ begin
   end;
 end;
 
-{ Large tests with various check options }
+{ Additional HRT tests from C test_hrt }
+
+procedure TTestMSIPlessey.HRT_NoMod_Opt0_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[2]: opt2=0 explicit, "1234567" -> "1234567" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 0;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod10_NoShow_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[6]: opt2=1+10, "1234567" -> "1234567" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 11;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod10_9999999999;
+var sym: TZintSymbol;
+begin
+  { test_hrt[8]: opt2=1, "9999999999" -> "99999999990" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '9999999999');
+    Assert.AreEqual('99999999990', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1010_NoShow_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[12]: opt2=2+10, "1234567" -> "1234567" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 12;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1010_9999999999;
+var sym: TZintSymbol;
+begin
+  { test_hrt[14]: opt2=2, "9999999999" -> "999999999900" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 2;
+    TZintTestHelper.EncodeData(sym, '9999999999');
+    Assert.AreEqual('999999999900', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod11_NoShow_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[18]: opt2=3+10, "1234567" -> "1234567" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 13;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod11_9999999999;
+var sym: TZintSymbol;
+begin
+  { test_hrt[20]: opt2=3, "9999999999" -> "99999999995" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 3;
+    TZintTestHelper.EncodeData(sym, '9999999999');
+    Assert.AreEqual('99999999995', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110_NoShow_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[24]: opt2=4+10, "1234567" -> "1234567" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 14;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110_9999999999;
+var sym: TZintSymbol;
+begin
+  { test_hrt[26]: opt2=4, "9999999999" -> "999999999959" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    TZintTestHelper.EncodeData(sym, '9999999999');
+    Assert.AreEqual('999999999959', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod11NCR_NoShow_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[30]: opt2=5+10, "1234567" -> "1234567" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 15;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod11NCR_9999999999;
+var sym: TZintSymbol;
+begin
+  { test_hrt[32]: opt2=5, "9999999999" -> "999999999910" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 5;
+    TZintTestHelper.EncodeData(sym, '9999999999');
+    Assert.AreEqual('999999999910', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110NCR_NoShow_1234567;
+var sym: TZintSymbol;
+begin
+  { test_hrt[36]: opt2=6+10, "1234567" -> "1234567" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 16;
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('1234567', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110NCR_9999999999;
+var sym: TZintSymbol;
+begin
+  { test_hrt[38]: opt2=6, "9999999999" -> "9999999999109" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 6;
+    TZintTestHelper.EncodeData(sym, '9999999999');
+    Assert.AreEqual('9999999999109', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod10_123456;
+var sym: TZintSymbol;
+begin
+  { test_hrt[40]: opt2=1, "123456" -> "1234566" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 1;
+    TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual('1234566', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1010_123456;
+var sym: TZintSymbol;
+begin
+  { test_hrt[42]: opt2=2, "123456" -> "12345666" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 2;
+    TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual('12345666', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod11_123456;
+var sym: TZintSymbol;
+begin
+  { test_hrt[44]: opt2=3, "123456" -> "1234560" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 3;
+    TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual('1234560', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110_123456;
+var sym: TZintSymbol;
+begin
+  { test_hrt[46]: opt2=4, "123456" -> "12345609" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual('12345609', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod11_NoShow_2211;
+var sym: TZintSymbol;
+begin
+  { test_hrt[50]: opt2=3+10, "2211" -> "2211" (check "10" hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 13;
+    TZintTestHelper.EncodeData(sym, '2211');
+    Assert.AreEqual('2211', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110_2211;
+var sym: TZintSymbol;
+begin
+  { test_hrt[52]: opt2=4, "2211" -> "2211100" }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    TZintTestHelper.EncodeData(sym, '2211');
+    Assert.AreEqual('2211100', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.HRT_Mod1110_NoShow_2211;
+var sym: TZintSymbol;
+begin
+  { test_hrt[54]: opt2=4+10, "2211" -> "2211" (check hidden) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 14;
+    TZintTestHelper.EncodeData(sym, '2211');
+    Assert.AreEqual('2211', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
 
 procedure TTestMSIPlessey.Large_Max92_Mod10_OK;
-var
-  sym: TZintSymbol;
-  ret: Integer;
+var sym: TZintSymbol; ret: Integer;
 begin
   { test_large[2]: 92 * "9" mod10 -> OK, width 1123 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
@@ -594,15 +997,23 @@ begin
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 92));
     Assert.AreEqual(ZINT_OK, ret, 'ret');
     Assert.AreEqual(1123, sym.width, 'width');
-  finally
-    sym.Free;
-  end;
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod10_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[3]: mod10 93x"9" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 1;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
 end;
 
 procedure TTestMSIPlessey.Large_Max92_Mod1010_OK;
-var
-  sym: TZintSymbol;
-  ret: Integer;
+var sym: TZintSymbol; ret: Integer;
 begin
   { test_large[4]: 92 * "9" mod10+10 -> OK, width 1135 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
@@ -611,9 +1022,169 @@ begin
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 92));
     Assert.AreEqual(ZINT_OK, ret, 'ret');
     Assert.AreEqual(1135, sym.width, 'width');
-  finally
-    sym.Free;
-  end;
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod1010_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[5]: mod10+10 93x"9" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 2;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_92_Mod11_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[6]: mod11 92x"9" -> OK, width 1123 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 92));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1123, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod11_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[7]: mod11 93x"9" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_92_Mod11_4_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[8]: mod11 92x"4" -> OK, width 1135 (check digit "10" = 2 chars) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('4', 92));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod11_4_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[9]: mod11 93x"4" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 3;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('4', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_92_Mod1110_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[10]: mod11+10 92x"9" -> OK, width 1135 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 92));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod1110_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[11]: mod11+10 93x"9" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_92_Mod1110_4_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[12]: mod11+10 92x"4" -> OK, width 1147 (check "10" + mod10) }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('4', 92));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1147, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod1110_4_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[13]: mod11+10 93x"4" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 4;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('4', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_92_Mod11NCR_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[14]: mod11 NCR 92x"9" -> OK, width 1123 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 5;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 92));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1123, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod11NCR_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[15]: mod11 NCR 93x"9" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 5;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_92_Mod1110NCR_OK;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[16]: mod11+10 NCR 92x"9" -> OK, width 1135 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 6;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 92));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual(1135, sym.width, 'width');
+  finally sym.Free; end;
+end;
+
+procedure TTestMSIPlessey.Large_93_Mod1110NCR_TooLong;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_large[17]: mod11+10 NCR 93x"9" -> TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_MSI_PLESSEY);
+  try
+    sym.option_2 := 6;
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 93));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
 end;
 
 procedure TTestMSIPlessey.Large_Max92_Mod1110_Max;

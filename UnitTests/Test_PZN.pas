@@ -26,6 +26,15 @@ type
     [Test] procedure Input_InvalidChar_Rejected;
     [Test] procedure Input_CheckDigit10_Rejected;
     [Test] procedure Input_BadCheckDigit_Rejected;
+    [Test] procedure Large_PZN8_7Digits_OK;
+    [Test] procedure Large_PZN8_TooLong_9;
+    [Test] procedure Large_PZN7_6Digits_OK;
+    [Test] procedure Large_PZN7_TooLong_8;
+    [Test] procedure Input_InvalidChar_A;
+    [Test] procedure Input_CheckDigit10_1000006;
+    [Test] procedure Input_BadCheck_00000011;
+    [Test] procedure Input_PZN7_CheckDigit10;
+    [Test] procedure Input_PZN7_BadCheck;
 
     { test_hrt - PZN8 }
     [Test] procedure HRT_PZN8_12345;
@@ -299,6 +308,118 @@ begin
     Assert.AreEqual(
       '1001011011010100101011011011010010101101011001010110110110010101010100110101101101001101010101100110101010100101101101101001011010100101101101',
       TZintTestHelper.ModulesDump(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Large_PZN8_7Digits_OK;
+var sym: TZintSymbol;
+begin
+  { test_large[6]: "1" * 7 -> OK, 1 row, width 142 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 7)));
+    Assert.AreEqual(1, sym.rows);
+    Assert.AreEqual(142, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Large_PZN8_TooLong_9;
+var sym: TZintSymbol;
+begin
+  { test_large[7]: "1" * 9 -> ERROR_TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 9)));
+    Assert.AreEqual('Error 325: Input length 9 too long (maximum 8)',
+      TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Large_PZN7_6Digits_OK;
+var sym: TZintSymbol;
+begin
+  { test_large[8]: opt2=1, "1" * 6 -> OK, 1 row, width 129 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    sym.option_2 := 1;
+    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 6)));
+    Assert.AreEqual(1, sym.rows);
+    Assert.AreEqual(129, sym.width);
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Large_PZN7_TooLong_8;
+var sym: TZintSymbol;
+begin
+  { test_large[9]: opt2=1, "1" * 8 -> ERROR_TOO_LONG }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    sym.option_2 := 1;
+    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 8)));
+    Assert.AreEqual('Error 325: Input length 8 too long (maximum 7)',
+      TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Input_InvalidChar_A;
+var sym: TZintSymbol;
+begin
+  { test_input[22]: "A" -> invalid char at position 1 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, 'A'));
+    Assert.AreEqual('Error 326: Invalid character at position 1 in input (digits only)',
+      TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Input_CheckDigit10_1000006;
+var sym: TZintSymbol;
+begin
+  { test_input[23]: "1000006" -> check digit is 10 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '1000006'));
+    Assert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
+      TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Input_BadCheck_00000011;
+var sym: TZintSymbol;
+begin
+  { test_input[24]: "00000011" -> bad check digit }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    Assert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '00000011'));
+    Assert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
+      TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Input_PZN7_CheckDigit10;
+var sym: TZintSymbol;
+begin
+  { test_input[25]: opt2=1, "100009" -> check digit is 10 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    sym.option_2 := 1;
+    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '100009'));
+    Assert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
+      TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPZN.Input_PZN7_BadCheck;
+var sym: TZintSymbol;
+begin
+  { test_input[26]: opt2=1, "0000011" -> bad check digit }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+  try
+    sym.option_2 := 1;
+    Assert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '0000011'));
+    Assert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
+      TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
 
