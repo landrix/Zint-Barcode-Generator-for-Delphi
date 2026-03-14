@@ -62,6 +62,7 @@ function itoc(source : Integer) : Char;
 procedure to_upper(var source : TArrayOfByte);
 function is_sane(const test_string : TArrayOfChar; const source : TArrayOfByte; _length : Integer) : Integer; overload;
 function is_sane(const ATest_string : String; const ASource : TArrayOfByte; ALength : Integer) : Integer; overload;
+function not_sane(const test_string : String; const source : TArrayOfByte; _length : Integer) : Integer;
 function posn(const set_string : TArrayOfChar; const data : Char) : Integer; overload;
 function posn(const ASet_string : String; const AData : Byte) : Integer; overload;
 function posn(const ASet_string : String; const AData : Char) : Integer; overload;
@@ -275,6 +276,34 @@ function is_sane(const ATest_string: String; const ASource: TArrayOfByte;
   ALength: Integer): Integer;
 begin
   Result := is_sane(StrToArrayOfChar(ATest_string), ASource, ALength);
+end;
+
+{ Returns 1-based position of first invalid character, or 0 if all OK }
+function not_sane(const test_string : String; const source : TArrayOfByte; _length : Integer) : Integer;
+var
+  i, j : Integer;
+  lt : Integer;
+  found : Boolean;
+begin
+  lt := Length(test_string);
+  for i := 0 to _length - 1 do
+  begin
+    found := False;
+    for j := 1 to lt do
+    begin
+      if source[i] = Ord(test_string[j]) then
+      begin
+        found := True;
+        Break;
+      end;
+    end;
+    if not found then
+    begin
+      Result := i + 1;
+      Exit;
+    end;
+  end;
+  Result := 0;
 end;
 
 { Returns the position of data in set_string}

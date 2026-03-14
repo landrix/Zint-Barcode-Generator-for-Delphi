@@ -45,7 +45,8 @@ uses
   Test_PZN,
   Test_Postal,
   Test_Code,
-  Test_2of5
+  Test_2of5,
+  Test_Auspost
   ;
 
 var

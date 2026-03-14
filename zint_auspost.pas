@@ -11,6 +11,7 @@ unit zint_auspost;
 
   Status:
     3432bc9aff311f2aea40f0e9883abfe6564c080b complete
+    b3a3c0d complete
 }
 
 {$IFDEF FPC}
@@ -53,20 +54,20 @@ begin
 end;
 
 { Adds Reed-Solomon error correction to auspost }
-procedure rs_error(var data_pattern : TArrayOfChar);
+procedure rs_error(var data_pattern : TArrayOfChar; d_pos : Integer);
 var
   reader, triple_writer : Integer;
-  triple, inv_triple : TArrayOfByte;
+  triple : TArrayOfByte;
   result : TArrayOfByte;
+  tmp : Byte;
   RSGlobals : TRSGlobals;
 begin
   triple_writer := 0;
   SetLength(triple, 31);
-  SetLength(inv_triple, 31);
   SetLength(result, 5);
 
   reader := 2;
-  while reader < strlen(data_pattern) do
+  while reader < d_pos do
   begin
     triple[triple_writer] := convert_pattern(data_pattern[reader], 4)
       + convert_pattern(data_pattern[reader + 1], 2)
@@ -75,15 +76,18 @@ begin
     Inc(triple_writer);
   end;
 
-  for reader := 0 to triple_writer - 1 do
-    inv_triple[reader] := triple[(triple_writer - 1) - reader];
-
   rs_init_gf($43, RSGlobals);
   rs_init_code(4, 1, RSGlobals);
-  rs_encode(triple_writer, inv_triple, result, RSGlobals);
+  rs_encode(triple_writer, triple, result, RSGlobals);
 
-  for reader := 4 downto 1 do
-    concat(data_pattern, AusBarTable[result[reader - 1]]);
+  { Delphi rs_encode does not reverse result (unlike C zint_rs_encode), so reverse here }
+  tmp := result[0]; result[0] := result[3]; result[3] := tmp;
+  tmp := result[1]; result[1] := result[2]; result[2] := tmp;
+
+  for reader := 0 to 3 do
+  begin
+    concat(data_pattern, AusBarTable[result[reader]]);
+  end;
 
   rs_free(RSGlobals);
 end;
@@ -100,116 +104,132 @@ function australia_post(symbol : zint_symbol; source : TArrayOfByte; _length : I
    2 := Tracker and Descender
    3 := Tracker only }
 var
-  error_number, zeroes : Integer;
+  error_number, zeroes, i : Integer;
   writer : Integer;
-  loopey, reader, h : Cardinal;
+  loopey, reader, h : Integer;
 
   data_pattern : TArrayOfChar;
-  fcc, dpid : TArrayOfChar;
-  localstr : TArrayOfChar;
+  fcc : TArrayOfByte;
+  localstr : TArrayOfByte;
 begin
   SetLength(data_pattern, 200);
-  SetLength(fcc, 3); fcc[0] := #0; fcc[1] := #0;
-  SetLength(dpid, 10);
+  SetLength(fcc, 3);
+  fcc[0] := 0; fcc[1] := 0;
   SetLength(localstr, 30);
   error_number := 0;
-  strcpy(localstr, '');
+  zeroes := 0;
 
+  { Do all of the length checking first to avoid stack smashing }
+  if (symbol.symbology = BARCODE_AUSPOST) then
+  begin
+    if (_length <> 8) and (_length <> 13) and (_length <> 16)
+       and (_length <> 18) and (_length <> 23) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 401: Input length %d wrong (8, 13, 16, 18 or 23 characters required)', [_length]));
+      result := ZERROR_TOO_LONG; exit;
+    end;
+  end
+  else if (_length > 8) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 403: Input length %d too long (maximum 8)', [_length]));
+    result := ZERROR_TOO_LONG; exit;
+  end;
 
-  { Do all of the _length checking first to avoid stack smashing }
+  { Check input immediately to catch invalid chars }
+  i := not_sane(GDSET, source, _length);
+  if (i <> 0) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 404: Invalid character at position %d in input (alphanumerics, space and "#" only)', [i]));
+    result := ZERROR_INVALID_DATA; exit;
+  end;
+
   if (symbol.symbology = BARCODE_AUSPOST) then
   begin
     { Format control code (FCC) }
     case _length of
       8:
-        strcpy(fcc, '11');
-      16:
       begin
-        error_number := is_sane(NEON, source, _length);
-        strcpy(fcc, '59');
+        fcc[0] := Ord('1'); fcc[1] := Ord('1');
       end;
       13:
-        strcpy(fcc, '59');
-      23:
       begin
-        error_number := is_sane(NEON, source, _length);
-        strcpy(fcc, '62');
+        fcc[0] := Ord('5'); fcc[1] := Ord('9');
+      end;
+      16:
+      begin
+        fcc[0] := Ord('5'); fcc[1] := Ord('9');
+        i := not_sane(NEON, source, _length);
+        if (i <> 0) then
+        begin
+          strcpy(symbol.errtxt, Format('Error 402: Invalid character at position %d in input (digits only for FCC 59 length 16)', [i]));
+          result := ZERROR_INVALID_DATA; exit;
+        end;
       end;
       18:
-        strcpy(fcc, '62');
-      else
-        strcpy(symbol.errtxt, 'Auspost input is wrong length');
-        result := ZERROR_TOO_LONG; exit;
-    end;
-    if (error_number = ZERROR_INVALID_DATA) then
-    begin
-      strcpy(symbol.errtxt, 'Invalid characters in data');
-      result := error_number; exit;
+      begin
+        fcc[0] := Ord('6'); fcc[1] := Ord('2');
+      end;
+      23:
+      begin
+        fcc[0] := Ord('6'); fcc[1] := Ord('2');
+        i := not_sane(NEON, source, _length);
+        if (i <> 0) then
+        begin
+          strcpy(symbol.errtxt, Format('Error 406: Invalid character at position %d in input (digits only for FCC 62 length 23)', [i]));
+          result := ZERROR_INVALID_DATA; exit;
+        end;
+      end;
     end;
   end
   else
   begin
-    if (_length > 8) then
-    begin
-      strcpy(symbol.errtxt, 'Auspost input is too long');
-      result := ZERROR_TOO_LONG; exit;
-    end;
     case symbol.symbology of
       BARCODE_AUSREPLY:
-        strcpy(fcc, '45');
+      begin fcc[0] := Ord('4'); fcc[1] := Ord('5'); end;
       BARCODE_AUSROUTE:
-        strcpy(fcc, '87');
+      begin fcc[0] := Ord('8'); fcc[1] := Ord('7'); end;
       BARCODE_AUSREDIRECT:
-        strcpy(fcc, '92');
+      begin fcc[0] := Ord('9'); fcc[1] := Ord('2'); end;
     end;
 
     { Add leading zeros as required }
     zeroes := 8 - _length;
-    Fill(localstr, zeroes, '0', 0);
-    localstr[8] := #0;
+    FillChar(localstr[0], zeroes, Ord('0'));
   end;
 
-  concat(localstr, source);
-  h := strlen(localstr);
-  error_number := is_sane(GDSET, ArrayOfCharToArrayOfByte(localstr), h);
-  if (error_number = ZERROR_INVALID_DATA) then
-  begin
-    strcpy(symbol.errtxt, 'Invalid characters in data');
-    result := error_number; exit;
-  end;
+  Move(source[0], localstr[zeroes], _length);
+  _length := _length + zeroes;
 
-  { Verifiy that the first 8 characters are numbers }
-  ArrayCopy(dpid, localstr, 8);
-  dpid[8] := #0;
-  error_number := is_sane(NEON, ArrayOfCharToArrayOfByte(dpid), strlen(dpid));
-  if (error_number = ZERROR_INVALID_DATA) then
+  { Verify that the first 8 characters are numbers }
+  i := not_sane(NEON, localstr, 8);
+  if (i <> 0) then
   begin
-    strcpy(symbol.errtxt, 'Invalid characters in DPID');
-    result := error_number; exit;
+    strcpy(symbol.errtxt, Format('Error 405: Invalid character at position %d in DPID (first 8 characters) (digits only)', [i]));
+    result := ZERROR_INVALID_DATA; exit;
   end;
 
   { Start character }
   strcpy(data_pattern, '13');
 
   { Encode the FCC }
-  for reader := 0  to 1 do
+  for reader := 0 to 1 do
     lookup(NEON, AusNTable, fcc[reader], data_pattern);
 
   { Delivery Point Identifier (DPID) }
   for reader := 0 to 7 do
-    lookup(NEON, AusNTable, dpid[reader], data_pattern);
+    lookup(NEON, AusNTable, localstr[reader], data_pattern);
 
   { Customer Information }
-  if (h > 8) then
+  if (_length > 8) then
   begin
-    if ((h = 13) or (h = 18)) then
+    if ((_length = 13) or (_length = 18)) then
     begin
-      for reader := 8 to h - 1 do
+      for reader := 8 to _length - 1 do
         lookup(GDSET, AusCTable, localstr[reader], data_pattern);
     end
-    else if ((h = 16) or (h = 23)) then
+    else if ((_length = 16) or (_length = 23)) then
     begin
-      for reader := 8 to h - 1 do
+      for reader := 8 to _length - 1 do
         lookup(NEON, AusNTable, localstr[reader], data_pattern);
     end;
   end;
@@ -224,7 +244,7 @@ begin
   end;
 
   { Reed Solomon error correction }
-  rs_error(data_pattern);
+  rs_error(data_pattern, strlen(data_pattern));
 
   { Stop character }
   concat(data_pattern, '13');
