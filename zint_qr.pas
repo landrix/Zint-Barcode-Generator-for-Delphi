@@ -86,7 +86,8 @@ const
 
   qr_sizes: array [0..39] of Integer = (
     21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97,
-    101, 105, 109, 113, 117, 121, 125, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177);
+    101, 105, 109, 113, 117, 121, 125, 129, 133, 137, 141, 145, 149, 153, 157, 161,
+    165, 169, 173, 177);
 
   micro_qr_sizes: array [0..3] of Integer = (
     11, 13, 15, 17);
@@ -2250,7 +2251,7 @@ var
 	ecc_level, autosize, version, max_cw, target_binlen, blocks, size : Integer;
 	canShrink: Integer;
   bitmask, gs1 : Integer;
-	source_length, auto_eci_warning, auto_eci_fallback, auto_eci_mode : Integer;
+	source_length, auto_eci_warning, auto_eci_fallback, auto_eci_mode, original_eci : Integer;
 	structapp_id_len, structapp_id_value : Integer;
 	structapp_ch : Char;
   utfdata : TArrayOfInteger;
@@ -2264,6 +2265,7 @@ begin
 	SetLength(mode, _length + 1);
 	source_length := _length;
 	auto_eci_warning := 0;
+	original_eci := symbol.eci;
 
   if symbol.input_mode = GS1_MODE then
   	gs1 := 1
@@ -2300,13 +2302,13 @@ begin
 			auto_eci_fallback := 0;
 
 			for  i := 0 to _length-1 do
-      begin
+			begin
 				if (symbol.eci = 3) and (utfdata[i] > $FF) then
-          begin
+					begin
 					strcpy(symbol.errtxt, 'Error 575: Invalid character in input for ECI ''3''');
 					Result := ZERROR_INVALID_DATA;
-            Exit;
-          end;
+					Exit;
+					end;
 
 				if(utfdata[i] <= $ff) then
 				begin
@@ -2317,7 +2319,7 @@ begin
 						else if (utfdata[i] <= $7F) and (utfdata[i] <> $7E) then
 							jisdata[i] := utfdata[i]
 						else
-              begin
+							begin
 							if (symbol.eci = 20) and (auto_eci_mode <> 0) then
 							begin
 								auto_eci_fallback := 1;
@@ -2325,18 +2327,18 @@ begin
 							end;
 							strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
 							Result := ZERROR_INVALID_DATA;
-                Exit;
-              end;
+								Exit;
+							end;
 					end
-            else
+					else
 						jisdata[i] := utfdata[i];
 				end
-        else if (symbol.eci = 20) and (utfdata[i] >= $FF61) and (utfdata[i] <= $FF9F) then
-          jisdata[i] := (utfdata[i] - $FF61) + $A1
+				else if (symbol.eci = 20) and (utfdata[i] >= $FF61) and (utfdata[i] <= $FF9F) then
+					jisdata[i] := (utfdata[i] - $FF61) + $A1
 				else if (symbol.eci = 20) and (utfdata[i] = $203E) then
 					jisdata[i] := $7E
-        else
-        begin
+				else
+				begin
 					j := 0;
 					glyph := 0;
 					repeat
@@ -2346,7 +2348,7 @@ begin
 						inc(j);
 					until not ((j < 6843) and (glyph = 0));
 					if (glyph = 0) then
-          begin
+						begin
 							if (symbol.eci = 20) and (auto_eci_mode <> 0) then
 							begin
 								auto_eci_fallback := 1;
@@ -2357,7 +2359,7 @@ begin
 							else
 								strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
 						Result:=ZERROR_INVALID_DATA;
-            Exit;
+					Exit;
 					end;
 					jisdata[i] := glyph;
 				end;
@@ -2425,24 +2427,23 @@ begin
 	else
 		structapp_id_value := 0;
 
-	// GS1 QR does not support ECI or Structured Append; ECI warning takes precedence.
+	// GS1 QR does not support ECI or Structured Append; match upstream precedence.
+	// Important: check segment ECIs (caller intent), not internal symbol.eci normalization.
 	if (gs1 <> 0) and (auto_eci_warning = 0) then
 	begin
-		if symbol.eci <> 0 then
+		if original_eci <> 0 then
 		begin
 			auto_eci_warning := ZWARN_NONCOMPLIANT;
 			strcpy(symbol.errtxt, 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards');
-		end
-		else
+		end;
+
+		for i := 0 to seg_count - 1 do
 		begin
-			for i := 0 to seg_count - 1 do
+			if seg_ecis[i] <> 0 then
 			begin
-				if seg_ecis[i] <> 0 then
-				begin
-					auto_eci_warning := ZWARN_NONCOMPLIANT;
-					strcpy(symbol.errtxt, 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards');
-					Break;
-				end;
+				auto_eci_warning := ZWARN_NONCOMPLIANT;
+				strcpy(symbol.errtxt, 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards');
+				Break;
 			end;
 		end;
 
