@@ -848,6 +848,7 @@ const
   SJIS_MODE = 4;
   ESCAPE_MODE = 8;
   GS1PARENS_MODE = 16;
+  GS1NOCHECK_MODE = 32;
   FAST_MODE = $80;
   EXTRA_ESCAPE_MODE = $100;
   ZINT_FULL_MULTIBYTE = 200;
@@ -2533,7 +2534,7 @@ end;
 
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  error_number, error_buffer, i : Integer;
+  error_number, error_buffer, i, base_mode : Integer;
   local_source : TArrayOfByte;
 begin
   SetLength(symbol.content_segs, 0);
@@ -2552,6 +2553,9 @@ begin
 	end;
 
   SetLength(local_source, _length + 1);
+  base_mode := symbol.input_mode and $07;
+  if (base_mode < 0) or (base_mode > 2) then
+    base_mode := DATA_MODE;
 
 	{ First check the symbology field }
 	if (symbol.symbology < 1) then begin
@@ -2702,7 +2706,7 @@ begin
   end;
 
   {* Start acting on input mode *}
-	if (symbol.input_mode = GS1_MODE) then
+  if (base_mode = GS1_MODE) then
   begin
 		for i := 0 to _length - 1 do
     begin
@@ -2729,17 +2733,17 @@ begin
   else
 		local_source := source;
 
-  if (symbol.input_mode and ESCAPE_MODE) > 0 then begin
-      error_number := escape_char_process(symbol, local_source, _length);
-      if error_number <> 0 then
-          error_tag(symbol.errtxt, error_number);
-          Exit(error_number);
-      dec(symbol.input_mode, ESCAPE_MODE);
+  if (symbol.input_mode and ESCAPE_MODE) > 0 then
+  begin
+    error_number := escape_char_process(symbol, local_source, _length);
+    if error_number <> 0 then
+    begin
+      error_tag(symbol.errtxt, error_number);
+      Exit(error_number);
+    end;
   end;
 
-
-	if (symbol.input_mode < 0) or (symbol.input_mode > 2) then
-    symbol.input_mode := DATA_MODE;
+    symbol.input_mode := base_mode;
 
 	if (symbol.eci <> 3) and (symbol.eci <> 26) then
   begin
@@ -2970,7 +2974,7 @@ begin
       symbol.input_mode := first_mode;
 
     Result := qr_code_segs(symbol, segs);
-    if Result < ZINT_ERROR then
+    if Result < ZERROR_TOO_LONG then
       qr_normalize_content_segs_eci(symbol);
     Exit;
   end;

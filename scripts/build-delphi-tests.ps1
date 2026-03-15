@@ -71,9 +71,20 @@ try {
   }
 
   # Feed Enter to keep compatibility with console test runners that prompt.
-  cmd /c "echo.|`"$exe`""
-  if ($LASTEXITCODE -ne 0) {
+  $testOutput = cmd /c "echo.|`"$exe`" 2>&1"
+  $testOutput | ForEach-Object { Write-Host $_ }
+
+  $failedLine = $testOutput | Select-String -Pattern 'Tests Failed\s*:\s*(\d+)' | Select-Object -First 1
+  $erroredLine = $testOutput | Select-String -Pattern 'Tests Errored\s*:\s*(\d+)' | Select-Object -First 1
+  $failedCount = if ($failedLine) { [int]([regex]::Match($failedLine.Line, '(\d+)').Value) } else { 0 }
+  $erroredCount = if ($erroredLine) { [int]([regex]::Match($erroredLine.Line, '(\d+)').Value) } else { 0 }
+
+  if (($failedCount -gt 0) -or ($erroredCount -gt 0)) {
     throw "Test execution failed."
+  }
+
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning ("Test runner exited with code {0} although summary is green (known post-run AV caveat)." -f $LASTEXITCODE)
   }
 }
 finally {

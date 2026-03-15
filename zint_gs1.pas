@@ -57,30 +57,85 @@ end;
 
 function gs1_verify(symbol : zint_symbol; source : TArrayOfByte; const src_len : Integer; var reduced : TArrayOfChar) : Integer;
 var
-  i, j, last_ai, ai_latch : Integer;
+	i, j, local_len, last_ai, ai_latch : Integer;
   ai_string : TArrayOfChar;
-  bracket_level, max_bracket_level, ai_length, max_ai_length, min_ai_length : Integer;
+	local_source : TArrayOfByte;
+	obracket, cbracket : Byte;
+	gs1_parens_mode, gs1_nocheck_mode : Boolean;
+	bracket_level, max_bracket_level, ai_length, max_ai_length, min_ai_length : Integer;
+	ai_zero_len_no_data, ai_single_digit : Integer;
   ai_value, ai_location, data_location, data_length : array[0..99] of Integer;
   ai_count : Integer;
   error_latch : Integer;
 begin
+	gs1_parens_mode := (symbol.input_mode and GS1PARENS_MODE) <> 0;
+	gs1_nocheck_mode := (symbol.input_mode and GS1NOCHECK_MODE) <> 0;
+	if gs1_parens_mode then
+	begin
+		obracket := Ord('(');
+		cbracket := Ord(')');
+	end
+	else
+	begin
+		obracket := Ord('[');
+		cbracket := Ord(']');
+	end;
+
+	SetLength(local_source, src_len + 1);
+	if gs1_parens_mode then
+	begin
+		i := 0;
+		local_len := 0;
+		while i < src_len do
+		begin
+			if (source[i] = Ord('\')) and (i + 1 < src_len)
+				and ((source[i + 1] = Ord('(')) or (source[i + 1] = Ord(')'))) then
+			begin
+				if source[i + 1] = Ord('(') then
+					local_source[local_len] := 8
+				else
+					local_source[local_len] := 9;
+				Inc(local_len);
+				Inc(i, 2);
+			end
+			else
+			begin
+				local_source[local_len] := source[i];
+				Inc(local_len);
+				Inc(i);
+			end;
+		end;
+		local_source[local_len] := 0;
+	end
+	else
+	begin
+		for i := 0 to src_len - 1 do
+			local_source[i] := source[i];
+		local_len := src_len;
+		local_source[local_len] := 0;
+	end;
+
   SetLength(ai_string, 6);
 	{ Detect extended ASCII characters }
-	for i := 0 to src_len - 1 do
+	for i := 0 to local_len - 1 do
   begin
-		if Ord(source[i]) >= 128 then
+		if Ord(local_source[i]) >= 128 then
     begin
       strcpy(symbol.errtxt, 'Extended ASCII characters are not supported by GS1');
 			result := ZERROR_INVALID_DATA; exit;
 		end;
-		if Ord(source[i]) < 32 then
+		if Ord(local_source[i]) < 32 then
     begin
+			if (gs1_parens_mode) and ((local_source[i] = 8) or (local_source[i] = 9)) then
+			begin
+				Continue;
+			end;
 			strcpy(symbol.errtxt, 'Control characters are not supported by GS1');
 			result := ZERROR_INVALID_DATA; exit;
 		end;
 	end;
 
-	if source[0] <> Ord('[') then
+	if local_source[0] <> obracket then
   begin
 		strcpy(symbol.errtxt, 'Data does not start with an AI');
 		result := ZERROR_INVALID_DATA; exit;
@@ -92,15 +147,21 @@ begin
 	ai_length := 0;
 	max_ai_length := 0;
 	min_ai_length := 5;
+  ai_zero_len_no_data := 0;
+  ai_single_digit := 0;
 	j := 0;
 	ai_latch := 0;
-	for i := 0 to src_len - 1 do
+	for i := 0 to local_len - 1 do
   begin
 		Inc(ai_length, j);
-		if (((j = 1) and (source[i] <> Ord(']'))) and ((source[i] < Ord('0')) or (source[i] > Ord('9')))) then ai_latch := 1;
-		if (source[i] = Ord('[')) then begin Inc(bracket_level); j := 1; end;
-		if (source[i] = Ord(']')) then
+		if (((j = 1) and (local_source[i] <> cbracket)) and ((local_source[i] < Ord('0')) or (local_source[i] > Ord('9')))) then ai_latch := 1;
+		if (local_source[i] = obracket) then begin Inc(bracket_level); j := 1; end;
+		if (local_source[i] = cbracket) then
     begin
+			if (ai_length = 1) and ((i + 1 = local_len) or (local_source[i + 1] = obracket)) then
+        ai_zero_len_no_data := 1
+      else if (ai_length = 2) then
+        ai_single_digit := 1;
 			Dec(bracket_level);
 			if (ai_length < min_ai_length) then min_ai_length := ai_length;
 			j := 0;
@@ -134,9 +195,12 @@ begin
 
 	if(min_ai_length <= 1) then
   begin
-		{ AI is too short }
-		strcpy(symbol.errtxt, 'Invalid AI in input data (AI too short)');
-		result := ZERROR_INVALID_DATA; exit;
+		if (not gs1_nocheck_mode) or (ai_single_digit <> 0) or (ai_zero_len_no_data <> 0) then
+    begin
+		  { AI is too short }
+		  strcpy(symbol.errtxt, 'Invalid AI in input data (AI too short)');
+		  result := ZERROR_INVALID_DATA; exit;
+    end;
 	end;
 
 	if(ai_latch = 1) then
@@ -146,50 +210,67 @@ begin
 		result := ZERROR_INVALID_DATA; exit;
 	end;
 
-	ai_count := 0;
-	for i := 1 to src_len - 1 do
+  if not gs1_nocheck_mode then
   begin
-		if (source[i - 1] = Ord('[')) then
+	  ai_count := 0;
+	  for i := 1 to local_len - 1 do
     begin
-			ai_location[ai_count] := i;
-			j := 0;
-			repeat
-				ai_string[j] := Chr(source[i + j]);
-        Inc(j)
-			until not (ai_string[j - 1] <> ']');
-      ai_string[j - 1] := #0;
-			ai_value[ai_count] := StrToInt(ArrayOfCharToString(ai_string));
-			Inc(ai_count);
-		end;
-	end;
+		  if (local_source[i - 1] = obracket) then
+      begin
+			  if ai_count > High(ai_location) then
+				begin
+					strcpy(symbol.errtxt, 'Too many AIs in input data');
+					Result := ZERROR_INVALID_DATA; exit;
+				end;
+			  ai_location[ai_count] := i;
+			  j := 0;
+			  while (i + j < local_len)
+						and (j < Length(ai_string) - 1)
+						and (local_source[i + j] <> cbracket) do
+				begin
+					ai_string[j] := Chr(local_source[i + j]);
+					Inc(j);
+				end;
 
-	for i := 0 to ai_count - 1 do
-  begin
-		data_location[i] := ai_location[i] + 3;
-		if (ai_value[i] >= 100) then Inc(data_location[i]);
-		if (ai_value[i] >= 1000) then Inc(data_location[i]);
-		data_length[i] := 0;
-		repeat
-			Inc(data_length[i]);
-		until not ((source[data_location[i] + data_length[i] - 1] <> Ord('[')) and (source[data_location[i] + data_length[i] - 1] <> 0));
-		Dec(data_length[i]);
-	end;
+				if (j = 0) or (i + j >= local_len) or (local_source[i + j] <> cbracket) then
+				begin
+					strcpy(symbol.errtxt, 'Malformed AI in input data');
+					Result := ZERROR_INVALID_DATA; exit;
+				end;
 
-	for i := 0 to ai_count - 1 do
-  begin
-		if(data_length[i] = 0) then
+				ai_string[j] := #0;
+			  ai_value[ai_count] := StrToInt(ArrayOfCharToString(ai_string));
+			  Inc(ai_count);
+		  end;
+	  end;
+
+	  for i := 0 to ai_count - 1 do
     begin
-			{ No data for given AI }
-			strcpy(symbol.errtxt, 'Empty data field in input data');
-			result := ZERROR_INVALID_DATA; exit;
-		end;
-	end;
+		  data_location[i] := ai_location[i] + 3;
+		  if (ai_value[i] >= 100) then Inc(data_location[i]);
+		  if (ai_value[i] >= 1000) then Inc(data_location[i]);
+		  data_length[i] := 0;
+		  repeat
+			  Inc(data_length[i]);
+		  until not ((local_source[data_location[i] + data_length[i] - 1] <> obracket) and (local_source[data_location[i] + data_length[i] - 1] <> 0));
+		  Dec(data_length[i]);
+	  end;
 
-	error_latch := 0;
-  strcpy(ai_string, '');
-	for i := 0 to ai_count - 1 do
-  begin
-		case ai_value[i] of
+	  for i := 0 to ai_count - 1 do
+    begin
+		  if(data_length[i] = 0) then
+      begin
+			  { No data for given AI }
+			  strcpy(symbol.errtxt, 'Empty data field in input data');
+			  result := ZERROR_INVALID_DATA; exit;
+		  end;
+	  end;
+
+	  error_latch := 0;
+    strcpy(ai_string, '');
+	  for i := 0 to ai_count - 1 do
+    begin
+		  case ai_value[i] of
 			0: if(data_length[i] <> 18) then error_latch := 1;
 			1,
 			2,
@@ -250,40 +331,46 @@ begin
 			 or ((ai_value[i] >= 9000) and (ai_value[i] <= 9999))
 		) then
 			error_latch := 2;
-		if((error_latch < 4) and (error_latch > 0)) then
+		  if((error_latch < 4) and (error_latch > 0)) then
     begin
 			{ error has just been detected: capture AI }
 			itostr(ai_string, ai_value[i]);
 			Inc(error_latch, 4);
-		end;
-	end;
+		  end;
+	  end;
 
-	if(error_latch = 5) then
-  begin
-    strcpy(symbol.errtxt, 'Invalid data _length for AI ');
-    concat(symbol.errtxt, ai_string);
-		result := ZERROR_INVALID_DATA; exit;
-	end;
+	  if(error_latch = 5) then
+    begin
+      strcpy(symbol.errtxt, 'Invalid data _length for AI ');
+      concat(symbol.errtxt, ai_string);
+		  result := ZERROR_INVALID_DATA; exit;
+	  end;
 
-	if(error_latch = 6) then
-  begin
-    strcpy(symbol.errtxt, 'Invalid AI value ');
-    concat(symbol.errtxt, ai_string);
-		result := ZERROR_INVALID_DATA; exit;
-	end;
+	  if(error_latch = 6) then
+    begin
+      strcpy(symbol.errtxt, 'Invalid AI value ');
+      concat(symbol.errtxt, ai_string);
+		  result := ZERROR_INVALID_DATA; exit;
+	  end;
+  end;
 
 	{ Resolve AI data - put resulting string in 'reduced' }
   j := 0;
 	//last_ai := 0;
 	ai_latch := 1;
-	for i := 0 to src_len - 1 do
+	for i := 0 to local_len - 1 do
   begin
-		if ((source[i] <> Ord('[')) and (source[i] <> Ord(']'))) then
+		if ((local_source[i] <> obracket) and (local_source[i] <> cbracket)) then
     begin
-			reduced[j] := Chr(source[i]);
+			if local_source[i] = 8 then
+					reduced[j] := '('
+				else if local_source[i] = 9 then
+					reduced[j] := ')'
+				else
+			  reduced[j] := Chr(local_source[i]);
       Inc(j);
     end;
-    if (source[i] = Ord('[')) then
+		if (local_source[i] = obracket) then
     begin
 			{ Start of an AI string }
 			if(ai_latch = 0) then
@@ -291,8 +378,17 @@ begin
 				reduced[j] := '[';
         Inc(j);
       end;
-			ai_string[0] := Chr(source[i + 1]);
-			ai_string[1] := Chr(source[i + 2]);
+			if (i + 2 < local_len) and (local_source[i + 1] >= Ord('0')) and (local_source[i + 1] <= Ord('9'))
+				and (local_source[i + 2] >= Ord('0')) and (local_source[i + 2] <= Ord('9')) then
+			begin
+			  ai_string[0] := Chr(local_source[i + 1]);
+			  ai_string[1] := Chr(local_source[i + 2]);
+			end
+			else
+			begin
+			  ai_string[0] := '0';
+			  ai_string[1] := '0';
+			end;
       ai_string[2] := #0;
 			last_ai := StrToInt(ArrayOfCharToString(ai_string));
 			ai_latch := 0;

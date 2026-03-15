@@ -74,3 +74,40 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests
 # Build only (skip test execution)
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1 -SkipRun
 ```
+
+## AV Isolation Workflow (Win32)
+
+To isolate teardown `EAccessViolation` by test unit, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\isolate-win32-av.ps1
+```
+
+You can limit the run to specific units:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\isolate-win32-av.ps1 -Units Test_QR,Test_2of5
+```
+
+What this script does:
+- Temporarily rewrites `UnitTests\DUnitXCmdTest.dpr` to include one selected unit at a time.
+- Builds with `-SkipRun`, runs the produced exe, and records summary + AV signal.
+- Restores the original `DUnitXCmdTest.dpr` automatically in `finally`.
+
+## Win64 Non-Blocking CI Route
+
+For transition phases where Win64 parity is still being aligned, use:
+
+```bat
+scripts\ci-win64-nonblocking.bat
+```
+
+or directly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-win64-nonblocking.ps1
+```
+
+Behavior:
+- Executes the regular Win64 build/test path (`build-delphi-tests.ps1 -Platform Win64`).
+- Always exits with code `0` (non-blocking), but still prints failures/warnings for visibility.

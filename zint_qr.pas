@@ -494,6 +494,8 @@ begin
 	if seg_count <= 0 then
 	begin
 		Result := estimate_binary_length(mode, _length, gs1, version);
+		if structapp_count <> 0 then
+			Inc(Result, 20);
 		Exit;
 	end;
 
