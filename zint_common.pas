@@ -83,6 +83,9 @@ function parunmodd(llyth : Char) : Integer; overload;
 function latin1_process(symbol : zint_symbol; const source : TArrayOfByte; var preprocessed : TArrayOfByte; var _length : Integer) : Integer;
 
 function utf8toutf16(symbol : zint_symbol; source: TArrayOfByte; vals: TArrayOfInteger; var _length : Integer): Integer;
+function eci_codepage(eci: Integer): Integer;
+function try_single_byte_eci(const utfdata: TArrayOfInteger; const _length, eci: Integer;
+  var eci_data: TArrayOfInteger): Boolean;
 
 procedure bscan(var binary : TArrayOfChar; data : Integer; h : Integer);
 
@@ -304,6 +307,73 @@ begin
     end;
   end;
   Result := 0;
+end;
+
+function eci_codepage(eci: Integer): Integer;
+begin
+  case eci of
+    3: Result := 28591;
+    4: Result := 28592;
+    5: Result := 28593;
+    6: Result := 28594;
+    7: Result := 28595;
+    8: Result := 28596;
+    9: Result := 28597;
+    10: Result := 28598;
+    11: Result := 28599;
+    12: Result := 28600;
+    13: Result := 874;
+    15: Result := 28603;
+    16: Result := 28604;
+    17: Result := 28605;
+    18: Result := 28606;
+    21: Result := 1250;
+    22: Result := 1251;
+    23: Result := 1252;
+    24: Result := 1256;
+  else
+    Result := 0;
+  end;
+end;
+
+function try_single_byte_eci(const utfdata: TArrayOfInteger; const _length, eci: Integer;
+  var eci_data: TArrayOfInteger): Boolean;
+var
+  i, codepage: Integer;
+  bytes: TBytes;
+  ch, decoded: UnicodeString;
+  encoding: TEncoding;
+begin
+  Result := False;
+  codepage := eci_codepage(eci);
+  if codepage = 0 then
+    Exit;
+
+  try
+    encoding := TEncoding.GetEncoding(codepage);
+  except
+    Exit;
+  end;
+
+  for i := 0 to _length - 1 do
+  begin
+    if utfdata[i] > $FFFF then
+      Exit;
+
+    ch := WideChar(utfdata[i]);
+    bytes := encoding.GetBytes(ch);
+    if Length(bytes) <> 1 then
+      Exit;
+
+    decoded := encoding.GetString(bytes);
+    if decoded <> ch then
+      Exit;
+
+    if Length(eci_data) > i then
+      eci_data[i] := bytes[0];
+  end;
+
+  Result := True;
 end;
 
 { Returns the position of data in set_string}

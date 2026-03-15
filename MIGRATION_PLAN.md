@@ -196,35 +196,35 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 
 | C-Datei | Delphi-Datei | Status im Port |
 |---|---|---|
-| `library.c` + `zint.h` | `zint.pas` | complete |
+| `library.c` + `zint.h` | `zint.pas` | erweitert, teilweise verifiziert |
 | `common.c` + `common.h` | `zint_common.pas` | work in progress |
-| `2of5.c` | `zint_2of5.pas` | complete |
-| `auspost.c` | `zint_auspost.pas` | complete |
-| `aztec.c` | `zint_aztec.pas` | complete |
-| `code.c` | `zint_code.pas` | complete |
-| `code1.c` | `zint_code1.pas` | complete |
-| `code128.c` | `zint_code128.pas` | complete |
-| `code16k.c` | `zint_code16k.pas` | complete |
-| `code49.c` | `zint_code49.pas` | complete |
+| `2of5.c` | `zint_2of5.pas` | b3a3c0d ported + tests gruen |
+| `auspost.c` | `zint_auspost.pas` | tests vorhanden, b3a3c0d-Port noch zu verifizieren |
+| `aztec.c` | `zint_aztec.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `code.c` | `zint_code.pas` | b3a3c0d ported + tests gruen |
+| `code1.c` | `zint_code1.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `code128.c` | `zint_code128.pas` | b3a3c0d ported + tests gruen |
+| `code16k.c` | `zint_code16k.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `code49.c` | `zint_code49.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
 | `composite.c` | `zint_composite.pas` | work in progress |
-| `dmatrix.c` | `zint_dmatrix.pas` | complete |
-| `dotcode.c` | `zint_dotcode.pas` | complete |
-| `gb2312.h` | `zint_gb2312.pas` | complete |
-| `gridmtx.c` | `zint_gridmtx.pas` | complete |
-| `gs1.c` | `zint_gs1.pas` | complete |
+| `dmatrix.c` | `zint_dmatrix.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `dotcode.c` | `zint_dotcode.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `gb2312.h` | `zint_gb2312.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `gridmtx.c` | `zint_gridmtx.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `gs1.c` | `zint_gs1.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
 | `imail.c` | `zint_imail.pas` | work in progress |
-| `large.c` | `zint_large.pas` | complete |
+| `large.c` | `zint_large.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
 | `maxicode.c` | `zint_maxicode.pas` | work in progress |
-| `medical.c` | `zint_medical.pas` | complete |
-| `pdf417.c` | `zint_pdf417.pas` | complete |
-| `plessey.c` | `zint_plessey.pas` | complete |
-| `postal.c` | `zint_postal.pas` | complete |
-| `qr.c` | `zint_qr.pas` | work in progress |
-| `reedsol.c` | `zint_reedsol.pas` | complete |
-| `rss.c` | `zint_rss.pas` | complete |
-| `sjis.h` | `zint_sjis.pas` | complete |
+| `medical.c` | `zint_medical.pas` | b3a3c0d ported + tests gruen |
+| `pdf417.c` | `zint_pdf417.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `plessey.c` | `zint_plessey.pas` | b3a3c0d ported + tests gruen |
+| `postal.c` | `zint_postal.pas` | b3a3c0d ported + tests gruen |
+| `qr.c` | `zint_qr.pas` | b3a3c0d ported + tests gruen (Segment/content-API-Paritaet offen) |
+| `reedsol.c` | `zint_reedsol.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `rss.c` | `zint_rss.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `sjis.h` | `zint_sjis.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
 | `telepen.c` | `zint_telepen.pas` | **b3a3c0d ported** |
-| `upcean.c` | `zint_upcean.pas` | complete |
+| `upcean.c` | `zint_upcean.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
 
 ### 3.2 Vorgehen pro Modul
 
@@ -305,6 +305,13 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 - [ ] Aztec: neuer Encodierungsalgorithmus (ZXing-basiert) + `FAST_MODE`
 - [ ] output.c / filemem.c Konzepte (Memory-Buffer-Ausgabe)
 - [ ] Rendering-Module aktualisieren (SVG, BMP, WMF)
+
+### QR-Familie: Noch offene Paritaetsarbeiten (trotz gruener Suite)
+
+- [~] Segment-API paritaet: `ZBarcode_Encode_Segs` + Segment-Array-Durchreichung ist aktiv; Rest: Unicode-Mixed-ECI/Input-Mode-Ecken und 1:1 C-RT-content-Abgleich.
+- [ ] `content_segs`/RT-content Vergleichsfaehigkeit in `TZintSymbol` abbilden (fuer C `*_rt_segs`-Tests ohne Surrogate).
+- [ ] Structured Append fuer QR API-seitig nachziehen (derzeit sind entsprechende C-Faelle in Delphi weiterhin ausgelassen/ersetzt).
+- [ ] Surrogate in `UnitTests/Test_QR.pas` schrittweise durch 1:1 C-Testfaelle ersetzen, sobald Segment-/Content-APIs verfuegbar sind.
 
 ---
 

@@ -60,13 +60,22 @@ type
 
 const
   // Ergebnis-Konstanten (Spiegel der Zint-Konstanten, fuer Lesbarkeit in Tests)
+  ZINT_WARN_HRT_TRUNCATED    = ZWARN_HRT_TRUNCATED; // = 1
   ZINT_OK                   = 0;
   ZINT_WARN_INVALID_OPTION  = ZWARN_INVALID_OPTION; // = 2
+  ZINT_WARN_USES_ECI        = ZWARN_USES_ECI;      // = 3
+  ZINT_WARN_NONCOMPLIANT    = ZWARN_NONCOMPLIANT;  // = 4
   ZINT_ERROR_TOO_LONG       = ZERROR_TOO_LONG;      // = 5
   ZINT_ERROR_INVALID_DATA   = ZERROR_INVALID_DATA;   // = 6
   ZINT_ERROR_INVALID_CHECK  = ZERROR_INVALID_CHECK;   // = 7
   ZINT_ERROR_INVALID_OPTION = ZERROR_INVALID_OPTION;  // = 8
   ZINT_ERROR_ENCODING       = ZERROR_ENCODING_PROBLEM; // = 9
+  ZINT_ERROR_FILE_ACCESS    = ZERROR_FILE_ACCESS;     // = 10
+  ZINT_ERROR_MEMORY         = ZERROR_MEMORY;          // = 11
+  ZINT_ERROR_FILE_WRITE     = ZERROR_FILE_WRITE;      // = 12
+  ZINT_ERROR_USES_ECI       = ZERROR_USES_ECI;        // = 13
+  ZINT_ERROR_NONCOMPLIANT   = ZERROR_NONCOMPLIANT;    // = 14
+  ZINT_ERROR_HRT_TRUNCATED  = ZERROR_HRT_TRUNCATED;   // = 15
 
   // Schwelle ab der ein Fehler vorliegt (< ZINT_ERROR = Warning/OK)
   ZINT_ERROR = ZERROR_TOO_LONG; // = 5
@@ -110,8 +119,13 @@ begin
   end
   else
   begin
-    // StrToArrayOfByte nutzt TEncoding.ANSI und haengt Null-Terminator an
-    b := StrToArrayOfByte(AData);
+    if (ASymbol.input_mode and UNICODE_MODE) <> 0 then
+      b := TEncoding.UTF8.GetBytes(AData)
+    else
+      b := StrToArrayOfByte(AData);
+
+    SetLength(b, Length(b) + 1);
+    b[High(b)] := 0;
     Result := ZBarcode_Encode(ASymbol, b, ustrlen(b));
   end;
 end;

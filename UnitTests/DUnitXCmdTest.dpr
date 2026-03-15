@@ -46,7 +46,8 @@ uses
   Test_Postal,
   Test_Code,
   Test_2of5,
-  Test_Auspost
+  Test_Auspost,
+  Test_QR
   ;
 
 var
@@ -75,12 +76,12 @@ begin
     results := runner.Execute;
 
     System.Write('Done.. press <Enter> key to quit.');
-    System.Readln;
+    //System.Readln;
   except
     on E: Exception do
     begin
       System.Writeln(E.ClassName, ': ', E.Message);
-      System.Readln;
+      //System.Readln;
     end;
   end;
 end.

@@ -9,3 +9,68 @@ Delphi port of http://github.com/zint/zint
 ## History
 
  * 25.02.2020 Girocode-Generator EPC-QR
+
+## Quickstart
+
+Most common local commands:
+
+```powershell
+# 1) Build + run full DUnitX tests (Win32 Debug)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1
+
+# 2) Build only (skip test execution)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1 -SkipRun
+
+# 3) Fast QR/rMQR-focused regression gate
+UnitTests\run_qr_regression.bat
+```
+
+## QR/rMQR Regression Gate
+
+Use this when you want a quick regression check focused on QR-related fixtures (`Test_QR.*`, including rMQR):
+
+```bat
+UnitTests\run_qr_regression.bat
+```
+
+The script:
+- Builds `UnitTests\DUnitXCmdTest.dproj` (Win32 Debug) if the test exe is missing.
+- Runs `UnitTests\bin\Win32_Debug\DUnitXCmdTest.exe`.
+- Fails with exit code `1` if any `Test_QR.*` test fails or errors.
+- Writes full output to `UnitTests\bin\Win32_Debug\qr_regression.log`.
+
+PowerShell variant (optional strict mode to also fail on non-QR failures):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\UnitTests\run_qr_regression.ps1 -BuildIfMissing -FailOnAnyFailure
+```
+
+## Reusable Delphi Build Script
+
+For regular local build and test runs, use the reusable script in scripts:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1
+```
+
+Batch wrapper:
+
+```bat
+scripts\build-delphi-tests.bat
+```
+
+Defaults:
+- StudioRoot: `C:\Program Files (x86)\Embarcadero\Studio\37.0`
+- Config: `Debug`
+- Platform: `Win32`
+- ProjectRelativePath: `UnitTests\DUnitXCmdTest.dproj`
+
+Common examples:
+
+```powershell
+# Build + run tests (Win64 Release)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1 -Platform Win64 -Config Release
+
+# Build only (skip test execution)
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1 -SkipRun
+```

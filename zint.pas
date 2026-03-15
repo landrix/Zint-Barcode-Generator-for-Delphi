@@ -333,6 +333,21 @@ type
 
   { TZintSymbol }
 
+  TZintSegment = record
+    Source : TArrayOfByte;
+    Length : Integer;
+    ECI : Integer;        // -1 means "use symbol.eci"
+    SourceMode : Integer; // -1 means "use symbol.input_mode"
+  end;
+
+  TZintSegments = array of TZintSegment;
+
+  TZintStructApp = record
+    index : Integer;
+    count : Integer;
+    id : String;
+  end;
+
   TZintSymbol = class(TZintPersistent)
   private
     FNoMinHeightCheck: Boolean;
@@ -376,6 +391,9 @@ type
     primary : TArrayOfChar;
     errtxt : TArrayOfChar;
     Debug: Boolean;
+    structapp : TZintStructApp;
+    content_segs : TZintSegments;
+    content_segs_count : Integer;
     encoded_data : array[0..ZINT_ROWS_MAX - 1] of array[0..ZINT_COLS_MAX - 1] of Byte;
     row_height : array[0..ZINT_ROWS_MAX - 1] of Integer; { Largest symbol is 177x177 QR Code }
 
@@ -388,6 +406,7 @@ type
 
     procedure Encode(AData : TArrayOfByte; ALength : Integer; ARaiseExceptions : Boolean = true); overload; virtual;
     procedure Encode(AData : String; ARaiseExceptions : Boolean = true); overload; virtual;
+    procedure EncodeSegs(const ASegments : TZintSegments; ARaiseExceptions : Boolean = true); virtual;
     procedure Render(ATarget : TZintCustomRenderTarget); virtual;
   published
     property SymbolType : TZintSymbology read GetSymbology write SetSymbology;
@@ -712,10 +731,13 @@ const
   BARCODE_CHANNEL = 140;
   BARCODE_CODEONE = 141;
   BARCODE_GRIDMATRIX = 142;
+  BARCODE_UPNQR = 143;
+  BARCODE_RMQR = 145;
 
   { Output Options  }
   GS1_GS_SEPARATOR  = 512;
   BARCODE_DOTTY_MODE = 256;
+  BARCODE_CONTENT_SEGS = $20000;
 
 type
   TZintSymbologyInfoEntry = record
@@ -825,6 +847,10 @@ const
   KANJI_MODE = 3;
   SJIS_MODE = 4;
   ESCAPE_MODE = 8;
+  GS1PARENS_MODE = 16;
+  FAST_MODE = $80;
+  EXTRA_ESCAPE_MODE = $100;
+  ZINT_FULL_MULTIBYTE = 200;
 
   DM_SQUARE = 100;
   {fs 02/04/2018 added DMRE}
@@ -833,13 +859,21 @@ const
   {fs 30/08/2018 added option to force Rectangle representation}
   DM_RECT   = 102;
 
+  ZWARN_HRT_TRUNCATED = 1;
   ZWARN_INVALID_OPTION = 2;
+  ZWARN_USES_ECI = 3;
   ZWARN_NONCOMPLIANT = 4;
   ZERROR_TOO_LONG = 5;
   ZERROR_INVALID_DATA = 6;
   ZERROR_INVALID_CHECK = 7;
   ZERROR_INVALID_OPTION = 8;
   ZERROR_ENCODING_PROBLEM = 9;
+  ZERROR_FILE_ACCESS = 10;
+  ZERROR_MEMORY = 11;
+  ZERROR_FILE_WRITE = 12;
+  ZERROR_USES_ECI = 13;
+  ZERROR_NONCOMPLIANT = 14;
+  ZERROR_HRT_TRUNCATED = 15;
 
   //These are the functions from library.c
   function gs1_compliant(_symbology : Integer) : boolean;
@@ -849,6 +883,7 @@ const
   function extended_charset(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
   function reduced_charset(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
   function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+  function ZBarcode_Encode_Segs(symbol : zint_symbol; const segs : TZintSegments) : Integer;
 
   function SymbologyToInt(ASymbology : TZintSymbology) : Integer;
   function IntToSymbology(ASymbology : Integer) : TZintSymbology;
@@ -1847,6 +1882,9 @@ begin
     width := SourceZS.width;
     primary := SourceZS.primary;
     errtxt := SourceZS.errtxt;
+    structapp := SourceZS.structapp;
+    content_segs := SourceZS.content_segs;
+    content_segs_count := SourceZS.content_segs_count;
     encoded_data := SourceZS.encoded_data;
     row_height := SourceZS.row_height;
 
@@ -1875,8 +1913,13 @@ begin
 	rows := 0;
 	width := 0;
   eci := 0;
+  structapp.index := 0;
+  structapp.count := 0;
+  structapp.id := '';
 	ustrcpy(text, '');
 	strcpy(errtxt, '');
+  SetLength(content_segs, 0);
+  content_segs_count := 0;
 end;
 
 constructor TZintSymbol.Create(AOwner : TPersistent);
@@ -1897,9 +1940,14 @@ begin
 	option_2 := 0;
 	option_3 := 928; // PDF_MAX
 	input_mode := DATA_MODE;
+  structapp.index := 0;
+  structapp.count := 0;
+  structapp.id := '';
 	strcpy(primary, '');
   ustrcpy(text, '');
   strcpy(errtxt, '');
+  SetLength(content_segs, 0);
+  content_segs_count := 0;
 
   FMSIPlesseyOptions := TZintMSIPlessyOptions.Create(Self);
   FExtCode39Options := TZintExtCode39Options.Create(Self);
@@ -1977,6 +2025,15 @@ begin
     b := StrToArrayOfByte(AData);
 
   Encode(b, ustrlen(b), ARaiseExceptions);
+end;
+
+procedure TZintSymbol.EncodeSegs(const ASegments: TZintSegments; ARaiseExceptions: Boolean);
+begin
+  if (ZBarcode_Encode_Segs(Self, ASegments) >= ZERROR_TOO_LONG) then
+  begin
+    if ARaiseExceptions then
+      raise Exception.Create(PChar(@self.errtxt[0]));
+  end;
 end;
 
 function TZintSymbol.GetSymbology: TZintSymbology;
@@ -2187,6 +2244,8 @@ begin
     BARCODE_PDF417,
     BARCODE_PDF417TRUNC,
     BARCODE_QRCODE,
+  BARCODE_UPNQR,
+  BARCODE_RMQR,
     BARCODE_DOTCODE,
     BARCODE_GRIDMATRIX:
     {BARCODE_HANXIN:}
@@ -2204,6 +2263,8 @@ begin
 	case symbol.symbology of
 	  BARCODE_QRCODE: error_number := qr_code(symbol, source, _length);
 	 	BARCODE_MICROQR: error_number := microqr(symbol, source, _length);
+    BARCODE_UPNQR: error_number := upnqr(symbol, source, _length);
+    BARCODE_RMQR: error_number := rmqr(symbol, source, _length);
 		BARCODE_GRIDMATRIX: error_number := grid_matrix(symbol, source, _length);
 	end;
 
@@ -2475,6 +2536,9 @@ var
   error_number, error_buffer, i : Integer;
   local_source : TArrayOfByte;
 begin
+  SetLength(symbol.content_segs, 0);
+  symbol.content_segs_count := 0;
+
   error_number := 0;
 
   if _length = 0 then
@@ -2606,7 +2670,7 @@ begin
   end
 
 	{ Everything from 128 up is Zint-specific }
-	else if (symbol.symbology >= 143) then begin
+	else if (symbol.symbology >= 146) then begin
     strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
     symbol.symbology := BARCODE_CODE128;
     error_number := ZWARN_INVALID_OPTION;
@@ -2625,13 +2689,13 @@ begin
   else
 		error_buffer := error_number;
 
-  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 3) then
+  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 0) and (symbol.eci <> 3) then
   begin
     strcpy(symbol.errtxt, '217: Symbology does not support ECI switching');
     //comment out never used error_number := ZERROR_INVALID_OPTION;
   end;
 
-  if (symbol.eci < 3) or (symbol.eci > 999999) then
+  if ((symbol.eci <> 0) and (symbol.eci < 3)) or (symbol.eci > 999999) then
   begin
     strcpy(symbol.errtxt, '218: Invalid ECI mode');
     //comment out never used error_number := ZERROR_INVALID_OPTION;
@@ -2677,8 +2741,12 @@ begin
 	if (symbol.input_mode < 0) or (symbol.input_mode > 2) then
     symbol.input_mode := DATA_MODE;
 
-  if (symbol.eci <> 3) and (symbol.eci <> 26) then
-    symbol.input_mode := DATA_MODE;
+	if (symbol.eci <> 3) and (symbol.eci <> 26) then
+  begin
+		if not ((symbol.input_mode = UNICODE_MODE) and
+  (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_GRIDMATRIX, BARCODE_UPNQR, BARCODE_RMQR])) then
+      symbol.input_mode := DATA_MODE;
+  end;
 
 //  if (symbol.input_mode = UNICODE_MODE) then
 //        strip_bom(local_source, &in_length);
@@ -2693,6 +2761,8 @@ begin
 	case symbol.symbology of
 		BARCODE_QRCODE,
 		BARCODE_MICROQR,
+    BARCODE_UPNQR,
+    BARCODE_RMQR,
 		BARCODE_GRIDMATRIX:
 			error_number := extended_charset(symbol, local_source, _length);
     else
@@ -2720,6 +2790,275 @@ begin
     check_row_heights(symbol);
 
 	result := error_number;
+end;
+
+function qr_guess_best_eci_from_utf8(symbol: zint_symbol; const bytes: TArrayOfByte;
+  const seg_len: Integer): Integer;
+var
+  utfdata, converted: TArrayOfInteger;
+  i, eci, conv_len, error_number: Integer;
+  source_copy: TArrayOfByte;
+begin
+  if seg_len <= 0 then
+  begin
+    Result := 3;
+    Exit;
+  end;
+
+  SetLength(source_copy, seg_len + 1);
+  for i := 0 to seg_len - 1 do
+    source_copy[i] := bytes[i];
+  source_copy[seg_len] := 0;
+
+  conv_len := seg_len;
+  SetLength(utfdata, conv_len + 1);
+  SetLength(converted, conv_len + 1);
+  error_number := utf8toutf16(symbol, source_copy, utfdata, conv_len);
+  if error_number <> 0 then
+  begin
+    Result := 26;
+    Exit;
+  end;
+
+  for eci := 3 to 24 do
+  begin
+    if (eci = 14) or (eci = 19) or (eci = 20) then
+      Continue;
+    if try_single_byte_eci(utfdata, conv_len, eci, converted) then
+    begin
+      Result := eci;
+      Exit;
+    end;
+  end;
+
+  Result := 26;
+end;
+
+procedure qr_normalize_content_segs_eci(symbol: zint_symbol);
+var
+  i, seg_len, base_mode: Integer;
+begin
+  if symbol = nil then
+    Exit;
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) = 0 then
+    Exit;
+  if symbol.content_segs_count <= 0 then
+    Exit;
+
+  base_mode := symbol.input_mode and $07;
+
+  for i := 0 to symbol.content_segs_count - 1 do
+  begin
+    if symbol.content_segs[i].ECI <> 0 then
+      Continue;
+
+    seg_len := symbol.content_segs[i].Length;
+    if (seg_len = 0) and (Length(symbol.content_segs[i].Source) > 0) then
+      seg_len := ustrlen(symbol.content_segs[i].Source);
+
+    if base_mode = DATA_MODE then
+      symbol.content_segs[i].ECI := 3
+    else
+      symbol.content_segs[i].ECI := qr_guess_best_eci_from_utf8(symbol, symbol.content_segs[i].Source, seg_len);
+  end;
+end;
+
+function ZBarcode_Encode_Segs(symbol : zint_symbol; const segs : TZintSegments) : Integer;
+var
+  i, seg_len, total_len, posn, resolved_eci : Integer;
+  first_eci, first_mode, original_input_mode : Integer;
+  merged : TArrayOfByte;
+begin
+  SetLength(symbol.content_segs, 0);
+  symbol.content_segs_count := 0;
+
+  if Length(segs) = 0 then
+  begin
+    strcpy(symbol.errtxt, 'No input data');
+    Result := ZERROR_INVALID_DATA;
+    Exit;
+  end;
+
+  total_len := 0;
+  first_eci := -1;
+  first_mode := -1;
+  original_input_mode := symbol.input_mode;
+
+  if symbol.symbology = BARCODE_QRCODE then
+  begin
+    for i := 0 to High(segs) do
+    begin
+      seg_len := segs[i].Length;
+      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+        seg_len := ustrlen(segs[i].Source);
+
+      if seg_len < 0 then
+      begin
+        strcpy(symbol.errtxt, 'Error 799: Invalid segment length');
+        Result := ZERROR_INVALID_DATA;
+        Exit;
+      end;
+
+      if (seg_len > 0) and (Length(segs[i].Source) < seg_len) then
+      begin
+        strcpy(symbol.errtxt, 'Error 799: Segment length out of bounds');
+        Result := ZERROR_INVALID_DATA;
+        Exit;
+      end;
+
+      if segs[i].ECI >= 0 then
+      begin
+        if ((segs[i].ECI > 999999) or ((segs[i].ECI < 3) and (segs[i].ECI <> 0))) then
+        begin
+          strcpy(symbol.errtxt, 'Error 799: Segment ECI code not supported');
+          Result := ZERROR_INVALID_OPTION;
+          Exit;
+        end;
+      end;
+
+      if segs[i].ECI >= 0 then
+        resolved_eci := segs[i].ECI
+      else
+        resolved_eci := symbol.eci;
+
+      if first_eci < 0 then
+        first_eci := resolved_eci
+      else if first_eci <> resolved_eci then
+      begin
+        if ((first_mode >= 0) and (first_mode <> DATA_MODE)) or
+           ((first_mode < 0) and (original_input_mode <> DATA_MODE) and
+            ((segs[i].SourceMode < 0) or (segs[i].SourceMode <> DATA_MODE))) then
+        begin
+          strcpy(symbol.errtxt, 'Error 799: Mixed segment ECI with Unicode not yet supported');
+          Result := ZERROR_INVALID_OPTION;
+          Exit;
+        end;
+      end;
+
+      if segs[i].SourceMode >= 0 then
+      begin
+        if first_mode < 0 then
+          first_mode := segs[i].SourceMode
+        else if first_mode <> segs[i].SourceMode then
+        begin
+          strcpy(symbol.errtxt, 'Error 799: Mixed segment input modes not yet supported');
+          Result := ZERROR_INVALID_OPTION;
+          Exit;
+        end;
+      end;
+    end;
+
+    if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+    begin
+      SetLength(symbol.content_segs, Length(segs));
+      for i := 0 to High(segs) do
+      begin
+        seg_len := segs[i].Length;
+        if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+          seg_len := ustrlen(segs[i].Source);
+        symbol.content_segs[i].Source := segs[i].Source;
+        symbol.content_segs[i].Length := seg_len;
+        symbol.content_segs[i].ECI := segs[i].ECI;
+        symbol.content_segs[i].SourceMode := segs[i].SourceMode;
+      end;
+      symbol.content_segs_count := Length(symbol.content_segs);
+    end;
+
+    if first_eci >= 0 then
+      symbol.eci := first_eci;
+    if first_mode >= 0 then
+      symbol.input_mode := first_mode;
+
+    Result := qr_code_segs(symbol, segs);
+    if Result < ZINT_ERROR then
+      qr_normalize_content_segs_eci(symbol);
+    Exit;
+  end;
+
+  for i := 0 to High(segs) do
+  begin
+    seg_len := segs[i].Length;
+    if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      seg_len := ustrlen(segs[i].Source);
+
+    if seg_len < 0 then
+    begin
+      strcpy(symbol.errtxt, 'Error 799: Invalid segment length');
+      Result := ZERROR_INVALID_DATA;
+      Exit;
+    end;
+
+    if (seg_len > 0) and (Length(segs[i].Source) < seg_len) then
+    begin
+      strcpy(symbol.errtxt, 'Error 799: Segment length out of bounds');
+      Result := ZERROR_INVALID_DATA;
+      Exit;
+    end;
+
+    Inc(total_len, seg_len);
+
+    if segs[i].ECI >= 0 then
+    begin
+      if first_eci < 0 then
+        first_eci := segs[i].ECI
+      else if first_eci <> segs[i].ECI then
+      begin
+        strcpy(symbol.errtxt, 'Error 799: Mixed segment ECI not yet supported');
+        Result := ZERROR_INVALID_OPTION;
+        Exit;
+      end;
+    end;
+
+    if segs[i].SourceMode >= 0 then
+    begin
+      if first_mode < 0 then
+        first_mode := segs[i].SourceMode
+      else if first_mode <> segs[i].SourceMode then
+      begin
+        strcpy(symbol.errtxt, 'Error 799: Mixed segment input modes not yet supported');
+        Result := ZERROR_INVALID_OPTION;
+        Exit;
+      end;
+    end;
+  end;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, Length(segs));
+    for i := 0 to High(segs) do
+    begin
+      seg_len := segs[i].Length;
+      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+        seg_len := ustrlen(segs[i].Source);
+      symbol.content_segs[i].Source := segs[i].Source;
+      symbol.content_segs[i].Length := seg_len;
+      symbol.content_segs[i].ECI := segs[i].ECI;
+      symbol.content_segs[i].SourceMode := segs[i].SourceMode;
+    end;
+    symbol.content_segs_count := Length(symbol.content_segs);
+  end;
+
+  SetLength(merged, total_len + 1);
+  posn := 0;
+  for i := 0 to High(segs) do
+  begin
+    seg_len := segs[i].Length;
+    if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      seg_len := ustrlen(segs[i].Source);
+    if seg_len > 0 then
+    begin
+      Move(segs[i].Source[0], merged[posn], seg_len);
+      Inc(posn, seg_len);
+    end;
+  end;
+  merged[total_len] := 0;
+
+  if first_eci >= 0 then
+    symbol.eci := first_eci;
+  if first_mode >= 0 then
+    symbol.input_mode := first_mode;
+
+  Result := ZBarcode_Encode(symbol, merged, total_len);
 end;
 
 { TZintCustomRenderTarget }
