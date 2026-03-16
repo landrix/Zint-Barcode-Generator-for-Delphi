@@ -129,6 +129,20 @@ begin
       symbol.text[i] := source[i];
   end;
   symbol.text[src_len] := 0;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, src_len + 1);
+    if src_len > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], src_len);
+    symbol.content_segs[0].Source[src_len] := Byte(check_digit);
+    symbol.content_segs[0].Length := src_len + 1;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number;
 end;
 
@@ -219,6 +233,19 @@ begin
   for i := 0 to temp_length - 1 do
     symbol.text[i] := local_source[i];
   symbol.text[temp_length] := 0;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, temp_length + 1);
+    if temp_length > 0 then
+      Move(local_source[0], symbol.content_segs[0].Source[0], temp_length);
+    symbol.content_segs[0].Source[temp_length] := Byte(check_digit);
+    symbol.content_segs[0].Length := temp_length + 1;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := error_number;
 end;

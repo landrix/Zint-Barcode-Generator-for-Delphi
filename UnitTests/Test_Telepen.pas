@@ -11,6 +11,7 @@ uses
   DUnitX.TestFramework,
   System.SysUtils,
   TestHelper_Zint,
+  zint_helper,
   zint;
 
 type
@@ -29,10 +30,15 @@ type
 
     { test_hrt: Human Readable Text }
     [Test] procedure HRT_UpperAlpha;
+    [Test] procedure HRT_ContentSegs_UpperAlpha;
     [Test] procedure HRT_LowerAlpha;
+    [Test] procedure HRT_ContentSegs_LowerAlpha;
     [Test] procedure HRT_CtrlChar_Space;
+    [Test] procedure HRT_ContentSegs_CtrlChar;
     [Test] procedure HRT_NUL_Space;
+    [Test] procedure HRT_ContentSegs_NUL;
     [Test] procedure HRT_ABK0;
+    [Test] procedure HRT_ContentSegs_ABK0;
 
     { test_encode: Korrekte Barcode-Muster }
     [Test] procedure Encode_1A;
@@ -40,6 +46,10 @@ type
     [Test] procedure Encode_RST;
     [Test] procedure Encode_QuestionAt;
     [Test] procedure Encode_NUL;
+
+    { test_fuzz }
+    [Test] procedure Fuzz_69Nuls_OK;
+    [Test] procedure Fuzz_70Nuls_TooLong;
   end;
 
   [TestFixture]
@@ -58,9 +68,13 @@ type
 
     { test_hrt: Human Readable Text }
     [Test] procedure HRT_Digits;
+    [Test] procedure HRT_ContentSegs_Digits;
     [Test] procedure HRT_DigitX;
+    [Test] procedure HRT_ContentSegs_DigitX;
     [Test] procedure HRT_LowerX_UpperHRT;
+    [Test] procedure HRT_ContentSegs_LowerX;
     [Test] procedure HRT_OddLength_LeadZero;
+    [Test] procedure HRT_ContentSegs_OddLength;
 
     { test_encode: Korrekte Barcode-Muster }
     [Test] procedure Encode_1234567890;
@@ -68,9 +82,26 @@ type
     [Test] procedure Encode_123X;
     [Test] procedure Encode_1X3X;
     [Test] procedure Encode_3637;
+
+    { test_fuzz }
+    [Test] procedure Fuzz_70Nuls_InvalidData;
+    [Test] procedure Fuzz_136x0404_OK;
+    [Test] procedure Fuzz_137Digits_TooLong;
+    [Test] procedure Fuzz_136ZerosX_OK;
+    [Test] procedure Fuzz_Length4_OverlongBuffer_OK;
   end;
 
 implementation
+
+procedure AssertContentSegEquals(const Sym: TZintSymbol; const Expected: array of Byte; const Msg: String);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(1, Sym.content_segs_count, Msg + ' count');
+  Assert.AreEqual(Length(Expected), Sym.content_segs[0].Length, Msg + ' length');
+  for i := 0 to High(Expected) do
+    Assert.AreEqual(Integer(Expected[i]), Integer(Sym.content_segs[0].Source[i]), Msg + ' byte ' + IntToStr(i));
+end;
 
 { ---------- TTestTelepen ---------- }
 
@@ -624,6 +655,244 @@ begin
   finally
     sym.Free;
   end;
+end;
+
+procedure TTestTelepen.HRT_ContentSegs_UpperAlpha;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[1] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, 'ABC1234.;$');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABC1234.;$', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [65, 66, 67, 49, 50, 51, 52, 46, 59, 36, 94], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_ContentSegs_LowerAlpha;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[3] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, 'abc1234.;$');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('abc1234.;$', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [97, 98, 99, 49, 50, 51, 52, 46, 59, 36, 125], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_ContentSegs_CtrlChar;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[5] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, 'ABC1234' + #1);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABC1234 ', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [65, 66, 67, 49, 50, 51, 52, 1, 107], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_ContentSegs_NUL;
+var sym: TZintSymbol; ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_hrt[7] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    SetLength(b, 9);
+    b[0] := Ord('A'); b[1] := Ord('B'); b[2] := Ord('C'); b[3] := 0;
+    b[4] := Ord('1'); b[5] := Ord('2'); b[6] := Ord('3'); b[7] := Ord('4');
+    b[8] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 8);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABC 1234', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [65, 66, 67, 0, 49, 50, 51, 52, 108], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.HRT_ContentSegs_ABK0;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[9] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, 'ABK0');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('ABK0', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [65, 66, 75, 48, 0], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.Fuzz_69Nuls_OK;
+var
+  sym: TZintSymbol;
+  ret, i: Integer;
+  b: TArrayOfByte;
+begin
+  { test_fuzz[0] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    SetLength(b, 70);
+    for i := 0 to 68 do b[i] := 0;
+    b[69] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 69);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepen.Fuzz_70Nuls_TooLong;
+var
+  sym: TZintSymbol;
+  ret, i: Integer;
+  b: TArrayOfByte;
+begin
+  { test_fuzz[1] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
+  try
+    SetLength(b, 71);
+    for i := 0 to 69 do b[i] := 0;
+    b[70] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 70);
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_ContentSegs_Digits;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[11] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '1234');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('1234', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [49, 50, 51, 52, 27], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_ContentSegs_DigitX;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[13] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '123X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [49, 50, 51, 88, 68], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_ContentSegs_LowerX;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[15] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '123x');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [49, 50, 51, 88, 68], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.HRT_ContentSegs_OddLength;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_hrt[17] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('012345', TZintTestHelper.GetText(sym), 'text');
+    AssertContentSegEquals(sym, [48, 49, 50, 51, 52, 53, 104], 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.Fuzz_70Nuls_InvalidData;
+var
+  sym: TZintSymbol;
+  ret, i: Integer;
+  b: TArrayOfByte;
+begin
+  { test_fuzz[2] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    SetLength(b, 71);
+    for i := 0 to 69 do b[i] := 0;
+    b[70] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 70);
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.Fuzz_136x0404_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  { test_fuzz[3] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('0404', 34));
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.Fuzz_137Digits_TooLong;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  { test_fuzz[4] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 137));
+    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.Fuzz_136ZerosX_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  { test_fuzz[5] }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('0', 135) + 'X');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.Fuzz_Length4_OverlongBuffer_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+  b: TArrayOfByte;
+begin
+  { test_fuzz[7]: logical length 4, backing buffer much larger }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    b := StrToArrayOfByte('12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890');
+    SetLength(b, Length(b) + 1);
+    b[High(b)] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 4);
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+  finally sym.Free; end;
 end;
 
 initialization

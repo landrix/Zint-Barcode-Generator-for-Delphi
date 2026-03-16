@@ -33,7 +33,7 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 
 | Modul | Port | Tests | Status |
 |---|---|---|---|
-| `zint_telepen.pas` | ✅ b3a3c0d | ✅ `Test_Telepen.pas` (16 Tests) | **Erster portierter Modul** |
+| `zint_telepen.pas` | ✅ b3a3c0d | ✅ `Test_Telepen.pas` (48 Tests) | **Erster portierter Modul** |
 | `zint_medical.pas` | ✅ b3a3c0d | ✅ `Test_Medical.pas` (19 Tests) | pharma_one, pharma_two, code32, pzn |
 | `zint_plessey.pas` | ✅ b3a3c0d | ✅ `Test_Plessey.pas` (31 Tests) | plessey, msi_handle (alle MSI-Varianten) |
 | `zint_postal.pas` | ✅ b3a3c0d | ✅ `Test_Postal.pas` (83 Tests) | Alle 12 Funktionen inkl. CEPNet, FIM 'E' |
@@ -43,7 +43,7 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (79 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT |
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (40 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
 
-**Gesamtstand (2026-03-15): 797 Tests, 797 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (2026-03-16): 829 Tests, 829 bestanden, 0 fehlgeschlagen** ✅
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie content_segs/API-Themen).
@@ -226,7 +226,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `reedsol.c` | `zint_reedsol.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `rss.c` | `zint_rss.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `sjis.h` | `zint_sjis.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
-| `telepen.c` | `zint_telepen.pas` | **b3a3c0d portiert** |
+| `telepen.c` | `zint_telepen.pas` | b3a3c0d portiert + Tests gruen |
 | `upcean.c` | `zint_upcean.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 
 ### 3.2 Vorgehen pro Modul

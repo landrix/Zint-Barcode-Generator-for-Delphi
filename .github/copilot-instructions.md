@@ -126,3 +126,113 @@ Nach dem Edit:
 Wenn etwas unklar ist:
 - Nicht raten.
 - Erst C-Code und C-Tests nachlesen, dann entscheiden.
+
+## 13) Prompt-Shortcuts (konventionell)
+
+Hinweis:
+- Dies sind keine technischen Slash-Commands, sondern feste Trigger-Phrasen.
+- Wenn der User eine Trigger-Phrase verwendet, wird der zugehoerige Ablauf strikt befolgt.
+
+### Shortcut: `port-check <modul>`
+
+Ziel:
+- C-vs-Delphi-Paritaet fuer ein Modul pruefen.
+
+Ablauf:
+1. C-Referenzdatei und C-Testdatei lokalisieren (`backend/*.c`, `backend/tests/test_*.c`).
+2. Delphi-Modul und Delphi-Testdatei lokalisieren.
+3. Gap-Analyse erstellen: `test_large`, `test_input`, `test_encode`, `test_hrt`, `test_fuzz`.
+4. Fehlende Delphi-Tests ergaenzen (zuerst failend, dann fixen).
+5. Relevanten Testblock + Full Win32 DUnitX laufen lassen.
+6. Deltas in Tests und `MIGRATION_PLAN.md` dokumentieren.
+
+Pflicht-Output:
+- "Gefundene Luecken"
+- "Umgesetzte Aenderungen"
+- "Testergebnis (relevant + full suite)"
+- "Offene Deltas"
+
+### Shortcut: `port-test <testdatei>`
+
+Ziel:
+- C-Testdaten strukturgleich in Delphi-Tests uebernehmen.
+
+Ablauf:
+1. C-Item-Array 1:1 als Delphi-Record-Array uebertragen.
+2. C-Indizes sichtbar halten (`Index` oder `{ C#<Index> }`).
+3. Assertions in Reihenfolge: `ret` -> `errtxt` -> `rows/width` -> Zusatzfelder.
+4. Nicht-portierbare Faelle explizit markieren (mit Grund).
+
+Pflicht-Output:
+- "Portierte C-Indizes"
+- "Bewusst ausgelassene C-Indizes + Grund"
+- "Testergebnis"
+
+### Shortcut: `fix-failing <fixture|testname>`
+
+Ziel:
+- Konkreten roten Test reproduzieren, Ursache finden, minimal fixen.
+
+Ablauf:
+1. Zieltest isoliert ausfuehren.
+2. Fehlerbild mit C-Referenz gegenpruefen.
+3. Minimalen Codefix implementieren (keine Misch-Refactorings).
+4. Zieltest erneut, dann Full Suite.
+
+Pflicht-Output:
+- "Root Cause"
+- "Minimal-Fix"
+- "Regression-Status"
+
+### Shortcut: `delta-doc <modul>`
+
+Ziel:
+- Bekannte Delphi-vs-C-Abweichungen sauber dokumentieren.
+
+Ablauf:
+1. Delta in Test direkt kommentieren (kurz, praezise).
+2. Delta in `MIGRATION_PLAN.md` oder README nachziehen.
+3. Formulierung ohne Beschoenigung: was fehlt, was ist bewusst anders, was ist naechster Schritt.
+
+Pflicht-Output:
+- "Dokumentierte Deltas"
+- "Verbleibendes Risiko"
+
+### Shortcut: `qr-gate`
+
+Ziel:
+- Schneller QR-Regressionscheck.
+
+Ablauf:
+1. `UnitTests\\run_qr_regression.bat` ausfuehren.
+2. Bei Fehlern: erst QR-spezifische Ursache isolieren, dann Fix.
+3. Danach Full Win32 DUnitX bestaetigen.
+
+Pflicht-Output:
+- "QR-Gate Ergebnis"
+- "Falls rot: betroffene Tests + Fix"
+
+### Shortcut: `full-gate`
+
+Ziel:
+- Vollstaendige Abnahme vor Abschluss.
+
+Ablauf:
+1. `powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\build-delphi-tests.ps1`
+2. Ergebnis exakt berichten: Found/Passed/Failed/Errored.
+3. Bei Fehlschlag kein Abschluss ohne transparente Restpunkte.
+
+Pflicht-Output:
+- "Full-Gate Ergebnis"
+- "Blocker (falls vorhanden)"
+
+### Shortcut: `ship-note <modul>`
+
+Ziel:
+- Standardisierte Change-Zusammenfassung fuer Commit/PR vorbereiten.
+
+Pflichtinhalt:
+1. Was wurde portiert/gefixt?
+2. Welche C-Referenz (Datei/Funktion/Testblock)?
+3. Welche Tests wurden ausgefuehrt?
+4. Welche Deltas bleiben offen?
