@@ -129,6 +129,18 @@ begin
     symbol.text[i] := local_source[i];
   symbol.text[d] := 0;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(local_source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   Result := 0;
 end;
 
@@ -240,6 +252,18 @@ begin
   for i := 0 to d - 1 do
     symbol.text[i] := local_source[i];
   symbol.text[d] := 0;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(local_source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   Result := 0;
 end;

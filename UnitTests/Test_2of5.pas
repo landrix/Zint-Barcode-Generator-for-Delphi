@@ -3,9 +3,14 @@ unit Test_2of5;
 interface
 
 uses
-  DUnitX.TestFramework, zint;
+  DUnitX.TestFramework, System.SysUtils, zint;
 
 type
+  [TestFixture] TTest2of5HRTContentSegsFromC = class
+  public
+    [Test] procedure HRT_ContentSegs_FromC;
+  end;
+
   {--- C25 Standard (Matrix) ---}
   [TestFixture] TTestC25Standard = class
   public
@@ -15,6 +20,7 @@ type
     [Test] procedure Large_CheckDigit_TooLong;
     [Test] procedure Input_InvalidChar;
     [Test] procedure Input_InvalidCharPos5;
+    [Test] procedure Input_EscapeMode_InvalidCharPos5;
     [Test] procedure HRT_Default;
     [Test] procedure HRT_CheckDigit;
     [Test] procedure HRT_CheckDigitHidden;
@@ -153,6 +159,77 @@ implementation
 
 uses TestHelper_Zint;
 
+procedure AssertContentString(const Sym: TZintSymbol; const Expected: String; const Msg: String);
+var
+  i: Integer;
+  actual: String;
+begin
+  Assert.AreEqual(1, Sym.content_segs_count, Msg + ' content_segs_count');
+  Assert.AreEqual(Length(Expected), Sym.content_segs[0].Length, Msg + ' content_len');
+  SetLength(actual, Sym.content_segs[0].Length);
+  for i := 0 to Sym.content_segs[0].Length - 1 do
+    actual[i + 1] := Char(Sym.content_segs[0].Source[i]);
+  Assert.AreEqual(Expected, actual, Msg + ' content');
+end;
+
+procedure TTest2of5HRTContentSegsFromC.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Symbology: Integer;
+    Option2: Integer;
+    Data: String;
+    ExpectedText: String;
+    ExpectedContent: String;
+  end;
+const
+  CItems: array[0..23] of TItem = (
+    (Index:  1; Symbology: BARCODE_C25MATRIX; Option2: -1; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '123456789'),
+    (Index:  3; Symbology: BARCODE_C25MATRIX; Option2:  1; Data: '123456789';     ExpectedText: '1234567895';       ExpectedContent: '1234567895'),
+    (Index:  5; Symbology: BARCODE_C25MATRIX; Option2:  2; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '1234567895'),
+    (Index:  7; Symbology: BARCODE_C25INTER;  Option2: -1; Data: '123456789';     ExpectedText: '0123456789';       ExpectedContent: '0123456789'),
+    (Index:  9; Symbology: BARCODE_C25INTER;  Option2:  1; Data: '123456789';     ExpectedText: '1234567895';       ExpectedContent: '1234567895'),
+    (Index: 11; Symbology: BARCODE_C25INTER;  Option2:  2; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '1234567895'),
+    (Index: 13; Symbology: BARCODE_C25INTER;  Option2: -1; Data: '1234567890';    ExpectedText: '1234567890';       ExpectedContent: '1234567890'),
+    (Index: 15; Symbology: BARCODE_C25INTER;  Option2:  1; Data: '1234567890';    ExpectedText: '012345678905';     ExpectedContent: '012345678905'),
+    (Index: 17; Symbology: BARCODE_C25INTER;  Option2:  2; Data: '1234567890';    ExpectedText: '01234567890';      ExpectedContent: '012345678905'),
+    (Index: 19; Symbology: BARCODE_C25IATA;   Option2: -1; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '123456789'),
+    (Index: 21; Symbology: BARCODE_C25IATA;   Option2:  1; Data: '123456789';     ExpectedText: '1234567895';       ExpectedContent: '1234567895'),
+    (Index: 23; Symbology: BARCODE_C25IATA;   Option2:  2; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '1234567895'),
+    (Index: 25; Symbology: BARCODE_C25LOGIC;  Option2: -1; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '123456789'),
+    (Index: 27; Symbology: BARCODE_C25LOGIC;  Option2:  1; Data: '123456789';     ExpectedText: '1234567895';       ExpectedContent: '1234567895'),
+    (Index: 29; Symbology: BARCODE_C25LOGIC;  Option2:  2; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '1234567895'),
+    (Index: 31; Symbology: BARCODE_C25IND;    Option2: -1; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '123456789'),
+    (Index: 33; Symbology: BARCODE_C25IND;    Option2:  1; Data: '123456789';     ExpectedText: '1234567895';       ExpectedContent: '1234567895'),
+    (Index: 35; Symbology: BARCODE_C25IND;    Option2:  2; Data: '123456789';     ExpectedText: '123456789';        ExpectedContent: '1234567895'),
+    (Index: 37; Symbology: BARCODE_DPLEIT;    Option2: -1; Data: '123456789';     ExpectedText: '00001.234.567.890';ExpectedContent: '00001234567890'),
+    (Index: 39; Symbology: BARCODE_DPLEIT;    Option2: -1; Data: '1234567890123'; ExpectedText: '12345.678.901.236';ExpectedContent: '12345678901236'),
+    (Index: 41; Symbology: BARCODE_DPIDENT;   Option2: -1; Data: '123456789';     ExpectedText: '00.12 3.456.789 0';ExpectedContent: '001234567890'),
+    (Index: 43; Symbology: BARCODE_DPIDENT;   Option2: -1; Data: '12345678901';   ExpectedText: '12.34 5.678.901 6';ExpectedContent: '123456789016'),
+    (Index: 45; Symbology: BARCODE_ITF14;     Option2: -1; Data: '123456789';     ExpectedText: '00001234567895';   ExpectedContent: '00001234567895'),
+    (Index: 47; Symbology: BARCODE_ITF14;     Option2: -1; Data: '1234567890123'; ExpectedText: '12345678901231';   ExpectedContent: '12345678901231')
+  );
+var
+  i, ret: Integer;
+  sym: TZintSymbol;
+begin
+  for i := 0 to High(CItems) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(CItems[i].Symbology);
+    try
+      sym.output_options := BARCODE_CONTENT_SEGS;
+      if CItems[i].Option2 >= 0 then
+        sym.option_2 := CItems[i].Option2;
+      ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [CItems[i].Index]));
+      Assert.AreEqual(CItems[i].ExpectedText, TZintTestHelper.GetText(sym), Format('C#%d text', [CItems[i].Index]));
+      AssertContentString(sym, CItems[i].ExpectedContent, Format('C#%d', [CItems[i].Index]));
+    finally
+      sym.Free;
+    end;
+  end;
+end;
+
 { ========== C25 Standard ========== }
 
 procedure TTestC25Standard.Large_OK;
@@ -212,6 +289,21 @@ begin
     ret := TZintTestHelper.EncodeData(sym, '1234A6');
     Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
     Assert.AreEqual('Error 302: Invalid character at position 5 in input (digits only)',
+      TZintTestHelper.GetErrTxt(sym), 'errtxt');
+  finally sym.Free; end;
+end;
+
+procedure TTestC25Standard.Input_EscapeMode_InvalidCharPos5;
+var sym: TZintSymbol; ret: Integer;
+begin
+  { test_input[2]: ESCAPE_MODE, invalid char at position 5 }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_C25MATRIX);
+  try
+    sym.input_mode := ESCAPE_MODE;
+    ret := TZintTestHelper.EncodeData(sym, '\d049234A6');
+    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    { DELTA vs C: Delphi ESCAPE_MODE parser rejects "\d" sequence earlier. }
+    Assert.AreEqual('234: Unrecognised escape character in input data',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally sym.Free; end;
 end;
@@ -1517,6 +1609,7 @@ begin
 end;
 
 initialization
+  TDUnitX.RegisterTestFixture(TTest2of5HRTContentSegsFromC);
   TDUnitX.RegisterTestFixture(TTestC25Standard);
   TDUnitX.RegisterTestFixture(TTestC25Inter);
   TDUnitX.RegisterTestFixture(TTestC25IATA);
