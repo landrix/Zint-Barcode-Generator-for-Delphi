@@ -6,6 +6,14 @@ Zint Barcode Generator
 
 Delphi port of https://sourceforge.net/projects/zint/
 
+The master branch has been renamed to main.
+Please update your local clone.
+
+    git branch -m master main
+    git fetch origin
+    git branch -u origin/main main
+    git remote set-head origin -a
+    
 ## History
 
  * 25.02.2020 Girocode-Generator EPC-QR
