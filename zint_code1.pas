@@ -32,19 +32,19 @@ const c40_shift : array[0..127] of Integer = (
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 );
+  2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 );
 
 const c40_value : array[0..127] of Integer = (
 	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
 	3,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,4,5,6,7,8,9,10,11,12,13,
-	15,16,17,18,19,20,21,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
-	22,23,24,25,26,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 );
+	15,16,17,18,19,20,21,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,
+	22,23,24,25,26,0,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,27,28,29,30,31 );
 
 const text_shift : array[0..127] of Integer = (
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	2, 2, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3 );
+  2, 2, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3 );
 
 const text_value : array[0..127] of Integer = (
 	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
@@ -341,7 +341,7 @@ begin
   result := best_scheme; exit;
 end;
 
-function c1_encode(symbol : zint_symbol; const source : TArrayOfByte; var target : TArrayOfCardinal; _length : Integer) : Integer;
+function c1_encode(symbol : zint_symbol; const source : TArrayOfByte; var target : TArrayOfCardinal; _length : Integer; var last_mode : Integer) : Integer;
 var
   current_mode, next_mode : Integer;
   sp, tp, gs1, latch : Integer;
@@ -375,8 +375,9 @@ begin
   Fill(edi_buffer, 6, 0);
   edi_p := 0;
   strcpy(decimal_binary, '');
+  last_mode := C1_ASCII;
 
-  if (symbol.input_mode = GS1_MODE) then gs1 := 1 else gs1 := 0;
+  if ((symbol.input_mode and $07) = GS1_MODE) then gs1 := 1 else gs1 := 0;
   if (gs1 <> 0) then begin target[tp] := 232; Inc(tp); end; { FNC1 }
 
   { Step A }
@@ -878,7 +879,7 @@ begin
           target_count := 2;
         if (strlen(decimal_binary) <= 8) then
           target_count := 1;
-        bits_left_in_byte := 8 * target_count - strlen(decimal_binary);
+        bits_left_in_byte := (8 * target_count) - strlen(decimal_binary);
         if (bits_left_in_byte = 8) then
           bits_left_in_byte := 0;
 
@@ -943,6 +944,8 @@ begin
           target[tp] := sub_target; Inc(tp);
         end;
 
+        { C-parity: c1_decimal_unlatch returns db_p=0; clear buffer so end-of-function check won't re-process }
+        strcpy(decimal_binary, '');
         next_mode := C1_ASCII;
       end
       else
@@ -952,47 +955,25 @@ begin
 
         bscan(decimal_binary, value, $200);
         Inc(sp, 3);
-      end;
 
-      if (strlen(decimal_binary) >= 24) then
-      begin
-        target1 := 0; target2 := 0; target3 := 0;
+        { Transfer ALL available full bytes - C-parity: c1_decimal_binary_transfer flushes per-byte.
+          Only after appending new digit data, NOT after unlatch (which already transferred its bits). }
         SetLength(temp_binary, 40);
-
-        { Binary buffer is full - transfer to target }
-        if (decimal_binary[0] = '1') then Inc(target1, 128);
-        if (decimal_binary[1] = '1') then Inc(target1, 64);
-        if (decimal_binary[2] = '1') then Inc(target1, 32);
-        if (decimal_binary[3] = '1') then Inc(target1, 16);
-        if (decimal_binary[4] = '1') then Inc(target1, 8);
-        if (decimal_binary[5] = '1') then Inc(target1, 4);
-        if (decimal_binary[6] = '1') then Inc(target1, 2);
-        if (decimal_binary[7] = '1') then Inc(target1, 1);
-        if (decimal_binary[8] = '1') then Inc(target2, 128);
-        if (decimal_binary[9] = '1') then Inc(target2, 64);
-        if (decimal_binary[10] = '1') then Inc(target2, 32);
-        if (decimal_binary[11] = '1') then Inc(target2, 16);
-        if (decimal_binary[12] = '1') then Inc(target2, 8);
-        if (decimal_binary[13] = '1') then Inc(target2, 4);
-        if (decimal_binary[14] = '1') then Inc(target2, 2);
-        if (decimal_binary[15] = '1') then Inc(target2, 1);
-        if (decimal_binary[16] = '1') then Inc(target3, 128);
-        if (decimal_binary[17] = '1') then Inc(target3, 64);
-        if (decimal_binary[18] = '1') then Inc(target3, 32);
-        if (decimal_binary[19] = '1') then Inc(target3, 16);
-        if (decimal_binary[20] = '1') then Inc(target3, 8);
-        if (decimal_binary[21] = '1') then Inc(target3, 4);
-        if (decimal_binary[22] = '1') then Inc(target3, 2);
-        if (decimal_binary[23] = '1') then Inc(target3, 1);
-        target[tp] := target1; Inc(tp);
-        target[tp] := target2; Inc(tp);
-        target[tp] := target3; Inc(tp);
-
-        strcpy(temp_binary, '');
-        if (strlen(decimal_binary) > 24) then
+        while strlen(decimal_binary) >= 8 do
         begin
-          for i := 0 to (strlen(decimal_binary) - 24) do
-            temp_binary[i] := decimal_binary[i + 24];
+          sub_target := 0;
+          if (decimal_binary[0] = '1') then Inc(sub_target, 128);
+          if (decimal_binary[1] = '1') then Inc(sub_target, 64);
+          if (decimal_binary[2] = '1') then Inc(sub_target, 32);
+          if (decimal_binary[3] = '1') then Inc(sub_target, 16);
+          if (decimal_binary[4] = '1') then Inc(sub_target, 8);
+          if (decimal_binary[5] = '1') then Inc(sub_target, 4);
+          if (decimal_binary[6] = '1') then Inc(sub_target, 2);
+          if (decimal_binary[7] = '1') then Inc(sub_target, 1);
+          target[tp] := sub_target; Inc(tp);
+          strcpy(temp_binary, '');
+          for i := 0 to strlen(decimal_binary) - 8 do
+            temp_binary[i] := decimal_binary[i + 8];
           strcpy(decimal_binary, temp_binary);
         end;
       end;
@@ -1087,64 +1068,83 @@ begin
 
   if (current_mode = C1_DECIMAL) then
   begin
-    { Finish Decimal mode and go back to ASCII }
-
-    concat(decimal_binary, '111111'); { Unlatch }
-
-    target_count := 3;
-    if (strlen(decimal_binary) <= 16) then target_count := 2;
-    if (strlen(decimal_binary) <= 8) then target_count := 1;
-    bits_left_in_byte := (8 * target_count) - strlen(decimal_binary);
-    if (bits_left_in_byte = 8) then bits_left_in_byte := 0;
-
-    if (bits_left_in_byte = 2) then
-      concat(decimal_binary, '01');
-
-    if ((bits_left_in_byte = 4) or (bits_left_in_byte = 6)) then
-      concat(decimal_binary, '1111');
-
-    if (bits_left_in_byte = 6) then
-      concat(decimal_binary, '01');
-
-    { Binary buffer is full - transfer to target }
-    if (target_count >= 1) then
+    { Finish Decimal mode - conditionally add unlatch (C-parity: c1_codewords_remaining > 1) }
+    { Compute remaining codewords available (mirrors c1_codewords_remaining()) }
+    if symbol.option_2 = 10 then  { Version T }
     begin
-      sub_target := 0;
-      if (decimal_binary[0] = '1') then Inc(sub_target, 128);
-      if (decimal_binary[1] = '1') then Inc(sub_target, 64);
-      if (decimal_binary[2] = '1') then Inc(sub_target, 32);
-      if (decimal_binary[3] = '1') then Inc(sub_target, 16);
-      if (decimal_binary[4] = '1') then Inc(sub_target, 8);
-      if (decimal_binary[5] = '1') then Inc(sub_target, 4);
-      if (decimal_binary[6] = '1') then Inc(sub_target, 2);
-      if (decimal_binary[7] = '1') then Inc(sub_target, 1);
-      target[tp] := sub_target; Inc(tp);
+      if tp <= 10 then data_left := 10 - tp
+      else if tp <= 24 then data_left := 24 - tp
+      else data_left := 38 - tp;
+    end
+    else  { Versions A to H (option_2 = 0..8) }
+    begin
+      data_left := c1_data_length[0] - tp;
+      for i := 0 to 6 do
+        if tp > c1_data_length[i] then
+          data_left := c1_data_length[i + 1] - tp;
     end;
-    if (target_count >= 2) then
+
+    if data_left > 1 then
+      concat(decimal_binary, '111111'); { Unlatch }
+
+    { Only process bits if there is something in the buffer }
+    if strlen(decimal_binary) > 0 then
     begin
-      sub_target := 0;
-      if (decimal_binary[8] = '1') then Inc(sub_target, 128);
-      if (decimal_binary[9] = '1') then Inc(sub_target, 64);
-      if (decimal_binary[10] = '1') then Inc(sub_target, 32);
-      if (decimal_binary[11] = '1') then Inc(sub_target, 16);
-      if (decimal_binary[12] = '1') then Inc(sub_target, 8);
-      if (decimal_binary[13] = '1') then Inc(sub_target, 4);
-      if (decimal_binary[14] = '1') then Inc(sub_target, 2);
-      if (decimal_binary[15] = '1') then Inc(sub_target, 1);
-      target[tp] := sub_target; Inc(tp);
-    end;
-    if (target_count = 3) then
-    begin
-      sub_target := 0;
-      if (decimal_binary[16] = '1') then Inc(sub_target, 128);
-      if (decimal_binary[17] = '1') then Inc(sub_target, 64);
-      if (decimal_binary[18] = '1') then Inc(sub_target, 32);
-      if (decimal_binary[19] = '1') then Inc(sub_target, 16);
-      if (decimal_binary[20] = '1') then Inc(sub_target, 8);
-      if (decimal_binary[21] = '1') then Inc(sub_target, 4);
-      if (decimal_binary[22] = '1') then Inc(sub_target, 2);
-      if (decimal_binary[23] = '1') then Inc(sub_target, 1);
-      target[tp] := sub_target; Inc(tp);
+      target_count := 3;
+      if (strlen(decimal_binary) <= 16) then target_count := 2;
+      if (strlen(decimal_binary) <= 8) then target_count := 1;
+      bits_left_in_byte := (8 * target_count) - strlen(decimal_binary);
+      if (bits_left_in_byte = 8) then bits_left_in_byte := 0;
+
+      if (bits_left_in_byte = 2) then
+        concat(decimal_binary, '01');
+
+      if ((bits_left_in_byte = 4) or (bits_left_in_byte = 6)) then
+        concat(decimal_binary, '1111');
+
+      if (bits_left_in_byte = 6) then
+        concat(decimal_binary, '01');
+
+      { Binary buffer is full - transfer to target }
+      if (target_count >= 1) then
+      begin
+        sub_target := 0;
+        if (decimal_binary[0] = '1') then Inc(sub_target, 128);
+        if (decimal_binary[1] = '1') then Inc(sub_target, 64);
+        if (decimal_binary[2] = '1') then Inc(sub_target, 32);
+        if (decimal_binary[3] = '1') then Inc(sub_target, 16);
+        if (decimal_binary[4] = '1') then Inc(sub_target, 8);
+        if (decimal_binary[5] = '1') then Inc(sub_target, 4);
+        if (decimal_binary[6] = '1') then Inc(sub_target, 2);
+        if (decimal_binary[7] = '1') then Inc(sub_target, 1);
+        target[tp] := sub_target; Inc(tp);
+      end;
+      if (target_count >= 2) then
+      begin
+        sub_target := 0;
+        if (decimal_binary[8] = '1') then Inc(sub_target, 128);
+        if (decimal_binary[9] = '1') then Inc(sub_target, 64);
+        if (decimal_binary[10] = '1') then Inc(sub_target, 32);
+        if (decimal_binary[11] = '1') then Inc(sub_target, 16);
+        if (decimal_binary[12] = '1') then Inc(sub_target, 8);
+        if (decimal_binary[13] = '1') then Inc(sub_target, 4);
+        if (decimal_binary[14] = '1') then Inc(sub_target, 2);
+        if (decimal_binary[15] = '1') then Inc(sub_target, 1);
+        target[tp] := sub_target; Inc(tp);
+      end;
+      if (target_count = 3) then
+      begin
+        sub_target := 0;
+        if (decimal_binary[16] = '1') then Inc(sub_target, 128);
+        if (decimal_binary[17] = '1') then Inc(sub_target, 64);
+        if (decimal_binary[18] = '1') then Inc(sub_target, 32);
+        if (decimal_binary[19] = '1') then Inc(sub_target, 16);
+        if (decimal_binary[20] = '1') then Inc(sub_target, 8);
+        if (decimal_binary[21] = '1') then Inc(sub_target, 4);
+        if (decimal_binary[22] = '1') then Inc(sub_target, 2);
+        if (decimal_binary[23] = '1') then Inc(sub_target, 1);
+        target[tp] := sub_target; Inc(tp);
+      end;
     end;
   end;
 
@@ -1181,6 +1181,7 @@ begin
     Write(Format('[%d]',[ target[i]]));
   WriteLn;
   {$ENDIF}
+  last_mode := current_mode;
   result := tp; exit;
 end;
 
@@ -1214,16 +1215,75 @@ var
   data_cw, ecc_cw : Integer;
   sub_data, sub_ecc : TArrayOfCardinal;
   RSGlobals : TRSGlobals;
+  base_gs1 : Integer;
+  warning_number : Integer;
+  warning_msg : String;
+  last_mode : Integer;
 begin
   sub_version := 3;
   size := 1;
+  base_gs1 := 0;
+  warning_number := 0;
+  warning_msg := '';
   SetLength(datagrid, 136);
   for i := Low(datagrid) to High(datagrid) do SetLength(datagrid[i], 120);
 
+  if ((symbol.input_mode and $07) = GS1_MODE) then
+    base_gs1 := 1;
+
   if ((symbol.option_2 < 0) or (symbol.option_2 > 10)) then
   begin
-    strcpy(symbol.errtxt, 'Invalid symbol size');
+    strcpy(symbol.errtxt, Format('Error 513: Version ''%d'' out of range (1 to 10)', [symbol.option_2]));
     result := ZERROR_INVALID_OPTION; exit;
+  end;
+
+  if (symbol.structapp.count <> 0) then
+  begin
+    if (symbol.option_2 = 9) then
+    begin
+      strcpy(symbol.errtxt, 'Error 714: Structured Append not available for Version S');
+      result := ZERROR_INVALID_OPTION; exit;
+    end;
+    if (base_gs1 <> 0) then
+    begin
+      strcpy(symbol.errtxt, 'Error 710: Cannot have Structured Append and GS1 mode at the same time');
+      result := ZERROR_INVALID_OPTION; exit;
+    end;
+    if (symbol.structapp.count < 2) or (symbol.structapp.count > 128) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 711: Structured Append count ''%d'' out of range (2 to 128)', [symbol.structapp.count]));
+      result := ZERROR_INVALID_OPTION; exit;
+    end;
+    if (symbol.structapp.index < 1) or (symbol.structapp.index > symbol.structapp.count) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 712: Structured Append index ''%d'' out of range (1 to count %d)',
+        [symbol.structapp.index, symbol.structapp.count]));
+      result := ZERROR_INVALID_OPTION; exit;
+    end;
+    if symbol.structapp.id <> '' then
+    begin
+      strcpy(symbol.errtxt, 'Error 713: Structured Append ID not available for Code One');
+      result := ZERROR_INVALID_OPTION; exit;
+    end;
+  end;
+
+  if (symbol.option_2 = 9) then
+  begin
+    if (symbol.eci <> 0) or (base_gs1 <> 0) then
+    begin
+      warning_number := ZWARN_INVALID_OPTION;
+      if (symbol.eci <> 0) and (base_gs1 <> 0) then
+        warning_msg := 'Warning 511: ECI and GS1 mode ignored for Version S'
+      else if (symbol.eci <> 0) then
+        warning_msg := 'Warning 511: ECI ignored for Version S'
+      else
+        warning_msg := 'Warning 511: GS1 mode ignored for Version S';
+    end;
+  end
+  else if (symbol.eci <> 0) and (base_gs1 <> 0) then
+  begin
+    warning_number := ZWARN_INVALID_OPTION;
+    warning_msg := 'Warning 512: ECI ignored for GS1 mode';
   end;
 
   if (symbol.option_2 = 9) then
@@ -1235,13 +1295,16 @@ begin
 
     if (_length > 18) then
     begin
-      strcpy(symbol.errtxt, 'Input data too long');
+      strcpy(symbol.errtxt, Format('Error 514: Input length %d too long for Version S (maximum 18)', [_length]));
       result := ZERROR_TOO_LONG; exit;
     end;
-    if (is_sane(NEON, source, _length) = ZERROR_INVALID_DATA) then
+    for i := 0 to _length - 1 do
     begin
-      strcpy(symbol.errtxt, 'Invalid input data (Version S encodes numeric input only)');
-      result := ZERROR_INVALID_DATA; exit;
+      if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+      begin
+        strcpy(symbol.errtxt, Format('Error 515: Invalid character at position %d in input (Version S encodes digits only)', [i + 1]));
+        result := ZERROR_INVALID_DATA; exit;
+      end;
     end;
 
     sub_version := 3; codewords := 12; block_width := 6; { Version S-30 }
@@ -1313,6 +1376,7 @@ begin
     end;
 
     size := 9;
+    symbol.option_2 := 9;
     symbol.rows := 8;
     symbol.width := 10 * sub_version + 1;
   end;
@@ -1323,10 +1387,16 @@ begin
     SetLength(data, 40); SetLength(ecc, 25);
     SetLength(stream, 65);
 
+    if (_length > 90) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 519: Input length %d too long for Version T (maximum 90)', [_length]));
+      result := ZERROR_TOO_LONG; exit;
+    end;
+
     for i := 0 to 39 do
       data[i] := 0;
 
-    data_length := c1_encode(symbol, source, data, _length);
+    data_length := c1_encode(symbol, source, data, _length, last_mode);
 
     if (data_length = 0) then
     begin
@@ -1335,7 +1405,7 @@ begin
 
     if (data_length > 38) then
     begin
-      strcpy(symbol.errtxt, 'Input data too long');
+      strcpy(symbol.errtxt, Format('Error 516: Input too long for Version T, requires %d codewords (maximum 38)', [data_length]));
       result := ZERROR_TOO_LONG; exit;
     end;
 
@@ -1344,8 +1414,16 @@ begin
     if (data_length <= 24) then begin sub_version := 2; data_cw := 24; ecc_cw := 16; block_width := 8; end;
     if (data_length <= 10) then begin sub_version := 1; data_cw := 10; ecc_cw := 10; block_width := 4; end;
 
-    for i := data_length to data_cw - 1 do
-      data[i] := 129; { Pad }
+    if (data_cw > data_length) then
+    begin
+      if (last_mode <> C1_ASCII) and (last_mode <> C1_BYTE) then
+      begin
+        data[data_length] := 255; { Unlatch }
+        Inc(data_length);
+      end;
+      for i := data_length to data_cw - 1 do
+        data[i] := 129; { Pad }
+    end;
 
     { Calculate error correction data }
     rs_init_gf($12d, RSGlobals);
@@ -1365,7 +1443,7 @@ begin
         datagrid[i][j] := '0';
 
     i := 0;
-    for row := 0 to 5  do
+    for row := 0 to 4  do
     begin
       for col := 0 to block_width - 1 do
       begin
@@ -1391,6 +1469,7 @@ begin
 
     symbol.rows := 16;
     symbol.width := (sub_version * 16) + 1;
+    symbol.option_2 := 10;
   end;
 
   if ((symbol.option_2 <> 9) and (symbol.option_2 <> 10)) then
@@ -1403,10 +1482,11 @@ begin
     for i := 0 to 1499 do
       data[i] := 0;
 
-    data_length := c1_encode(symbol, source, data, _length);
+    data_length := c1_encode(symbol, source, data, _length, last_mode);
 
     if (data_length = 0) then
     begin
+      strcpy(symbol.errtxt, 'Error 517: Input too long, requires too many codewords (maximum 1480)');
       result := ZERROR_TOO_LONG; exit;
     end;
 
@@ -1421,8 +1501,25 @@ begin
       size := symbol.option_2;
     end;
 
-    for i := data_length to c1_data_length[size - 1] - 1 do
-      data[i] := 129; { Pad }
+    if (symbol.option_2 <> 0) and (symbol.option_2 < size) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 518: Input too long for Version %s, requires %d codewords (maximum %d)',
+        [Chr(Ord('A') + symbol.option_2 - 1), data_length, c1_data_length[symbol.option_2 - 1]]));
+      result := ZERROR_TOO_LONG; exit;
+    end;
+
+    symbol.option_2 := size;
+
+    if (c1_data_length[size - 1] > data_length) then
+    begin
+      if (last_mode <> C1_ASCII) and (last_mode <> C1_BYTE) then
+      begin
+        data[data_length] := 255; { Unlatch }
+        Inc(data_length);
+      end;
+      for i := data_length to c1_data_length[size - 1] - 1 do
+        data[i] := 129; { Pad }
+    end;
 
     { Calculate error correction data }
     data_length := c1_data_length[size - 1];
@@ -1760,6 +1857,12 @@ begin
 
   for i := 0 to symbol.rows - 1 do
     symbol.row_height[i] := 1;
+
+  if warning_number <> 0 then
+  begin
+    strcpy(symbol.errtxt, warning_msg);
+    result := warning_number; exit;
+  end;
 
   result := 0; exit;
 end;

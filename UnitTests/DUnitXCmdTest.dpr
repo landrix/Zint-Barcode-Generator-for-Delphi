@@ -45,6 +45,7 @@ uses
   Test_PZN,
   Test_Postal,
   Test_Code,
+  Test_Code1,
   Test_2of5,
   Test_Auspost,
   Test_QR

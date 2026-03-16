@@ -42,11 +42,20 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_code.pas` | ✅ b3a3c0d | ✅ `Test_Code.pas` (87 Tests) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 |
 | `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (81 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT; 1 dokumentiertes ESCAPE_MODE-Delta (errtxt-Position) |
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (41 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
+| `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (2 Tests / 18 C-Indizes) | GS1 Version A (C#6/7/8/11) + Version T 90-digit (C#18) jetzt Vollparitaet. Delta-Lock aufgeloest. Verbleibende Deltas: tiefere Encoding/C40/TEXT/EDI-Pfade noch offen |
 
-**Gesamtstand (2026-03-16): 837 Tests, 837 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (2026-03-16+): 839 Tests, 839 bestanden, 0 fehlgeschlagen** ✅
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie content_segs/API-Themen).
+
+Hinweis: Code One GS1 Version A (C#6/7/8/11/15) und Version T 90-digit (C#18) sind jetzt in voller C-Paritaet.
+Fixes in dieser Session:
+- `zint.pas`: GS1_MODE fuer BARCODE_CODEONE in `symbol.input_mode` beibehalten (nicht auf DATA_MODE zuruecksetzen)
+- `zint_code1.pas`: Decimal-Mode per-byte-flush in else-Branch (nur nach neuen Digits, nicht nach Unlatch)
+- `zint_code1.pas`: `strcpy(decimal_binary, '')` nach Unlatch-Transfer (entspricht C `db_p=0` aus `c1_decimal_unlatch`)
+- `zint_code1.pas`: BYTE-Mode-Abschnitt und `until not (sp < _length);` nach apply_patch-Korruption wiederhergestellt
+Verbleibende Deltas: tiefere Encoding/C40/TEXT/EDI/GS1-Version-T-Pfade (C#20..C#27 etc.) noch offen.
 
 ---
 
@@ -205,7 +214,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `auspost.c` | `zint_auspost.pas` | b3a3c0d portiert + Tests gruen |
 | `aztec.c` | `zint_aztec.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `code.c` | `zint_code.pas` | b3a3c0d portiert + Tests gruen |
-| `code1.c` | `zint_code1.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `code1.c` | `zint_code1.pas` | Teilport b3a3c0d: Guard-/Input-Paritaet + Tests gruen; Erfolgs-/Encode-Paritaet weiter offen |
 | `code128.c` | `zint_code128.pas` | b3a3c0d portiert + Tests gruen |
 | `code16k.c` | `zint_code16k.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `code49.c` | `zint_code49.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |

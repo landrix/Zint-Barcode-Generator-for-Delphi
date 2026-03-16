@@ -2780,7 +2780,11 @@ begin
   begin
 		if not ((symbol.input_mode = UNICODE_MODE) and
   (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_GRIDMATRIX, BARCODE_UPNQR, BARCODE_RMQR])) then
-      symbol.input_mode := DATA_MODE;
+    begin
+      { Preserve GS1_MODE for encoders that interrogate input_mode internally (Code One) }
+      if not (((symbol.input_mode and $07) = GS1_MODE) and (symbol.symbology = BARCODE_CODEONE)) then
+        symbol.input_mode := DATA_MODE;
+    end;
   end;
 
 //  if (symbol.input_mode = UNICODE_MODE) then
