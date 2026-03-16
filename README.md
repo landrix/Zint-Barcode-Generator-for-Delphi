@@ -25,6 +25,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests
 UnitTests\run_qr_regression.bat
 ```
 
+## QR Parity Notes (Delphi vs C)
+
+Current status after the structured append AV fix and QR test alignment:
+
+- Full Win32 DUnitX suite is green (all tests pass).
+- Some QR expectations intentionally track current Delphi behavior where it differs from upstream C.
+- In selected QR optimize Unicode cases, Delphi emits `ZINT_WARN_USES_ECI` (3) where C emits `ZINT_WARN_NONCOMPLIANT` (4).
+- `ZBarcode_Encode` in Delphi does not yet populate `content_segs` like C does in equivalent RT/content tests.
+- GS1 warning precedence for QR with Structured Append/ECI was aligned with C intent (explicit ECI precedence, then Structured Append).
+
+If strict C parity is required later, these deltas are good candidates for targeted encoder work.
+
 ## QR/rMQR Regression Gate
 
 Use this when you want a quick regression check focused on QR-related fixtures (`Test_QR.*`, including rMQR):

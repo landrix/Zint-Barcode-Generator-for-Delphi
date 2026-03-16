@@ -22,10 +22,15 @@ type
     [Test] procedure Large_24_TooLong;
     { test_hrt }
     [Test] procedure HRT_Empty_8;
+    [Test] procedure HRT_ContentSegs_8;
     [Test] procedure HRT_Empty_13;
+    [Test] procedure HRT_ContentSegs_13;
     [Test] procedure HRT_Empty_16;
+    [Test] procedure HRT_ContentSegs_16;
     [Test] procedure HRT_Empty_18;
+    [Test] procedure HRT_ContentSegs_18;
     [Test] procedure HRT_Empty_23;
+    [Test] procedure HRT_ContentSegs_23;
     { test_input }
     [Test] procedure Input_8Digits_OK;
     [Test] procedure Input_DPID_InvalidChar;
@@ -58,6 +63,9 @@ type
     [Test] procedure Large_8_OK;
     [Test] procedure Large_9_TooLong;
     [Test] procedure HRT_Empty;
+    [Test] procedure HRT_Empty_7;
+    [Test] procedure HRT_ContentSegs_7;
+    [Test] procedure HRT_ContentSegs_8;
     [Test] procedure Input_8_OK;
     [Test] procedure Input_7_LeadZero_OK;
     [Test] procedure Input_9_TooLong;
@@ -72,6 +80,11 @@ type
     [Test] procedure Large_8_OK;
     [Test] procedure Large_9_TooLong;
     [Test] procedure HRT_Empty;
+    [Test] procedure HRT_Empty_6;
+    [Test] procedure HRT_Empty_5;
+    [Test] procedure HRT_ContentSegs_6;
+    [Test] procedure HRT_ContentSegs_8;
+    [Test] procedure HRT_ContentSegs_5;
     [Test] procedure Input_6_OK;
     [Test] procedure Input_5_LeadZero_OK;
     [Test] procedure Input_9_TooLong;
@@ -86,6 +99,9 @@ type
     [Test] procedure Large_8_OK;
     [Test] procedure Large_9_TooLong;
     [Test] procedure HRT_Empty;
+    [Test] procedure HRT_Empty_4;
+    [Test] procedure HRT_ContentSegs_8;
+    [Test] procedure HRT_ContentSegs_4;
     [Test] procedure Input_4_OK;
     [Test] procedure Input_3_LeadZero_OK;
     [Test] procedure Input_1_LeadZero_OK;
@@ -98,6 +114,22 @@ type
 implementation
 
 uses TestHelper_Zint;
+
+function BytesToString(const ABytes: TArrayOfByte; const ALength: Integer): String;
+var
+  i, L: Integer;
+begin
+  if ALength <= 0 then
+    Exit('');
+
+  L := ALength;
+  if Length(ABytes) < L then
+    L := Length(ABytes);
+
+  SetLength(Result, L);
+  for i := 0 to L - 1 do
+    Result[i + 1] := Char(ABytes[i]);
+end;
 
 { ========== AUSPOST ========== }
 
@@ -225,6 +257,21 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestAusPost.HRT_ContentSegs_8;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSPOST);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('1112345678', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
 procedure TTestAusPost.HRT_Empty_13;
 var sym: TZintSymbol;
 begin
@@ -232,6 +279,21 @@ begin
   try
     TZintTestHelper.EncodeData(sym, '1234567890123');
     Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusPost.HRT_ContentSegs_13;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSPOST);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '1234567890123');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(15, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('591234567890123', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
   finally sym.Free; end;
 end;
 
@@ -245,6 +307,21 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestAusPost.HRT_ContentSegs_16;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSPOST);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '1234567890123456');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(18, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('591234567890123456', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
 procedure TTestAusPost.HRT_Empty_18;
 var sym: TZintSymbol;
 begin
@@ -255,6 +332,21 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestAusPost.HRT_ContentSegs_18;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSPOST);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '123456789012345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(20, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('62123456789012345678', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
 procedure TTestAusPost.HRT_Empty_23;
 var sym: TZintSymbol;
 begin
@@ -262,6 +354,21 @@ begin
   try
     TZintTestHelper.EncodeData(sym, '12345678901234567890123');
     Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusPost.HRT_ContentSegs_23;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSPOST);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345678901234567890123');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(25, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('6212345678901234567890123', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
   finally sym.Free; end;
 end;
 
@@ -656,6 +763,46 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestAusReply.HRT_Empty_7;
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSREPLY);
+  try
+    TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusReply.HRT_ContentSegs_7;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSREPLY);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '1234567');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('4501234567', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusReply.HRT_ContentSegs_8;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSREPLY);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('4512345678', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
 procedure TTestAusReply.Input_8_OK;
 var sym: TZintSymbol; ret: Integer;
 begin
@@ -771,6 +918,71 @@ begin
   finally sym.Free; end;
 end;
 
+procedure TTestAusRoute.HRT_Empty_6;
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSROUTE);
+  try
+    TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRoute.HRT_Empty_5;
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSROUTE);
+  try
+    TZintTestHelper.EncodeData(sym, '12345');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRoute.HRT_ContentSegs_6;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSROUTE);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '123456');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('8700123456', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRoute.HRT_ContentSegs_8;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSROUTE);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('8712345678', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRoute.HRT_ContentSegs_5;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSROUTE);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('8700012345', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
 procedure TTestAusRoute.Input_6_OK;
 var sym: TZintSymbol; ret: Integer;
 begin
@@ -883,6 +1095,46 @@ begin
   try
     TZintTestHelper.EncodeData(sym, '12345678');
     Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRedirect.HRT_Empty_4;
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSREDIRECT);
+  try
+    TZintTestHelper.EncodeData(sym, '1234');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRedirect.HRT_ContentSegs_8;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSREDIRECT);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '12345678');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('9212345678', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
+  finally sym.Free; end;
+end;
+
+procedure TTestAusRedirect.HRT_ContentSegs_4;
+var sym: TZintSymbol; ret: Integer;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_AUSREDIRECT);
+  try
+    sym.output_options := BARCODE_CONTENT_SEGS;
+    ret := TZintTestHelper.EncodeData(sym, '1234');
+    Assert.AreEqual(ZINT_OK, ret, 'ret');
+    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
+    Assert.AreEqual(1, sym.content_segs_count, 'content_segs_count');
+    Assert.AreEqual(10, sym.content_segs[0].Length, 'content_segs[0].Length');
+    Assert.AreEqual('9200001234', BytesToString(sym.content_segs[0].Source, sym.content_segs[0].Length), 'content');
   finally sym.Free; end;
 end;
 

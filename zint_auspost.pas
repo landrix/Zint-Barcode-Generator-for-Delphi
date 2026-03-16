@@ -269,6 +269,19 @@ begin
   symbol.rows := 3;
   symbol.width := writer - 1;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, 2 + _length);
+    symbol.content_segs[0].Source[0] := fcc[0];
+    symbol.content_segs[0].Source[1] := fcc[1];
+    Move(localstr[0], symbol.content_segs[0].Source[2], _length);
+    symbol.content_segs[0].Length := 2 + _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number; exit;
 end;
 

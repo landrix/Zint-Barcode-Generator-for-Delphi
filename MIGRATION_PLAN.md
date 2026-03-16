@@ -43,7 +43,10 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (79 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT |
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (40 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
 
-**Gesamtstand: 382 Tests, 382 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (2026-03-15): 797 Tests, 797 bestanden, 0 fehlgeschlagen** ✅
+
+Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
+(vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie content_segs/API-Themen).
 
 ---
 
@@ -197,34 +200,34 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | C-Datei | Delphi-Datei | Status im Port |
 |---|---|---|
 | `library.c` + `zint.h` | `zint.pas` | erweitert, teilweise verifiziert |
-| `common.c` + `common.h` | `zint_common.pas` | work in progress |
-| `2of5.c` | `zint_2of5.pas` | b3a3c0d ported + tests gruen |
-| `auspost.c` | `zint_auspost.pas` | tests vorhanden, b3a3c0d-Port noch zu verifizieren |
-| `aztec.c` | `zint_aztec.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `code.c` | `zint_code.pas` | b3a3c0d ported + tests gruen |
-| `code1.c` | `zint_code1.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `code128.c` | `zint_code128.pas` | b3a3c0d ported + tests gruen |
-| `code16k.c` | `zint_code16k.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `code49.c` | `zint_code49.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `composite.c` | `zint_composite.pas` | work in progress |
-| `dmatrix.c` | `zint_dmatrix.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `dotcode.c` | `zint_dotcode.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `gb2312.h` | `zint_gb2312.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `gridmtx.c` | `zint_gridmtx.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `gs1.c` | `zint_gs1.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `imail.c` | `zint_imail.pas` | work in progress |
-| `large.c` | `zint_large.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `maxicode.c` | `zint_maxicode.pas` | work in progress |
-| `medical.c` | `zint_medical.pas` | b3a3c0d ported + tests gruen |
-| `pdf417.c` | `zint_pdf417.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `plessey.c` | `zint_plessey.pas` | b3a3c0d ported + tests gruen |
-| `postal.c` | `zint_postal.pas` | b3a3c0d ported + tests gruen |
-| `qr.c` | `zint_qr.pas` | b3a3c0d ported + tests gruen (Segment/content-API-Paritaet offen) |
-| `reedsol.c` | `zint_reedsol.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `rss.c` | `zint_rss.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `sjis.h` | `zint_sjis.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
-| `telepen.c` | `zint_telepen.pas` | **b3a3c0d ported** |
-| `upcean.c` | `zint_upcean.pas` | legacy-port (nicht b3a3c0d-verifiziert) |
+| `common.c` + `common.h` | `zint_common.pas` | in Arbeit |
+| `2of5.c` | `zint_2of5.pas` | b3a3c0d portiert + Tests gruen |
+| `auspost.c` | `zint_auspost.pas` | b3a3c0d portiert + Tests gruen |
+| `aztec.c` | `zint_aztec.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `code.c` | `zint_code.pas` | b3a3c0d portiert + Tests gruen |
+| `code1.c` | `zint_code1.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `code128.c` | `zint_code128.pas` | b3a3c0d portiert + Tests gruen |
+| `code16k.c` | `zint_code16k.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `code49.c` | `zint_code49.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `composite.c` | `zint_composite.pas` | in Arbeit |
+| `dmatrix.c` | `zint_dmatrix.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `dotcode.c` | `zint_dotcode.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `gb2312.h` | `zint_gb2312.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `gridmtx.c` | `zint_gridmtx.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `gs1.c` | `zint_gs1.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `imail.c` | `zint_imail.pas` | in Arbeit |
+| `large.c` | `zint_large.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `maxicode.c` | `zint_maxicode.pas` | in Arbeit |
+| `medical.c` | `zint_medical.pas` | b3a3c0d portiert + Tests gruen |
+| `pdf417.c` | `zint_pdf417.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `plessey.c` | `zint_plessey.pas` | b3a3c0d portiert + Tests gruen |
+| `postal.c` | `zint_postal.pas` | b3a3c0d portiert + Tests gruen |
+| `qr.c` | `zint_qr.pas` | b3a3c0d portiert + Tests gruen (Segment/content-API-Paritaet offen) |
+| `reedsol.c` | `zint_reedsol.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `rss.c` | `zint_rss.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `sjis.h` | `zint_sjis.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `telepen.c` | `zint_telepen.pas` | **b3a3c0d portiert** |
+| `upcean.c` | `zint_upcean.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 
 ### 3.2 Vorgehen pro Modul
 
@@ -356,4 +359,4 @@ UnitTests/
 
 ## Nächster Schritt
 
-**→ Tests für `zint_telepen.pas` kompilieren und ausführen, dann nächstes einfaches Modul portieren (z.B. `zint_medical.pas` oder `zint_plessey.pas`).**
+**→ QR-Paritaetsdeltas gezielt abbauen (content_segs/RT-content + Warning-3-vs-4-Faelle), danach naechstes legacy-Modul auf b3a3c0d heben (z.B. `zint_dmatrix.pas` oder `zint_pdf417.pas`) und 1:1 C-Tests erweitern.**
