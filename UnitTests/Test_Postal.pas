@@ -145,6 +145,12 @@ type
     [Test] procedure Encode_KIX_IJKLMNOPQRSTUVWXYZ;
   end;
 
+  [TestFixture]
+  TTestPostalHRTContentSegsFromC = class
+  public
+    [Test] procedure HRT_ContentSegs_FromC;
+  end;
+
 implementation
 
 { ===== test_large ===== }
@@ -1440,6 +1446,54 @@ begin
     Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, 'DAFT'));
     Assert.AreEqual('', TZintTestHelper.GetText(sym), 'text');
   finally sym.Free; end;
+end;
+
+procedure TTestPostalHRTContentSegsFromC.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Symbology: Integer;
+    Data: String;
+    ExpectedText: String;
+    ExpectedContent: String;
+  end;
+const
+  Items: array[0..10] of TItem = (
+    (Index: 1;  Symbology: BARCODE_FLAT;       Data: '12345';               ExpectedText: '';        ExpectedContent: '12345'),
+    (Index: 3;  Symbology: BARCODE_POSTNET;    Data: '12345';               ExpectedText: '';        ExpectedContent: '123455'),
+    (Index: 5;  Symbology: BARCODE_FIM;        Data: 'e';                   ExpectedText: '';        ExpectedContent: 'E'),
+    (Index: 7;  Symbology: BARCODE_CEPNET;     Data: '12345678';            ExpectedText: '';        ExpectedContent: '123456784'),
+    (Index: 9;  Symbology: BARCODE_RM4SCC;     Data: 'BX11LT1A';            ExpectedText: '';        ExpectedContent: 'BX11LT1AI'),
+    (Index: 11; Symbology: BARCODE_JAPANPOST;  Data: '1234';               ExpectedText: '';        ExpectedContent: '1234'),
+    (Index: 12; Symbology: BARCODE_JAPANPOST;  Data: '123456-AB';          ExpectedText: '';        ExpectedContent: '123456-AB'),
+    (Index: 14; Symbology: BARCODE_KOREAPOST;  Data: '123456';             ExpectedText: '1234569'; ExpectedContent: '1234569'),
+    (Index: 16; Symbology: BARCODE_PLANET;     Data: '12345678901';        ExpectedText: '';        ExpectedContent: '123456789014'),
+    (Index: 18; Symbology: BARCODE_KIX;        Data: '0123456789ABCDEFGH'; ExpectedText: '';        ExpectedContent: '0123456789ABCDEFGH'),
+    (Index: 20; Symbology: BARCODE_DAFT;       Data: 'DAFT';               ExpectedText: '';        ExpectedContent: 'DAFT')
+  );
+var
+  i, j, ret, expected_content_len: Integer;
+  sym: TZintSymbol;
+begin
+  for i := 0 to High(Items) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(Items[i].Symbology);
+    try
+      sym.output_options := BARCODE_CONTENT_SEGS;
+      ret := TZintTestHelper.EncodeData(sym, Items[i].Data);
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+      Assert.AreEqual(Items[i].ExpectedText, TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+
+      expected_content_len := Length(Items[i].ExpectedContent);
+      Assert.AreEqual(1, Integer(sym.content_segs_count), Format('C#%d content_segs_count', [Items[i].Index]));
+      Assert.AreEqual(expected_content_len, Integer(sym.content_segs[0].Length), Format('C#%d content length', [Items[i].Index]));
+      for j := 1 to expected_content_len do
+        Assert.AreEqual<Integer>(Ord(Items[i].ExpectedContent[j]), Integer(sym.content_segs[0].Source[j - 1]),
+          Format('C#%d content[%d]', [Items[i].Index, j - 1]));
+    finally
+      sym.Free;
+    end;
+  end;
 end;
 
 { ===== additional test_encode ===== }

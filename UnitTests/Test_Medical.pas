@@ -92,6 +92,12 @@ type
     [Test] procedure Encode_34567890_Option2_2;
   end;
 
+  [TestFixture]
+  TTestMedicalHRTContentSegsFromC = class
+  public
+    [Test] procedure HRT_ContentSegs_FromC;
+  end;
+
 implementation
 
 { ---------- TTestPharmaOne ---------- }
@@ -803,9 +809,57 @@ begin
   end;
 end;
 
+procedure TTestMedicalHRTContentSegsFromC.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Symbology: Integer;
+    Option2: Integer;
+    Data: AnsiString;
+    ExpectedText: AnsiString;
+    ExpectedContent: AnsiString;
+  end;
+const
+  Items: array[0..5] of TItem = (
+    (Index: 1; Symbology: BARCODE_PHARMA; Option2: -1; Data: '123456'; ExpectedText: ''; ExpectedContent: '123456'),
+    (Index: 3; Symbology: BARCODE_PHARMA_TWO; Option2: -1; Data: '123456'; ExpectedText: ''; ExpectedContent: '123456'),
+    (Index: 5; Symbology: BARCODE_CODE32; Option2: -1; Data: '123456'; ExpectedText: 'A001234564'; ExpectedContent: '015PN4'),
+    (Index: 7; Symbology: BARCODE_CODE32; Option2: -1; Data: '12345678'; ExpectedText: 'A123456788'; ExpectedContent: '3PRM8N'),
+    (Index: 9; Symbology: BARCODE_CODE32; Option2: 1; Data: '12345678'; ExpectedText: 'A123456788'; ExpectedContent: '3PRM8N'),
+    (Index: 11; Symbology: BARCODE_CODE32; Option2: 2; Data: '12345678'; ExpectedText: 'A123456788'; ExpectedContent: '3PRM8N')
+  );
+var
+  i, j, ret, expected_content_len: Integer;
+  sym: TZintSymbol;
+begin
+  for i := 0 to High(Items) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(Items[i].Symbology);
+    try
+      if Items[i].Option2 >= 0 then
+        sym.option_2 := Items[i].Option2;
+      sym.output_options := BARCODE_CONTENT_SEGS;
+
+      ret := TZintTestHelper.EncodeData(sym, String(Items[i].Data));
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+      Assert.AreEqual(String(Items[i].ExpectedText), TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+
+      expected_content_len := Length(Items[i].ExpectedContent);
+      Assert.AreEqual(1, sym.content_segs_count, Format('C#%d content_segs_count', [Items[i].Index]));
+      Assert.AreEqual(expected_content_len, sym.content_segs[0].Length, Format('C#%d content length', [Items[i].Index]));
+      for j := 1 to expected_content_len do
+        Assert.AreEqual(Ord(Items[i].ExpectedContent[j]), sym.content_segs[0].Source[j - 1],
+          Format('C#%d content[%d]', [Items[i].Index, j - 1]));
+    finally
+      sym.Free;
+    end;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestPharmaOne);
   TDUnitX.RegisterTestFixture(TTestPharmaTwo);
   TDUnitX.RegisterTestFixture(TTestCode32);
+  TDUnitX.RegisterTestFixture(TTestMedicalHRTContentSegsFromC);
 
 end.

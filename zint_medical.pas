@@ -112,6 +112,18 @@ begin
 
   expand(symbol, dest);
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number; exit;
 end;
 
@@ -209,6 +221,18 @@ begin
   end;
   symbol.rows := 2;
   symbol.width := writer - 1;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := error_number; exit;
 end;

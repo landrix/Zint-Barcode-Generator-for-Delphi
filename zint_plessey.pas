@@ -125,6 +125,20 @@ begin
     uconcat(symbol.text, xtoc(check_digits shr 4));
   end;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length + 2);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Source[_length] := Ord(xtoc(check_digits and $F));
+    symbol.content_segs[0].Source[_length + 1] := Ord(xtoc(check_digits shr 4));
+    symbol.content_segs[0].Length := _length + 2;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number; exit;
 end;
 
@@ -269,6 +283,18 @@ begin
   begin
     local_source[local_length] := 0;
     ustrcpy(symbol.text, local_source);
+  end;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, local_length);
+    if local_length > 0 then
+      Move(local_source[0], symbol.content_segs[0].Source[0], local_length);
+    symbol.content_segs[0].Length := local_length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
   end;
 
   result := 0;

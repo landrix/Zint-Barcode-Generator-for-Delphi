@@ -2079,6 +2079,7 @@ end;
 function hibc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   counter, error_number, i : Integer;
+  content_src : TArrayOfByte;
   to_process, temp : TArrayOfChar;
   check_digit : Char;
 begin
@@ -2138,7 +2139,8 @@ begin
 	case symbol.symbology of
 		BARCODE_HIBC_128:
     begin
-			error_number := code_128(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := code_128(symbol, content_src, _length);
       ustrcpy(symbol.text, '*');
       uconcat(symbol.text, to_process);
       uconcat(symbol.text, '*');
@@ -2146,22 +2148,51 @@ begin
     BARCODE_HIBC_39:
     begin
 			symbol.option_2 := 0;
-			error_number := c39(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := c39(symbol, content_src, _length);
       ustrcpy(symbol.text, '*');
       uconcat(symbol.text, to_process);
       uconcat(symbol.text, '*');
     end;
     BARCODE_HIBC_DM:
-			error_number := dmatrix(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+    begin
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := dmatrix(symbol, content_src, _length);
+    end;
 		BARCODE_HIBC_QR:
-			error_number := qr_code(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+    begin
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := qr_code(symbol, content_src, _length);
+    end;
 		BARCODE_HIBC_PDF:
-			error_number := pdf417enc(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+    begin
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := pdf417enc(symbol, content_src, _length);
+    end;
 		BARCODE_HIBC_MICPDF:
-			error_number := micro_pdf417(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+    begin
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := micro_pdf417(symbol, content_src, _length);
+    end;
 		BARCODE_HIBC_AZTEC:
-			error_number := aztec(symbol, ArrayOfCharToArrayOfByte(to_process), _length);
+    begin
+      content_src := ArrayOfCharToArrayOfByte(to_process);
+      error_number := aztec(symbol, content_src, _length);
+    end;
 	end;
+
+  if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0)
+    and ((symbol.symbology = BARCODE_HIBC_128) or (symbol.symbology = BARCODE_HIBC_39)) then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(content_src[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
 	Result := error_number; exit;
 end;
@@ -2777,12 +2808,25 @@ begin
   begin
 		for i := 0 to _length - 1 do
     begin
-			if (local_source[i] = 0) then
+      if (local_source[i] = 0) or (local_source[i] < 32) or (local_source[i] = 127)
+        or ((local_source[i] >= 128) and (local_source[i] <= 159)) then
 				symbol.text[i] := 32
       else
 				symbol.text[i] := local_source[i];
 		end;
     symbol.text[_length] := 0;
+
+    if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0) then
+    begin
+      SetLength(symbol.content_segs, 1);
+      SetLength(symbol.content_segs[0].Source, _length);
+      if _length > 0 then
+        Move(local_source[0], symbol.content_segs[0].Source[0], _length);
+      symbol.content_segs[0].Length := _length;
+      symbol.content_segs[0].ECI := 0;
+      symbol.content_segs[0].SourceMode := -1;
+      symbol.content_segs_count := 1;
+    end;
 	end;
 
 	if (error_number = 0) then

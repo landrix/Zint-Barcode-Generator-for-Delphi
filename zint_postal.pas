@@ -135,6 +135,7 @@ var
   loopey, h : Integer;
   writer : Integer;
   error_number : Integer;
+  sum, check_digit, i : Integer;
 begin
   SetLength(height_pattern, 256);
 
@@ -157,6 +158,24 @@ begin
   symbol.row_height[1] := 6;
   symbol.rows := 2;
   symbol.width := writer - 1;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    sum := 0;
+    for i := 0 to _length - 1 do
+      Inc(sum, ctoi(Chr(source[i])));
+    check_digit := (10 - (sum mod 10)) mod 10;
+
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length + 1);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Source[_length] := Ord(itoc(check_digit));
+    symbol.content_segs[0].Length := _length + 1;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := error_number;
 end;
@@ -217,6 +236,7 @@ var
   loopey, h : Integer;
   writer : Integer;
   error_number : Integer;
+  sum, check_digit, i : Integer;
 begin
   SetLength(height_pattern, 256);
 
@@ -239,6 +259,24 @@ begin
   symbol.row_height[1] := 6;
   symbol.rows := 2;
   symbol.width := writer - 1;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    sum := 0;
+    for i := 0 to _length - 1 do
+      Inc(sum, ctoi(Chr(source[i])));
+    check_digit := (10 - (sum mod 10)) mod 10;
+
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length + 1);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Source[_length] := Ord(itoc(check_digit));
+    symbol.content_segs[0].Length := _length + 1;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := error_number;
 end;
@@ -302,6 +340,17 @@ begin
   local_source[7] := 0;
   ustrcpy(symbol.text, local_source);
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, 7);
+    Move(local_source[0], symbol.content_segs[0].Source[0], 7);
+    symbol.content_segs[0].Length := 7;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number;
 end;
 
@@ -333,6 +382,17 @@ begin
       strcpy(symbol.errtxt, 'Error 487: Invalid character in input ("A", "B", "C", "D" or "E" only)');
       result := ZERROR_INVALID_DATA; exit;
     end;
+  end;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, 1);
+    symbol.content_segs[0].Source[0] := Ord(ch);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
   end;
 
   result := error_number;
@@ -381,6 +441,7 @@ var
   writer : Integer;
   error_number : Integer;
   i : Integer;
+  check_digit : Char;
 begin
   SetLength(height_pattern, 210);
   strcpy(height_pattern, '');
@@ -401,7 +462,7 @@ begin
     end;
   end;
 
-  rm4scc(source, height_pattern, _length);
+  check_digit := rm4scc(source, height_pattern, _length);
 
   writer := 0;
   h := strlen(height_pattern);
@@ -420,6 +481,19 @@ begin
   symbol.row_height[2] := 3;
   symbol.rows := 3;
   symbol.width := writer - 1;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length + 1);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Source[_length] := Ord(check_digit);
+    symbol.content_segs[0].Length := _length + 1;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := error_number;
 end;
@@ -474,6 +548,18 @@ begin
   symbol.rows := 3;
   symbol.width := writer - 1;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number;
 end;
 
@@ -520,6 +606,18 @@ begin
   symbol.rows := 3;
   symbol.width := writer - 1;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := 0;
 end;
 
@@ -552,6 +650,19 @@ begin
     lookup(NEON, FlatTable, source[i], dest);
 
   expand(symbol, dest);
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number;
 end;
 
@@ -672,6 +783,18 @@ begin
   symbol.row_height[2] := 3;
   symbol.rows := 3;
   symbol.width := writer - 1;
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(local_source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := error_number;
 end;

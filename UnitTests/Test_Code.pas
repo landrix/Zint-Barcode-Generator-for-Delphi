@@ -251,6 +251,13 @@ type
     [Test] procedure Encode_DollarDollar52001510X3G;
   end;
 
+  { ====================== C test_code.c: test_hrt content_segs ====================== }
+  [TestFixture]
+  TTestCodeHRTContentSegsFromC = class
+  public
+    [Test] procedure HRT_ContentSegs_FromC;
+  end;
+
 implementation
 
 { ==================== TTestCode11 ==================== }
@@ -2165,6 +2172,120 @@ begin
       '1000101110111010100010100010001010001000100010101000100010001010111010001110101010111000101011101010001110111010101000111011101011101000101011101110100011101010111010001010111010100011101110101000101110101110111011100010101010101000111011101010111000101110100010111011101',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally sym.Free; end;
+end;
+
+procedure TTestCodeHRTContentSegsFromC.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Symbology: Integer;
+    Option2: Integer;
+    Data: AnsiString;
+    DataLen: Integer;
+    ExpectedText: AnsiString;
+    ExpectedTextLen: Integer;
+    ExpectedContent: AnsiString;
+    ExpectedContentLen: Integer;
+  end;
+const
+  Items: array[0..31] of TItem = (
+    (Index: 1; Symbology: BARCODE_CODE39; Option2: -1; Data: 'ABC1234'; DataLen: -1; ExpectedText: '*ABC1234*'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234'; ExpectedContentLen: -1),
+    (Index: 3; Symbology: BARCODE_CODE39; Option2: 1; Data: 'ABC1234'; DataLen: -1; ExpectedText: '*ABC12340*'; ExpectedTextLen: -1; ExpectedContent: 'ABC12340'; ExpectedContentLen: -1),
+    (Index: 5; Symbology: BARCODE_CODE39; Option2: -1; Data: 'abc1234'; DataLen: -1; ExpectedText: '*ABC1234*'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234'; ExpectedContentLen: -1),
+    (Index: 7; Symbology: BARCODE_CODE39; Option2: 1; Data: 'abc1234'; DataLen: -1; ExpectedText: '*ABC12340*'; ExpectedTextLen: -1; ExpectedContent: 'ABC12340'; ExpectedContentLen: -1),
+    (Index: 9; Symbology: BARCODE_CODE39; Option2: 1; Data: 'ab'; DataLen: -1; ExpectedText: '*ABL*'; ExpectedTextLen: -1; ExpectedContent: 'ABL'; ExpectedContentLen: -1),
+    (Index: 11; Symbology: BARCODE_CODE39; Option2: -1; Data: '123456789'; DataLen: -1; ExpectedText: '*123456789*'; ExpectedTextLen: -1; ExpectedContent: '123456789'; ExpectedContentLen: -1),
+    (Index: 13; Symbology: BARCODE_CODE39; Option2: 1; Data: '123456789'; DataLen: -1; ExpectedText: '*1234567892*'; ExpectedTextLen: -1; ExpectedContent: '1234567892'; ExpectedContentLen: -1),
+    (Index: 15; Symbology: BARCODE_CODE39; Option2: 2; Data: '123456789'; DataLen: -1; ExpectedText: '*123456789*'; ExpectedTextLen: -1; ExpectedContent: '1234567892'; ExpectedContentLen: -1),
+
+    (Index: 17; Symbology: BARCODE_EXCODE39; Option2: -1; Data: 'ABC1234'; DataLen: -1; ExpectedText: 'ABC1234'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234'; ExpectedContentLen: -1),
+    (Index: 19; Symbology: BARCODE_EXCODE39; Option2: 1; Data: 'ABC1234'; DataLen: -1; ExpectedText: 'ABC12340'; ExpectedTextLen: -1; ExpectedContent: 'ABC12340'; ExpectedContentLen: -1),
+    (Index: 21; Symbology: BARCODE_EXCODE39; Option2: -1; Data: 'abc1234'; DataLen: -1; ExpectedText: 'abc1234'; ExpectedTextLen: -1; ExpectedContent: 'abc1234'; ExpectedContentLen: -1),
+    (Index: 23; Symbology: BARCODE_EXCODE39; Option2: 1; Data: 'abc1234'; DataLen: -1; ExpectedText: 'abc1234.'; ExpectedTextLen: -1; ExpectedContent: 'abc1234.'; ExpectedContentLen: -1),
+    (Index: 25; Symbology: BARCODE_EXCODE39; Option2: 2; Data: 'abc1234'; DataLen: -1; ExpectedText: 'abc1234'; ExpectedTextLen: -1; ExpectedContent: 'abc1234.'; ExpectedContentLen: -1),
+    (Index: 27; Symbology: BARCODE_EXCODE39; Option2: -1; Data: 'a%' + #0 + #1 + '$' + #127 + 'z' + #27 + #31 + '!+/\@A~'; DataLen: 16; ExpectedText: 'a%  $ z  !+/\@A~'; ExpectedTextLen: -1; ExpectedContent: 'a%' + #0 + #1 + '$' + #127 + 'z' + #27 + #31 + '!+/\@A~'; ExpectedContentLen: 16),
+    (Index: 29; Symbology: BARCODE_EXCODE39; Option2: 1; Data: 'a%' + #0 + #1 + '$' + #127 + 'z' + #27 + #31 + '!+/\@A~'; DataLen: 16; ExpectedText: 'a%  $ z  !+/\@A~L'; ExpectedTextLen: -1; ExpectedContent: 'a%' + #0 + #1 + '$' + #127 + 'z' + #27 + #31 + '!+/\@A~L'; ExpectedContentLen: 17),
+    (Index: 31; Symbology: BARCODE_EXCODE39; Option2: 2; Data: 'a%' + #0 + #1 + '$' + #127 + 'z' + #27 + #31 + '!+/\@A~'; DataLen: 16; ExpectedText: 'a%  $ z  !+/\@A~'; ExpectedTextLen: -1; ExpectedContent: 'a%' + #0 + #1 + '$' + #127 + 'z' + #27 + #31 + '!+/\@A~L'; ExpectedContentLen: 17),
+
+    (Index: 33; Symbology: BARCODE_LOGMARS; Option2: -1; Data: 'ABC1234'; DataLen: -1; ExpectedText: 'ABC1234'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234'; ExpectedContentLen: -1),
+    (Index: 35; Symbology: BARCODE_LOGMARS; Option2: -1; Data: 'abc1234'; DataLen: -1; ExpectedText: 'ABC1234'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234'; ExpectedContentLen: -1),
+    (Index: 37; Symbology: BARCODE_LOGMARS; Option2: 1; Data: 'abc1234'; DataLen: -1; ExpectedText: 'ABC12340'; ExpectedTextLen: -1; ExpectedContent: 'ABC12340'; ExpectedContentLen: -1),
+    (Index: 39; Symbology: BARCODE_LOGMARS; Option2: 1; Data: '12345/ABCDE'; DataLen: -1; ExpectedText: '12345/ABCDET'; ExpectedTextLen: -1; ExpectedContent: '12345/ABCDET'; ExpectedContentLen: -1),
+    (Index: 41; Symbology: BARCODE_LOGMARS; Option2: 2; Data: '12345/ABCDE'; DataLen: -1; ExpectedText: '12345/ABCDE'; ExpectedTextLen: -1; ExpectedContent: '12345/ABCDET'; ExpectedContentLen: -1),
+
+    (Index: 43; Symbology: BARCODE_CODE93; Option2: -1; Data: 'ABC1234'; DataLen: -1; ExpectedText: 'ABC1234'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234S5'; ExpectedContentLen: -1),
+    (Index: 45; Symbology: BARCODE_CODE93; Option2: 1; Data: 'ABC1234'; DataLen: -1; ExpectedText: 'ABC1234S5'; ExpectedTextLen: -1; ExpectedContent: 'ABC1234S5'; ExpectedContentLen: -1),
+    (Index: 47; Symbology: BARCODE_CODE93; Option2: -1; Data: 'abc1234'; DataLen: -1; ExpectedText: 'abc1234'; ExpectedTextLen: -1; ExpectedContent: 'abc1234ZG'; ExpectedContentLen: -1),
+    (Index: 49; Symbology: BARCODE_CODE93; Option2: 1; Data: 'abc1234'; DataLen: -1; ExpectedText: 'abc1234ZG'; ExpectedTextLen: -1; ExpectedContent: 'abc1234ZG'; ExpectedContentLen: -1),
+    (Index: 51; Symbology: BARCODE_CODE93; Option2: -1; Data: 'A' + #1 + 'a' + #0 + 'b' + #127 + 'd' + #31 + 'e'; DataLen: 9; ExpectedText: 'A a b d e'; ExpectedTextLen: -1; ExpectedContent: 'A' + #1 + 'a' + #0 + 'b' + #127 + 'd' + #31 + 'e1R'; ExpectedContentLen: 11),
+    (Index: 53; Symbology: BARCODE_CODE93; Option2: 1; Data: 'A' + #1 + 'a' + #0 + 'b' + #127 + 'd' + #31 + 'e'; DataLen: 9; ExpectedText: 'A a b d e1R'; ExpectedTextLen: -1; ExpectedContent: 'A' + #1 + 'a' + #0 + 'b' + #127 + 'd' + #31 + 'e1R'; ExpectedContentLen: 11),
+
+    (Index: 55; Symbology: BARCODE_VIN; Option2: -1; Data: '1FTCR10UXTPA78180'; DataLen: -1; ExpectedText: '1FTCR10UXTPA78180'; ExpectedTextLen: -1; ExpectedContent: '1FTCR10UXTPA78180'; ExpectedContentLen: -1),
+    (Index: 57; Symbology: BARCODE_VIN; Option2: 1; Data: '2FTPX28L0XCA15511'; DataLen: -1; ExpectedText: '2FTPX28L0XCA15511'; ExpectedTextLen: -1; ExpectedContent: 'I2FTPX28L0XCA15511'; ExpectedContentLen: -1),
+
+    (Index: 59; Symbology: BARCODE_HIBC_39; Option2: -1; Data: 'ABC1234'; DataLen: -1; ExpectedText: '*+ABC1234+*'; ExpectedTextLen: -1; ExpectedContent: '+ABC1234+'; ExpectedContentLen: -1),
+    (Index: 61; Symbology: BARCODE_HIBC_39; Option2: -1; Data: 'abc1234'; DataLen: -1; ExpectedText: '*+ABC1234+*'; ExpectedTextLen: -1; ExpectedContent: '+ABC1234+'; ExpectedContentLen: -1),
+    (Index: 63; Symbology: BARCODE_HIBC_39; Option2: -1; Data: '123456789'; DataLen: -1; ExpectedText: '*+1234567890*'; ExpectedTextLen: -1; ExpectedContent: '+1234567890'; ExpectedContentLen: -1)
+  );
+var
+  i, j, ret, data_len, expected_text_len, expected_content_len: Integer;
+  sym: TZintSymbol;
+  input_bytes, expected_content_bytes: TArrayOfByte;
+
+  function MakeBytes(const S: AnsiString; const ExplicitLen: Integer): TArrayOfByte;
+  var
+    k, l: Integer;
+  begin
+    if ExplicitLen >= 0 then
+      l := ExplicitLen
+    else
+      l := Length(S);
+    SetLength(Result, l + 1);
+    for k := 1 to l do
+      Result[k - 1] := Ord(S[k]);
+    Result[l] := 0;
+  end;
+
+begin
+  for i := 0 to High(Items) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(Items[i].Symbology);
+    try
+      sym.output_options := BARCODE_CONTENT_SEGS;
+      if Items[i].Option2 >= 0 then
+        sym.option_2 := Items[i].Option2;
+
+      input_bytes := MakeBytes(Items[i].Data, Items[i].DataLen);
+      if Items[i].DataLen >= 0 then
+        data_len := Items[i].DataLen
+      else
+        data_len := Length(Items[i].Data);
+
+      ret := TZintTestHelper.EncodeData(sym, input_bytes, data_len);
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+
+      if Items[i].ExpectedTextLen >= 0 then
+        expected_text_len := Items[i].ExpectedTextLen
+      else
+        expected_text_len := Length(Items[i].ExpectedText);
+      Assert.AreEqual(expected_text_len, Length(TZintTestHelper.GetText(sym)), Format('C#%d text_length', [Items[i].Index]));
+      Assert.AreEqual(String(Items[i].ExpectedText), TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+
+      if Items[i].ExpectedContentLen >= 0 then
+        expected_content_len := Items[i].ExpectedContentLen
+      else
+        expected_content_len := Length(Items[i].ExpectedContent);
+      expected_content_bytes := MakeBytes(Items[i].ExpectedContent, expected_content_len);
+
+      Assert.AreEqual(1, sym.content_segs_count, Format('C#%d content_segs_count', [Items[i].Index]));
+      Assert.AreEqual(expected_content_len, sym.content_segs[0].Length, Format('C#%d content length', [Items[i].Index]));
+      for j := 0 to expected_content_len - 1 do
+        Assert.AreEqual(expected_content_bytes[j], sym.content_segs[0].Source[j],
+          Format('C#%d content[%d]', [Items[i].Index, j]));
+    finally
+      sym.Free;
+    end;
+  end;
 end;
 
 end.

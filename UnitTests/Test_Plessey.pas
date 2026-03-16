@@ -130,6 +130,12 @@ type
     [Test] procedure HRT_Mod1110_NoShow_2211;
   end;
 
+  [TestFixture]
+  TTestPlesseyHRTContentSegsFromC = class
+  public
+    [Test] procedure HRT_ContentSegs_FromC;
+  end;
+
 implementation
 
 { ---------- TTestPlessey ---------- }
@@ -1208,8 +1214,64 @@ begin
   end;
 end;
 
+procedure TTestPlesseyHRTContentSegsFromC.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Symbology: Integer;
+    Option2: Integer;
+    Data: String;
+    ExpectedText: String;
+    ExpectedContent: String;
+  end;
+const
+  Items: array[0..13] of TItem = (
+    (Index: 1;  Symbology: BARCODE_MSI_PLESSEY; Option2: -1; Data: '1234567';          ExpectedText: '1234567';          ExpectedContent: '1234567'),
+    (Index: 5;  Symbology: BARCODE_MSI_PLESSEY; Option2: 1;  Data: '1234567';          ExpectedText: '12345674';         ExpectedContent: '12345674'),
+    (Index: 7;  Symbology: BARCODE_MSI_PLESSEY; Option2: 11; Data: '1234567';          ExpectedText: '1234567';          ExpectedContent: '12345674'),
+    (Index: 11; Symbology: BARCODE_MSI_PLESSEY; Option2: 2;  Data: '1234567';          ExpectedText: '123456741';        ExpectedContent: '123456741'),
+    (Index: 19; Symbology: BARCODE_MSI_PLESSEY; Option2: 13; Data: '1234567';          ExpectedText: '1234567';          ExpectedContent: '12345674'),
+    (Index: 27; Symbology: BARCODE_MSI_PLESSEY; Option2: 4;  Data: '9999999999';       ExpectedText: '999999999959';     ExpectedContent: '999999999959'),
+    (Index: 37; Symbology: BARCODE_MSI_PLESSEY; Option2: 16; Data: '1234567';          ExpectedText: '1234567';          ExpectedContent: '123456790'),
+    (Index: 49; Symbology: BARCODE_MSI_PLESSEY; Option2: 3;  Data: '2211';             ExpectedText: '221110';           ExpectedContent: '221110'),
+    (Index: 51; Symbology: BARCODE_MSI_PLESSEY; Option2: 13; Data: '2211';             ExpectedText: '2211';             ExpectedContent: '221110'),
+    (Index: 55; Symbology: BARCODE_MSI_PLESSEY; Option2: 14; Data: '2211';             ExpectedText: '2211';             ExpectedContent: '2211100'),
+    (Index: 57; Symbology: BARCODE_PLESSEY;     Option2: -1; Data: '0123456789ABCDEF'; ExpectedText: '0123456789ABCDEF'; ExpectedContent: '0123456789ABCDEF90'),
+    (Index: 63; Symbology: BARCODE_PLESSEY;     Option2: 1;  Data: '1';                ExpectedText: '173';              ExpectedContent: '173'),
+    (Index: 69; Symbology: BARCODE_PLESSEY;     Option2: -1; Data: '75';               ExpectedText: '75';               ExpectedContent: '7580'),
+    (Index: 75; Symbology: BARCODE_PLESSEY;     Option2: 1;  Data: '993';              ExpectedText: '993AA';            ExpectedContent: '993AA')
+  );
+var
+  i, j, ret, expected_content_len: Integer;
+  sym: TZintSymbol;
+begin
+  for i := 0 to High(Items) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(Items[i].Symbology);
+    try
+      sym.output_options := BARCODE_CONTENT_SEGS;
+      if Items[i].Option2 >= 0 then
+        sym.option_2 := Items[i].Option2;
+
+      ret := TZintTestHelper.EncodeData(sym, Items[i].Data);
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+      Assert.AreEqual(Items[i].ExpectedText, TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+
+      expected_content_len := Length(Items[i].ExpectedContent);
+      Assert.AreEqual(1, Integer(sym.content_segs_count), Format('C#%d content_segs_count', [Items[i].Index]));
+      Assert.AreEqual(expected_content_len, Integer(sym.content_segs[0].Length), Format('C#%d content length', [Items[i].Index]));
+      for j := 1 to expected_content_len do
+        Assert.AreEqual<Integer>(Ord(Items[i].ExpectedContent[j]), Integer(sym.content_segs[0].Source[j - 1]),
+          Format('C#%d content[%d]', [Items[i].Index, j - 1]));
+    finally
+      sym.Free;
+    end;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestPlessey);
   TDUnitX.RegisterTestFixture(TTestMSIPlessey);
+  TDUnitX.RegisterTestFixture(TTestPlesseyHRTContentSegsFromC);
 
 end.

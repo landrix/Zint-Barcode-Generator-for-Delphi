@@ -207,6 +207,8 @@ var
   i : Integer;
   counter : Integer;
   check_digit : Char;
+  check_digit_raw : Char;
+  content_len : Integer;
   error_number : Integer;
   dest : TArrayOfChar;
 begin
@@ -262,6 +264,7 @@ begin
     check_digit := SILVER[counter + 1]; { 1-based string index }
     lookup(SILVER, C39Table, Ord(check_digit), dest);
   end;
+  check_digit_raw := check_digit;
 
   { Stop character }
   concat(dest, '121121211');
@@ -308,6 +311,24 @@ begin
     end;
   end;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    content_len := _length;
+    if ((symbol.option_2 = 1) or (symbol.option_2 = 2)) and (check_digit_raw <> #0) then
+      Inc(content_len);
+
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, content_len);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    if content_len > _length then
+      symbol.content_segs[0].Source[_length] := Ord(check_digit_raw);
+    symbol.content_segs[0].Length := content_len;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number; exit;
 end;
 
@@ -319,6 +340,7 @@ var
   buffer : TArrayOfByte;
   i : Integer;
   b : Integer;
+  content_len : Integer;
   error_number : Integer;
   check_digit : Byte;
   have_option_2 : Integer;
@@ -398,6 +420,24 @@ begin
   else
     symbol.text[_length] := 0;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    content_len := _length;
+    if ((have_option_2 = 1) or (have_option_2 = 2)) and (check_digit <> 0) then
+      Inc(content_len);
+
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, content_len);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    if content_len > _length then
+      symbol.content_segs[0].Source[_length] := check_digit;
+    symbol.content_segs[0].Length := content_len;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number; exit;
 end;
 
@@ -413,6 +453,7 @@ var
   i : Integer;
   h, weight, c, k, error_number : Integer;
   values : array[0..124] of Integer; { 123 + 2 (Checks) }
+  content_len : Integer;
   buffer : TArrayOfChar;
   dest : TArrayOfChar;
   set_copy : TArrayOfChar;
@@ -508,6 +549,21 @@ begin
   else
     symbol.text[_length] := 0;
 
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    content_len := _length + 2;
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, content_len);
+    if _length > 0 then
+      Move(source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Source[_length] := Ord(set_copy[c]);
+    symbol.content_segs[0].Source[_length + 1] := Ord(set_copy[k]);
+    symbol.content_segs[0].Length := content_len;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
+
   result := error_number; exit;
 end;
 
@@ -520,6 +576,7 @@ const
   vin_weight : array[0..16] of Integer = (8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2);
 var
   dest : TArrayOfChar;
+  content_len : Integer;
   input_check, output_check : Char;
   sum, value, i : Integer;
 begin
@@ -597,6 +654,28 @@ begin
   expand(symbol, dest);
 
   ustrcpy(symbol.text, source);
+
+  if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+  begin
+    content_len := _length;
+    if symbol.option_2 = 1 then
+      Inc(content_len);
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, content_len);
+    if symbol.option_2 = 1 then
+      symbol.content_segs[0].Source[0] := Ord('I');
+    if _length > 0 then
+    begin
+      if symbol.option_2 = 1 then
+        Move(source[0], symbol.content_segs[0].Source[1], _length)
+      else
+        Move(source[0], symbol.content_segs[0].Source[0], _length);
+    end;
+    symbol.content_segs[0].Length := content_len;
+    symbol.content_segs[0].ECI := 0;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+  end;
 
   result := 0;
 end;

@@ -56,6 +56,9 @@ type
     [Test] procedure Encode_PZN8_2758089;
     [Test] procedure Encode_PZN7_123456;
     [Test] procedure Encode_PZN8_Option2_1234567;
+
+    { test_hrt BARCODE_CONTENT_SEGS from C }
+    [Test] procedure HRT_ContentSegs_FromC;
   end;
 
 implementation
@@ -421,6 +424,55 @@ begin
     Assert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
+end;
+
+procedure TTestPZN.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Option2: Integer;
+    Data: String;
+    ExpectedText: String;
+    ExpectedContent: String;
+  end;
+const
+  Items: array[0..8] of TItem = (
+    (Index: 13; Option2: -1; Data: '12345';   ExpectedText: 'PZN - 00123458'; ExpectedContent: '-00123458'),
+    (Index: 15; Option2: -1; Data: '123456';  ExpectedText: 'PZN - 01234562'; ExpectedContent: '-01234562'),
+    (Index: 17; Option2: -1; Data: '1234567'; ExpectedText: 'PZN - 12345678'; ExpectedContent: '-12345678'),
+    (Index: 19; Option2: -1; Data: '12345678';ExpectedText: 'PZN - 12345678'; ExpectedContent: '-12345678'),
+    (Index: 21; Option2: 1;  Data: '1234';    ExpectedText: 'PZN - 0012345';  ExpectedContent: '-0012345'),
+    (Index: 23; Option2: 1;  Data: '12345';   ExpectedText: 'PZN - 0123458';  ExpectedContent: '-0123458'),
+    (Index: 25; Option2: 1;  Data: '123456';  ExpectedText: 'PZN - 1234562';  ExpectedContent: '-1234562'),
+    (Index: 27; Option2: 1;  Data: '1234562'; ExpectedText: 'PZN - 1234562';  ExpectedContent: '-1234562'),
+    (Index: 29; Option2: 2;  Data: '12345';   ExpectedText: 'PZN - 00123458'; ExpectedContent: '-00123458')
+  );
+var
+  i, j, ret, expected_content_len: Integer;
+  sym: TZintSymbol;
+begin
+  for i := 0 to High(Items) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
+    try
+      sym.output_options := BARCODE_CONTENT_SEGS;
+      if Items[i].Option2 >= 0 then
+        sym.option_2 := Items[i].Option2;
+
+      ret := TZintTestHelper.EncodeData(sym, Items[i].Data);
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+      Assert.AreEqual(Items[i].ExpectedText, TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+
+      expected_content_len := Length(Items[i].ExpectedContent);
+      Assert.AreEqual(1, Integer(sym.content_segs_count), Format('C#%d content_segs_count', [Items[i].Index]));
+      Assert.AreEqual(expected_content_len, Integer(sym.content_segs[0].Length), Format('C#%d content length', [Items[i].Index]));
+      for j := 1 to expected_content_len do
+        Assert.AreEqual<Integer>(Ord(Items[i].ExpectedContent[j]), Integer(sym.content_segs[0].Source[j - 1]),
+          Format('C#%d content[%d]', [Items[i].Index, j - 1]));
+    finally
+      sym.Free;
+    end;
+  end;
 end;
 
 initialization

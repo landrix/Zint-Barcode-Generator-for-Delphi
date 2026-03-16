@@ -276,6 +276,12 @@ type
     [Test] procedure Test_Encode_52001510X3G;
   end;
 
+  [TestFixture]
+  TTestCode128HRTContentSegsFromC = class
+  public
+    [Test] procedure HRT_ContentSegs_FromC;
+  end;
+
 implementation
 
 { ======================================================================
@@ -902,7 +908,7 @@ begin
 end;
 
 procedure TTestCode128.Test_HRT_CtrlReplace;
-{ C#6: verify ctrl chars are preserved in HRT (Delphi only replaces NUL->space) }
+{ C#6: control chars are replaced with spaces in HRT }
 var
   Data: TArrayOfByte;
   HRT: String;
@@ -911,7 +917,7 @@ begin
   Assert.AreEqual(ZINT_OK, TZintTestHelper.EncodeData(FSymbol, Data, 13));
   HRT := TZintTestHelper.GetText(FSymbol);
   Assert.AreEqual(13, Length(HRT), 'HRT length');
-  Assert.AreEqual('12345', Copy(HRT, 1, 5), 'HRT prefix');
+  Assert.AreEqual('12345 67890  ', HRT, 'HRT');
 end;
 
 procedure TTestCode128.Test_HRT_Extended;
@@ -1616,11 +1622,100 @@ begin
     TZintTestHelper.ModulesDump(FSymbol));
 end;
 
+procedure TTestCode128HRTContentSegsFromC.HRT_ContentSegs_FromC;
+type
+  TItem = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Option2: Integer;
+    Data: AnsiString;
+    DataLen: Integer;
+    ExpectedText: AnsiString;
+    ExpectedTextLen: Integer;
+    ExpectedContent: AnsiString;
+    ExpectedContentLen: Integer;
+  end;
+const
+  Items: array[0..7] of TItem = (
+    (Index: 1;  Symbology: BARCODE_CODE128;  InputMode: UNICODE_MODE; Option2: -1; Data: '1234567890'; DataLen: -1; ExpectedText: '1234567890'; ExpectedTextLen: -1; ExpectedContent: '1234567890'; ExpectedContentLen: -1),
+    (Index: 3;  Symbology: BARCODE_CODE128;  InputMode: UNICODE_MODE; Option2: -1; Data: #0'ABC'#0'DEF'#0; DataLen: 9; ExpectedText: ' ABC DEF '; ExpectedTextLen: -1; ExpectedContent: #0'ABC'#0'DEF'#0; ExpectedContentLen: 9),
+    (Index: 5;  Symbology: BARCODE_CODE128B; InputMode: UNICODE_MODE; Option2: -1; Data: '12345'#0'67890'; DataLen: 11; ExpectedText: '12345 67890'; ExpectedTextLen: -1; ExpectedContent: '12345'#0'67890'; ExpectedContentLen: 11),
+    (Index: 7;  Symbology: BARCODE_CODE128;  InputMode: UNICODE_MODE; Option2: -1; Data: '12345'#9'67890'#31#127; DataLen: -1; ExpectedText: '12345 67890  '; ExpectedTextLen: -1; ExpectedContent: '12345'#9'67890'#31#127; ExpectedContentLen: -1),
+    (Index: 13; Symbology: BARCODE_CODE128;  InputMode: DATA_MODE;    Option2: -1; Data: 'abcd'#233; DataLen: 5; ExpectedText: 'abcd'#233; ExpectedTextLen: 5; ExpectedContent: 'abcd'#233; ExpectedContentLen: 5),
+    (Index: 17; Symbology: BARCODE_CODE128;  InputMode: DATA_MODE;    Option2: -1; Data: 'ab'#128'cd'#233; DataLen: 6; ExpectedText: 'ab cd'#233; ExpectedTextLen: 6; ExpectedContent: 'ab'#128'cd'#233; ExpectedContentLen: 6),
+    (Index: 25; Symbology: BARCODE_HIBC_128; InputMode: UNICODE_MODE; Option2: -1; Data: '1234567890'; DataLen: -1; ExpectedText: '*+12345678900*'; ExpectedTextLen: -1; ExpectedContent: '+12345678900'; ExpectedContentLen: -1),
+    (Index: 27; Symbology: BARCODE_HIBC_128; InputMode: UNICODE_MODE; Option2: -1; Data: 'a99912345'; DataLen: -1; ExpectedText: '*+A999123457*'; ExpectedTextLen: -1; ExpectedContent: '+A999123457'; ExpectedContentLen: -1)
+  );
+var
+  i, j, ret, data_len, expected_text_len, expected_content_len: Integer;
+  sym: TZintSymbol;
+  input_bytes, expected_text_bytes, expected_content_bytes: TArrayOfByte;
+
+  function MakeBytes(const S: AnsiString; const ExplicitLen: Integer): TArrayOfByte;
+  var
+    k, l: Integer;
+  begin
+    if ExplicitLen >= 0 then
+      l := ExplicitLen
+    else
+      l := Length(S);
+    SetLength(Result, l + 1);
+    for k := 1 to l do
+      Result[k - 1] := Ord(S[k]);
+    Result[l] := 0;
+  end;
+
+begin
+  for i := 0 to High(Items) do
+  begin
+    sym := TZintTestHelper.CreateSymbol(Items[i].Symbology);
+    try
+      sym.input_mode := Items[i].InputMode;
+      sym.output_options := BARCODE_CONTENT_SEGS;
+      if Items[i].Option2 >= 0 then
+        sym.option_2 := Items[i].Option2;
+
+      input_bytes := MakeBytes(Items[i].Data, Items[i].DataLen);
+      if Items[i].DataLen >= 0 then
+        data_len := Items[i].DataLen
+      else
+        data_len := Length(Items[i].Data);
+
+      ret := TZintTestHelper.EncodeData(sym, input_bytes, data_len);
+      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+
+      if Items[i].ExpectedTextLen >= 0 then
+        expected_text_len := Items[i].ExpectedTextLen
+      else
+        expected_text_len := Length(Items[i].ExpectedText);
+      expected_text_bytes := MakeBytes(Items[i].ExpectedText, expected_text_len);
+      for j := 0 to expected_text_len - 1 do
+        Assert.AreEqual(expected_text_bytes[j], sym.text[j], Format('C#%d text[%d]', [Items[i].Index, j]));
+
+      if Items[i].ExpectedContentLen >= 0 then
+        expected_content_len := Items[i].ExpectedContentLen
+      else
+        expected_content_len := Length(Items[i].ExpectedContent);
+      expected_content_bytes := MakeBytes(Items[i].ExpectedContent, expected_content_len);
+
+      Assert.AreEqual(1, sym.content_segs_count, Format('C#%d content_segs_count', [Items[i].Index]));
+      Assert.AreEqual(expected_content_len, sym.content_segs[0].Length, Format('C#%d content length', [Items[i].Index]));
+      for j := 0 to expected_content_len - 1 do
+        Assert.AreEqual(expected_content_bytes[j], sym.content_segs[0].Source[j],
+          Format('C#%d content[%d]', [Items[i].Index, j]));
+    finally
+      sym.Free;
+    end;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TTestCode128);
   TDUnitX.RegisterTestFixture(TTestEAN128);
   TDUnitX.RegisterTestFixture(TTestEAN14);
   TDUnitX.RegisterTestFixture(TTestNVE18);
   TDUnitX.RegisterTestFixture(TTestHIBC128);
+  TDUnitX.RegisterTestFixture(TTestCode128HRTContentSegsFromC);
 
 end.
