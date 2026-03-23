@@ -2078,7 +2078,7 @@ end;
 
 function hibc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  counter, error_number, i : Integer;
+  counter, error_number, i, content_eci : Integer;
   content_src : TArrayOfByte;
   to_process, temp : TArrayOfChar;
   check_digit : Char;
@@ -2182,14 +2182,22 @@ begin
 	end;
 
   if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0)
-    and ((symbol.symbology = BARCODE_HIBC_128) or (symbol.symbology = BARCODE_HIBC_39)) then
+    and (symbol.symbology in [BARCODE_HIBC_128, BARCODE_HIBC_39, BARCODE_HIBC_QR]) then
   begin
     SetLength(symbol.content_segs, 1);
     SetLength(symbol.content_segs[0].Source, _length);
     if _length > 0 then
       Move(content_src[0], symbol.content_segs[0].Source[0], _length);
     symbol.content_segs[0].Length := _length;
-    symbol.content_segs[0].ECI := 0;
+    if symbol.symbology = BARCODE_HIBC_QR then
+    begin
+      content_eci := symbol.eci;
+      if content_eci = 0 then
+        content_eci := 3;
+      symbol.content_segs[0].ECI := content_eci;
+    end
+    else
+      symbol.content_segs[0].ECI := 0;
     symbol.content_segs[0].SourceMode := -1;
     symbol.content_segs_count := 1;
   end;
@@ -2567,11 +2575,12 @@ procedure qr_normalize_content_segs_eci(symbol: zint_symbol); forward;
 
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  error_number, error_buffer, i, base_mode, content_eci : Integer;
-  local_source : TArrayOfByte;
+  error_number, error_buffer, i, base_mode, content_eci, original_eci : Integer;
+  local_source, original_source : TArrayOfByte;
 begin
   SetLength(symbol.content_segs, 0);
   symbol.content_segs_count := 0;
+  original_eci := symbol.eci;
 
   error_number := 0;
 
@@ -2584,6 +2593,10 @@ begin
 		error_tag(symbol.errtxt, ZERROR_INVALID_DATA);
 		Result := ZERROR_INVALID_DATA; exit;
 	end;
+
+  SetLength(original_source, _length);
+  if _length > 0 then
+    Move(source[0], original_source[0], _length);
 
   SetLength(local_source, _length + 1);
   base_mode := symbol.input_mode and $07;
@@ -2839,17 +2852,43 @@ begin
 		error_number := error_buffer;
 
   if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0)
-    and (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
+    and (symbol.symbology in [BARCODE_QRCODE, BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
   begin
     SetLength(symbol.content_segs, 1);
-    SetLength(symbol.content_segs[0].Source, _length);
-    if _length > 0 then
-      Move(local_source[0], symbol.content_segs[0].Source[0], _length);
-    symbol.content_segs[0].Length := _length;
-    if base_mode = GS1_MODE then
-      content_eci := 3
+    if (symbol.symbology = BARCODE_QRCODE) and (base_mode <> GS1_MODE) then
+    begin
+      SetLength(symbol.content_segs[0].Source, _length);
+      if _length > 0 then
+        Move(original_source[0], symbol.content_segs[0].Source[0], _length);
+      symbol.content_segs[0].Length := _length;
+    end
+    else if (symbol.symbology = BARCODE_QRCODE) and (base_mode = GS1_MODE) then
+    begin
+      // GS1 mode: local_source already has '[' as FNC1 placeholder per gs1_verify.
+      // RT content stores the processed GS1 payload with '[' replaced by ASCII GS (0x1D).
+      SetLength(symbol.content_segs[0].Source, _length);
+      for i := 0 to _length - 1 do
+      begin
+        if local_source[i] = Ord('[') then
+          symbol.content_segs[0].Source[i] := $1D
+        else
+          symbol.content_segs[0].Source[i] := local_source[i];
+      end;
+      symbol.content_segs[0].Length := _length;
+    end
     else
-      content_eci := symbol.eci;
+    begin
+      SetLength(symbol.content_segs[0].Source, Length(local_source));
+      if _length > 0 then
+        Move(local_source[0], symbol.content_segs[0].Source[0], _length);
+      symbol.content_segs[0].Length := _length;
+    end;
+    if original_eci <> 0 then
+      content_eci := symbol.eci
+    else if (base_mode = UNICODE_MODE) and (symbol.eci = 20) then
+      content_eci := 20
+    else
+      content_eci := 0;
     symbol.content_segs[0].ECI := content_eci;
     symbol.content_segs[0].SourceMode := -1;
     symbol.content_segs_count := 1;
@@ -2867,9 +2906,10 @@ end;
 function qr_guess_best_eci_from_utf8(symbol: zint_symbol; const bytes: TArrayOfByte;
   const seg_len: Integer): Integer;
 var
-  utfdata, converted: TArrayOfInteger;
-  i, eci, conv_len, error_number: Integer;
-  source_copy: TArrayOfByte;
+  i, eci, codepage: Integer;
+  source_copy, utf8_roundtrip, encoded: TBytes;
+  encoding: TEncoding;
+  text, roundtrip_text: UnicodeString;
 begin
   if seg_len <= 0 then
   begin
@@ -2877,16 +2917,24 @@ begin
     Exit;
   end;
 
-  SetLength(source_copy, seg_len + 1);
+  SetLength(source_copy, seg_len);
   for i := 0 to seg_len - 1 do
     source_copy[i] := bytes[i];
-  source_copy[seg_len] := 0;
 
-  conv_len := seg_len;
-  SetLength(utfdata, conv_len + 1);
-  SetLength(converted, conv_len + 1);
-  error_number := utf8toutf16(symbol, source_copy, utfdata, conv_len);
-  if error_number <> 0 then
+  try
+    text := TEncoding.UTF8.GetString(source_copy);
+    utf8_roundtrip := TEncoding.UTF8.GetBytes(text);
+  except
+    Result := 26;
+    Exit;
+  end;
+
+  if Length(utf8_roundtrip) <> seg_len then
+  begin
+    Result := 26;
+    Exit;
+  end;
+  if (seg_len > 0) and not CompareMem(@utf8_roundtrip[0], @source_copy[0], seg_len) then
   begin
     Result := 26;
     Exit;
@@ -2896,11 +2944,36 @@ begin
   begin
     if (eci = 14) or (eci = 19) or (eci = 20) then
       Continue;
-    if try_single_byte_eci(utfdata, conv_len, eci, converted) then
+
+    codepage := eci_codepage(eci);
+    if codepage = 0 then
+      Continue;
+
+    try
+      encoding := TEncoding.GetEncoding(codepage);
+      encoded := encoding.GetBytes(text);
+      roundtrip_text := encoding.GetString(encoded);
+    except
+      Continue;
+    end;
+
+    if (Length(encoded) = Length(text)) and (roundtrip_text = text) then
     begin
       Result := eci;
       Exit;
     end;
+  end;
+
+  try
+    encoding := TEncoding.GetEncoding(932);
+    encoded := encoding.GetBytes(text);
+    roundtrip_text := encoding.GetString(encoded);
+    if roundtrip_text = text then
+    begin
+      Result := 20;
+      Exit;
+    end;
+  except
   end;
 
   Result := 26;

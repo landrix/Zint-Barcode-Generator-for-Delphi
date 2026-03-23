@@ -210,6 +210,19 @@ begin
   Result[n] := 0;
 end;
 
+function BytesToHex(const Data: TArrayOfByte; const Len: Integer): String;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to Len - 1 do
+  begin
+    if Result <> '' then
+      Result := Result + ' ';
+    Result := Result + IntToHex(Data[i], 2);
+  end;
+end;
+
 procedure TTestQR.Test_QR_Large_FromC_AllItems;
 const
   CItems: array[0..17] of TQRLargeItem = (
@@ -1254,39 +1267,42 @@ type
     Option3: Integer;  // -1 = do not set
     OutputOptions: Integer; // -1 = do not set
     Data: string;
+    DataHex: string;   // non-empty = use raw bytes via EncodeData(byte[])
     ExpectedRet: Integer;
     ExpectedECI: Integer;
     ExpectedContentSegCount: Integer;
     ExpectedContentECI: Integer;
+    ExpectedContentHex: string;
   end;
 const
   // Full C test_qr_rt matrix C#0..20, including BARCODE_CONTENT_SEGS behavior.
   CItems: array[0..20] of TQRRTItem = (
-    (Index:  0; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index:  1; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C returns 0/eci=0/seg=1/eci=3 (UTF-8 path not yet ported)
-    (Index:  2; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$0E01;                                          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C returns eci=13; Delphi direct ECI fallback → ECI=26
-    (Index:  3; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0E01;                                          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C returns eci=13/content_segs; Delphi no content_segs via ZBarcode_Encode
-    (Index:  4; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$70B9;                                          ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C returns ZINT_WARN_NONCOMPLIANT; Delphi Kanji auto-mode uses ECI 20 without warning
-    (Index:  5; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$70B9;                                          ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C returns NONCOMPLIANT+content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index:  6; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index:  7; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index:  8; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Data: #$0093#$005F;                                    ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index:  9; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0093#$005F;                                    ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index: 10; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: 20;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Data: #$0093#$005F;                                    ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index: 11; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: 20;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0093#$005F;                                    ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index: 12; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 26;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          ExpectedRet: 0;                   ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index: 13; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 26;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          ExpectedRet: 0;                   ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index: 14; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 899; Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          ExpectedRet: 0;                   ExpectedECI: 899; ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index: 15; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 899; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          ExpectedRet: 0;                   ExpectedECI: 899; ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index: 16; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index: 17; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
-    (Index: 18; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: 170; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 170; ExpectedContentSegCount: 0; ExpectedContentECI: 0), // TODO: C returns NONCOMPLIANT+content_segs; Delphi ZBarcode_Encode keeps success and no content_segs
-    (Index: 19; Symbology: BARCODE_HIBC_QR;  InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: 'H123ABC01234567890';                            ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0),
-    (Index: 20; Symbology: BARCODE_HIBC_QR;  InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: 'H123ABC01234567890';                            ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0) // TODO: C has content_segs; Delphi ZBarcode_Encode doesn't populate content_segs
+    (Index:  0; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index:  1; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: 'C3 A9'), // Delta: ret/symbol.eci still differ from C, but RT content now round-trips as UTF-8/ECI 3
+    (Index:  2; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$0E01;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''), // Delta: C resolves symbol.eci=13, Delphi still falls back to 26
+    (Index:  3; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0E01;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 1; ExpectedContentECI: 13;  ExpectedContentHex: 'E0 B8 81'),
+    (Index:  4; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$70B9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''), // Delta: C returns ZINT_WARN_NONCOMPLIANT, Delphi still succeeds cleanly with ECI 20
+    (Index:  5; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$70B9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 1; ExpectedContentECI: 20;  ExpectedContentHex: 'E7 82 B9'), // Delta: warning class still differs from C
+    (Index:  6; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: '';                                              DataHex: 'C3 A9';     ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index:  7; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '';                                              DataHex: 'C3 A9';     ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: 'C3 A9'),
+    (Index:  8; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Data: '';                                              DataHex: 'C2 93 5F';  ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index:  9; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: BARCODE_CONTENT_SEGS; Data: '';                                              DataHex: 'C2 93 5F';  ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: 'C2 93 5F'),
+    (Index: 10; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: 20;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Data: '';                                              DataHex: 'C2 93 5F';  ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index: 11; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: 20;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: BARCODE_CONTENT_SEGS; Data: '';                                              DataHex: 'C2 93 5F';  ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 1; ExpectedContentECI: 20;  ExpectedContentHex: 'C2 93 5F'),
+    (Index: 12; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 26;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index: 13; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 26;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 26;  ExpectedContentSegCount: 1; ExpectedContentECI: 26;  ExpectedContentHex: 'C3 A9'),
+    (Index: 14; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 899; Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 899; ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index: 15; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 899; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 899; ExpectedContentSegCount: 1; ExpectedContentECI: 899; ExpectedContentHex: 'C3 A9'),
+    (Index: 16; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index: 17; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: '30 31 30 34 39 31 32 33 34 35 31 32 33 34 35 39 31 35 39 37 30 33 33 31 33 30 31 32 38 1D 31 30 41 42 43 31 32 33'),
+    (Index: 18; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: 170; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 170; ExpectedContentSegCount: 1; ExpectedContentECI: 170; ExpectedContentHex: '30 31 30 34 39 31 32 33 34 35 31 32 33 34 35 39 31 35 39 37 30 33 33 31 33 30 31 32 38 1D 31 30 41 42 43 31 32 33'), // Delta: C returns ZINT_WARN_NONCOMPLIANT here
+    (Index: 19; Symbology: BARCODE_HIBC_QR;  InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: 'H123ABC01234567890';                            ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index: 20; Symbology: BARCODE_HIBC_QR;  InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: 'H123ABC01234567890';                            ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: '2B 48 31 32 33 41 42 43 30 31 32 33 34 35 36 37 38 39 30 44')
   );
 var
-  i, ret: Integer;
+  i, ret, rawLen: Integer;
   sym: TZintSymbol;
+  expectedSource, rawData: TArrayOfByte;
 begin
   for i := Low(CItems) to High(CItems) do
   begin
@@ -1300,7 +1316,14 @@ begin
       if CItems[i].OutputOptions >= 0 then
         sym.output_options := CItems[i].OutputOptions;
 
-      ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
+      if CItems[i].DataHex <> '' then
+      begin
+        rawData := HexToByteArray(CItems[i].DataHex);
+        rawLen := Length(rawData) - 1;
+        ret := TZintTestHelper.EncodeData(sym, rawData, rawLen);
+      end
+      else
+        ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
       Assert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
@@ -1325,6 +1348,16 @@ begin
           Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
             Format('C#%d content_segs length expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
+          expectedSource := HexToByteArray(CItems[i].ExpectedContentHex);
+          SetLength(expectedSource, Length(expectedSource) - 1);
+          Assert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
+            Format('C#%d content seg length expected %d got %d',
+              [CItems[i].Index, Length(expectedSource), sym.content_segs[0].Length]));
+          if Length(expectedSource) > 0 then
+            Assert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
+              Format('C#%d content seg source bytes differ expected [%s] got [%s]',
+                [CItems[i].Index, CItems[i].ExpectedContentHex,
+                 BytesToHex(sym.content_segs[0].Source, sym.content_segs[0].Length)]));
           Assert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
             Format('C#%d content seg ECI expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentECI, sym.content_segs[0].ECI]));

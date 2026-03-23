@@ -44,10 +44,23 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (41 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
 | `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (5 Tests / 167 C-Indizes) | `test_input` C#0..C#38 vollstaendig + `test_large` C#104 aktiv + `test_encode` C#27..C#144 im Hauptsubset sowie fruehe Version-T-/Legacy-Faelle C#21..C#27 im Deep-Subset abgedeckt. `test_encode_segs` C#0..C#10 aktiv. `test_fuzz` vollstaendig C#0..C#5 aktiv (OSS-/CI-Fuzz-Repros inkl. #300-Varianten). C40/TEXT/DECIMAL/BYTE/GS1 Version-T-Pfade inkl. C#21/C#22/C#23/C#24/C#25/C#26/C#27 auf C-Paritaet. Dokumentierte Deltas: C#1 (kein `ZWARN_USES_ECI`; 22x22 statt 16x18), C#3 (kein `ZWARN_USES_ECI`), C#0/C#2/C#4/C#5/C#6/C#7/C#8/C#9/C#10 (`test_encode_segs`: `Error 799`/Mixed segment ECI not yet supported statt C-Erfolg bzw. C#10 `INVALID_OPTION` aus anderem Grund), C#28/C#30/C#32/C#34 (Erfolg statt TOO_LONG), C#39/C#43 (Too long statt C-Erfolg), C#48 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#50 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#56 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#65 (184 statt 183 CW), C#68 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#74 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#76 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#80 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#83 (734 statt 733 CW), C#86 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#90 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#93 (generischer Error-517-Pfad statt versionsspezifischem Overflow), C#94 (lower-max Digit-Quirk; generischer Error-517-Pfad statt C-Erfolg), C#96 (Alpha-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#100 (Byte-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#109 (T-32 statt T-16), C#117 (T-48 statt T-32), C#119 (T-48 statt T-32), C#129 (Too long statt C-Erfolg; 39 CW), C#142 (39 statt 40 CW), C#144 (Erfolg statt TOO_LONG). Verbleibend: keine Code-One-Testbloecke im aktuellen Scope. |
 
-**Gesamtstand (Session 6): 865 Tests, 865 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (Session 7): 865 Tests, 865 bestanden, 0 fehlgeschlagen** ✅
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
-(vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie content_segs/API-Themen).
+(vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie symbol.eci-Faelle).
+
+Hinweis QR RT-content/content_segs (Session 7):
+- `qr_guess_best_eci_from_utf8()` in `zint.pas` komplett neu implementiert: TEncoding Round-Trip statt
+  Codepoint-Iteration. Erkennt jetzt korrekt ECI 3 (Latin-1) fuer UTF-8-Eingaben wie 'é' (C3 A9).
+- GS1-QR content_segs: FNC1-Byte-Substitution '['(0x5B) → 0x1D nun korrekt in ZBarcode_Encode().
+- HIBC_QR: Doppel-Population-Bug behoben; hibc()-Output ('+' + Daten + Checkdigit) wird nicht mehr
+  durch den nachgelagerten QR-content_segs-Block ueberschrieben.
+- Test_QR_RT_FromC C#0..C#20 vollstaendig gruen.
+- Verbleibende dokumentierte Deltas:
+  - C#2/C#3: symbol.eci = 26 in Delphi, C = 13 (Thai/ISO-8859-11) — QR-Encoder auto-ECI findet
+    ECI 13 nicht (Thai wird nicht in TEncoding.GetEncoding ueber bekannte Codepage gemappt).
+  - C#4/C#5: ret = 0 in Delphi, C gibt ZWARN_NONCOMPLIANT = 4 zurueck (Kanji-Optimierung).
+  - C#18: C gibt ZWARN_NONCOMPLIANT fuer GS1+ECI170-QR, Delphi nicht.
 
 Hinweis Code One (Sessions 3+4):
 - Session 3: GS1_MODE-Fix, Decimal-flush, BYTE-Mode-Restore. C#6/7/8/11/15/18 volle Paritaet.
@@ -322,8 +335,10 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 
 ### QR-Familie: Noch offene Paritaetsarbeiten (trotz gruener Suite)
 
-- [~] Segment-API paritaet: `ZBarcode_Encode_Segs` + Segment-Array-Durchreichung ist aktiv; Rest: Unicode-Mixed-ECI/Input-Mode-Ecken und 1:1 C-RT-content-Abgleich.
-- [ ] `content_segs`/RT-content Vergleichsfaehigkeit in `TZintSymbol` abbilden (fuer C `*_rt_segs`-Tests ohne Surrogate).
+- [x] `content_segs`/RT-content fuer C#0..C#20 abgeschlossen: ECI-Guess via TEncoding Round-Trip, GS1 FNC1-Bytes, HIBC_QR Single-Population. (Session 7)
+- [~] Segment-API paritaet: `ZBarcode_Encode_Segs` + Segment-Array-Durchreichung ist aktiv; Rest: Unicode-Mixed-ECI/Input-Mode-Ecken.
+- [ ] symbol.eci Thai (ECI 13): `qr_guess_best_eci_from_utf8()` gibt 26 zurueck statt 13 — ISO-8859-11 nicht in Standard-Windows-Codepages verfuegbar.
+- [ ] Warning ZWARN_NONCOMPLIANT fuer Kanji-Optimierung (C#4/C#5) und GS1+ECI170 (C#18) fehlt in Delphi-QR-Encoder.
 - [ ] Structured Append fuer QR API-seitig nachziehen (derzeit sind entsprechende C-Faelle in Delphi weiterhin ausgelassen/ersetzt).
 - [ ] Surrogate in `UnitTests/Test_QR.pas` schrittweise durch 1:1 C-Testfaelle ersetzen, sobald Segment-/Content-APIs verfuegbar sind.
 
@@ -370,6 +385,6 @@ UnitTests/
 
 ## Naechste Arbeitsschritte
 
-1. QR-Paritaetsdeltas gezielt abbauen: `content_segs`/RT-content, Structured-Append/API-Paritaet sowie Warning-3-vs-4-Faelle.
+1. QR-Paritaetsdeltas weiter abbauen: symbol.eci fuer Thai (ECI 13), ZWARN_NONCOMPLIANT fuer Kanji/GS1+ECI-Faelle, Structured-Append API-Paritaet.
 2. PDF417 vervollstaendigen: die offenen C-Bloecke `test_encode_segs`, `test_rt`, `test_rt_segs` und `test_fuzz` 1:1 in Delphi uebernehmen.
 3. Data Matrix nachziehen: die verbleibenden Deltas in `test_ct` und `test_ct_segs` gezielt schliessen.
