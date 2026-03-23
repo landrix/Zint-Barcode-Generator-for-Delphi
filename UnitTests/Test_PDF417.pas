@@ -24,6 +24,8 @@ type
     procedure TestInputSubset;
     [Test]
     procedure TestEncodeSubset;
+    [Test]
+    procedure TestEncodeSegsMainSubset;
   end;
 
 implementation
@@ -2254,6 +2256,169 @@ begin
       Symbol.Free;
     end;
   end;
+end;
+
+procedure TTestPDF417FromC.TestEncodeSegsMainSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    Option3: Integer;
+    { Segments: up to 3 unicode strings with individual ECIs }
+    Seg0_Data: String;
+    Seg0_Eci: Integer;
+    Seg1_Data: String;
+    Seg1_Eci: Integer;
+    Seg2_Data: String;
+    Seg2_Eci: Integer;
+    { Structured Append (if Count > 0) }
+    StructApp_Index: Integer;
+    StructApp_Count: Integer;
+    StructApp_Id: String;
+    { Expected results }
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+    Comment: String;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..2] of TCase;  { PoC: only first 3 items, start }
+  I, J: Integer;
+  Ret: Integer;
+  Segs: TZintSegments;
+  SegCount: Integer;
+begin
+  for I := Low(Cases) to High(Cases) do
+    Cases[I] := Default(TCase);
+
+  { C test_encode_segs C#0: Standard example with 2 segments (Latin + Cyrillic)}
+  Cases[0].Index := 0;
+  Cases[0].Symbology := BARCODE_PDF417;
+  Cases[0].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[0].Option1 := -1;
+  Cases[0].Option2 := -1;
+  Cases[0].Option3 := -1;
+  Cases[0].Seg0_Data := '¶';     { Pilcrow, Latin }
+  Cases[0].Seg0_Eci := 0;         { ECI 0 = use auto-detect or symbol.eci }
+  Cases[0].Seg1_Data := 'Ж';     { Cyrillic }
+  Cases[0].Seg1_Eci := 7;         { ECI 7 = Cyrillic }
+  Cases[0].Seg2_Data := '';      { Empty seg }
+  Cases[0].Seg2_Eci := -1;
+  Cases[0].StructApp_Count := 0; { No Structured Append }
+  Cases[0].ExpectedRet := 0;
+  Cases[0].ExpectedRows := 8;
+  Cases[0].ExpectedWidth := 103;
+  Cases[0].Comment := 'Standard example';
+
+  { C test_encode_segs C#1: Same as C#0 but without FAST_MODE }
+  Cases[1].Index := 1;
+  Cases[1].Symbology := BARCODE_PDF417;
+  Cases[1].InputMode := UNICODE_MODE;
+  Cases[1].Option1 := -1;
+  Cases[1].Option2 := -1;
+  Cases[1].Option3 := -1;
+  Cases[1].Seg0_Data := '¶';
+  Cases[1].Seg0_Eci := 0;
+  Cases[1].Seg1_Data := 'Ж';
+  Cases[1].Seg1_Eci := 7;
+  Cases[1].Seg2_Data := '';
+  Cases[1].Seg2_Eci := -1;
+  Cases[1].StructApp_Count := 0;
+  Cases[1].ExpectedRet := 0;
+  Cases[1].ExpectedRows := 8;
+  Cases[1].ExpectedWidth := 103;
+  Cases[1].Comment := 'Standard example (no FAST_MODE)';
+
+  { C test_encode_segs C#2: Standard example with auto-ECI (expected WARN_USES_ECI) }
+  Cases[2].Index := 2;
+  Cases[2].Symbology := BARCODE_PDF417;
+  Cases[2].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[2].Option1 := -1;
+  Cases[2].Option2 := -1;
+  Cases[2].Option3 := -1;
+  Cases[2].Seg0_Data := '¶';
+  Cases[2].Seg0_Eci := 0;      { Auto-detect (Latin) }
+  Cases[2].Seg1_Data := 'Ж';
+  Cases[2].Seg1_Eci := 0;      { Auto-detect (should detect Cyrillic) }
+  Cases[2].Seg2_Data := '';
+  Cases[2].Seg2_Eci := -1;
+  Cases[2].StructApp_Count := 0;
+  Cases[2].ExpectedRet := ZWARN_USES_ECI;
+  Cases[2].ExpectedRows := 8;
+  Cases[2].ExpectedWidth := 103;
+  Cases[2].Comment := 'Auto-ECI variant';
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, Cases[I].Option3, -1);
+
+      { Build segments array - only include non-empty segments }
+      SegCount := 0;
+      if Cases[I].Seg0_Data <> '' then
+      begin
+        SetLength(Segs, SegCount + 1);
+        Segs[SegCount] := TZintTestHelper.StringToSegment(Cases[I].Seg0_Data, Cases[I].Seg0_Eci);
+        Inc(SegCount);
+      end;
+      if Cases[I].Seg1_Data <> '' then
+      begin
+        SetLength(Segs, SegCount + 1);
+        Segs[SegCount] := TZintTestHelper.StringToSegment(Cases[I].Seg1_Data, Cases[I].Seg1_Eci);
+        Inc(SegCount);
+      end;
+      if Cases[I].Seg2_Data <> '' then
+      begin
+        SetLength(Segs, SegCount + 1);
+        Segs[SegCount] := TZintTestHelper.StringToSegment(Cases[I].Seg2_Data, Cases[I].Seg2_Eci);
+        Inc(SegCount);
+      end;
+
+      if SegCount = 0 then
+      begin
+        { No segments - this shouldn't happen but set default }
+        SetLength(Segs, 1);
+        Segs[0].Source := TEncoding.UTF8.GetBytes('A');
+        Segs[0].Length := -1;
+        Segs[0].ECI := -1;
+        Segs[0].SourceMode := -1;
+        SegCount := 1;
+      end;
+
+      { Set Structured Append if needed }
+      if Cases[I].StructApp_Count > 0 then
+      begin
+        Symbol.structapp.index := Cases[I].StructApp_Index;
+        Symbol.structapp.count := Cases[I].StructApp_Count;
+        Symbol.structapp.id := Cases[I].StructApp_Id;
+      end;
+
+      { Encode using segments }
+      Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
+
+      { Assertions }
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+          Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+          Format('C#%d width', [Cases[I].Index]));
+
+    finally
+      Symbol.Free;
+    end;
+  end;
+
+  { TODO: Add remaining C#3..C#43 items in future sessions }
+  { NOTE: Items 42-43 (HIBC_PDF, HIBC_MICPDF) return ERROR_INVALID_OPTION and are not supported in Delphi }
 end;
 
 initialization

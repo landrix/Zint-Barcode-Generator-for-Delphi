@@ -3082,7 +3082,7 @@ begin
     for i := 0 to High(segs) do
     begin
       seg_len := segs[i].Length;
-      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
         seg_len := ustrlen(segs[i].Source);
 
       if seg_len < 0 then
@@ -3147,7 +3147,7 @@ begin
       for i := 0 to High(segs) do
       begin
         seg_len := segs[i].Length;
-        if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
           seg_len := ustrlen(segs[i].Source);
         symbol.content_segs[i].Source := segs[i].Source;
         symbol.content_segs[i].Length := seg_len;
@@ -3171,7 +3171,11 @@ begin
   for i := 0 to High(segs) do
   begin
     seg_len := segs[i].Length;
-    if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+    if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
+        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
+        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
+        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
+        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
       seg_len := ustrlen(segs[i].Source);
 
     if seg_len < 0 then
@@ -3196,7 +3200,7 @@ begin
         first_eci := segs[i].ECI
       else if first_eci <> segs[i].ECI then
       begin
-        if symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM] then
+        if symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM, BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417, BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF] then
           first_eci := 0
         else
         begin
@@ -3231,7 +3235,7 @@ begin
     for i := 0 to High(segs) do
     begin
       seg_len := segs[i].Length;
-      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
         seg_len := ustrlen(segs[i].Source);
       symbol.content_segs[i].Source := segs[i].Source;
       symbol.content_segs[i].Length := seg_len;
@@ -3257,7 +3261,7 @@ begin
     for i := 0 to High(segs) do
     begin
       seg_len := segs[i].Length;
-      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
         seg_len := ustrlen(segs[i].Source);
 
       if not dm_convert_seg_to_bytes(symbol, segs[i].Source, seg_len, segs[i].ECI, dm_conv_bytes, conv_len) then
@@ -3282,7 +3286,7 @@ begin
     for i := 0 to High(segs) do
     begin
       seg_len := segs[i].Length;
-      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
         seg_len := ustrlen(segs[i].Source);
       Inc(total_len, seg_len);
     end;
@@ -3292,7 +3296,7 @@ begin
     for i := 0 to High(segs) do
     begin
       seg_len := segs[i].Length;
-      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+      if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
         seg_len := ustrlen(segs[i].Source);
       if seg_len > 0 then
       begin

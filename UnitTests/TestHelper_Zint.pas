@@ -56,6 +56,15 @@ type
 
     /// <summary>Wiederholt einen Pattern-String bis zur angegebenen Laenge</summary>
     class function StrRepeat(const APattern: String; ATargetLen: Integer): String;
+
+    /// <summary>Konvertiert einen Unicode-String zu TZintSegment (UTF-8 bytes mit ECI)</summary>
+    /// <param name="AData">Unicode-String zu konvertieren</param>
+    /// <param name="AEci">ECI-Wert (-1 = Auto, 0 = Latin-1, etc.)</param>
+    /// <returns>TZintSegment mit UTF-8 bytes und ECI</returns>
+    class function StringToSegment(const AData: String; AEci: Integer = -1): TZintSegment;
+
+    /// <summary>Encodiert mit Segs mittels ZBarcode_Encode_Segs</summary>
+    class function EncodeDataSegs(ASymbol: TZintSymbol; const ASegments: TZintSegments): Integer;
   end;
 
 const
@@ -198,6 +207,26 @@ begin
   SetLength(Result, ATargetLen);
   for i := 1 to ATargetLen do
     Result[i] := APattern[((i - 1) mod PatLen) + 1];
+end;
+
+class function TZintTestHelper.StringToSegment(const AData: String; AEci: Integer = -1): TZintSegment;
+begin
+  { Convert Unicode string to UTF-8 bytes for segment }
+  Result.Source := TEncoding.UTF8.GetBytes(AData);
+  if Length(Result.Source) = 0 then
+    Result.Length := 0  { Empty segment: length must be 0, not -1 }
+   else
+   begin
+    { Set actual byte count - ustrlen() will be used by encoder if needed }
+    Result.Length := Length(Result.Source);
+   end;
+  Result.ECI := AEci;
+  Result.SourceMode := -1; { Use symbol.input_mode }
+end;
+
+class function TZintTestHelper.EncodeDataSegs(ASymbol: TZintSymbol; const ASegments: TZintSegments): Integer;
+begin
+  Result := ZBarcode_Encode_Segs(ASymbol, ASegments);
 end;
 
 end.
