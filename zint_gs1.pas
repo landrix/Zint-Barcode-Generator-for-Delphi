@@ -175,7 +175,7 @@ begin
 	if (bracket_level <> 0) then
   begin
 		{ Not all brackets are closed }
-		strcpy(symbol.errtxt, 'Malformed AI in input data (brackets don\''t match)');
+		strcpy(symbol.errtxt, 'Error 253: Malformed AI in input (brackets don''t match)');
 		result := ZERROR_INVALID_DATA; exit;
 	end;
 

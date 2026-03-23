@@ -896,7 +896,7 @@ begin
   begin
     if (gs1 <> 0) then
     begin
-      strcpy(symbol.errtxt, 'Cannot encode in GS1 mode and Reader Initialisation at the same time');
+      strcpy(symbol.errtxt, 'Error 521: Cannot use Reader Initialisation in GS1 mode');
       exit(ZERROR_INVALID_OPTION);
     end
     else
@@ -1460,6 +1460,13 @@ var
 begin
   skew := 0;
 
+  if (_length > MAXBARCODE) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 719: Input length %d too long (maximum %d)', [_length, MAXBARCODE]));
+    result := ZERROR_TOO_LONG;
+    exit;
+  end;
+
 //  inputlen := _length;
   SetLength(binary, 2200);
   SetLength(process_buffer, 8);
@@ -1504,8 +1511,9 @@ begin
     symbolsize := calcsize;
     if (optionsize <> -1) then
     begin
-      { flag an error }
-      strcpy(symbol.errtxt, 'Data does not fit in selected symbol size');
+      { C parity: report selected-version codeword overflow details }
+      strcpy(symbol.errtxt, Format('Error 522: Input too long for Version %d, requires %d codewords (maximum %d)',
+        [symbol.option_2, binlen + process_p, matrixbytes[optionsize]]));
       Exit(ZERROR_TOO_LONG);
     end;
   end;
@@ -1518,6 +1526,15 @@ begin
   if (binlen > matrixbytes[symbolsize]) then begin
       strcpy(symbol.errtxt, 'Data too long to fit in symbol');
       Exit(ZERROR_TOO_LONG);
+  end;
+
+  for i := 0 to NbOfSymbols - 1 do
+  begin
+    if intsymbol[i] = symbolsize then
+    begin
+      symbol.option_2 := i + 1;
+      break;
+    end;
   end;
 
   H := matrixH[symbolsize];
@@ -1608,7 +1625,7 @@ begin
   else
   begin
     { ECC 000 - 140 }
-    strcpy(symbol.errtxt, 'Older Data Matrix standards are no longer supported');
+    strcpy(symbol.errtxt, 'Error 524: Older Data Matrix standards are no longer supported');
     error_number := ZERROR_INVALID_OPTION;
   end;
 

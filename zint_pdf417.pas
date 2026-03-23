@@ -475,8 +475,10 @@ var
   mode : Integer;
 begin
   mode := BYT;
-  if ((codeascii = #9) or (codeascii = #10) or (codeascii = #13) or ((codeascii >= ' ') and (codeascii <= '~'))) then mode := TEX
-  else if ((codeascii >= '0') and (codeascii <= '9')) then mode := NUM;
+  if ((codeascii >= '0') and (codeascii <= '9')) then
+    mode := NUM
+  else if ((codeascii = #9) or (codeascii = #10) or (codeascii = #13) or ((codeascii >= ' ') and (codeascii <= '~'))) then
+    mode := TEX;
   { 876 }
   result := mode; exit;
 end;
@@ -531,7 +533,9 @@ begin
     begin
       if (i = 0) then
       begin { first block }
-        if (indexliste > 1) then
+        if (indexliste = 1) and (_length <= 5) then
+          liste[1][i] := TEX
+        else if (indexliste > 1) then
         begin { and there are others }
           if ((next = TEX) and (_length < 8)) then liste[1][i] := TEX;
           if ((next = BYT) and (_length = 1)) then liste[1][i] := BYT;
@@ -546,8 +550,6 @@ begin
         end
         else
         begin { not first or last block }
-          if (((last = BYT) and (next = BYT)) and (_length < 4)) then liste[1][i] := BYT;
-          if (((last = BYT) and (next = TEX)) and (_length < 4)) then liste[1][i] := TEX;
           if (((last = TEX) and (next = BYT)) and (_length < 5)) then liste[1][i] := TEX;
           if (((last = TEX) and (next = TEX)) and (_length < 8)) then liste[1][i] := TEX;
         end;
@@ -735,8 +737,11 @@ begin
     Inc(wnet);
   end;
   { Now translate the string chainet into codewords }
-  chainemc[mc_length] := 900;
-  mc_length := mc_length + 1;
+  if block <> 0 then
+  begin
+    chainemc[mc_length] := 900;
+    mc_length := mc_length + 1;
+  end;
 
   j := 0;
   while j < wnet do
@@ -827,73 +832,63 @@ end;
 { 712 }
 procedure numbprocess(var chainemc : TArrayOfInteger; var mc_length : Integer; chaine : TArrayOfChar; start : Integer; _length : Integer; block : Integer);
 var
-  j, loop, longueur, dum_length, diviseur, nombre : Integer;
-  dummy : array[0..99] of Integer;
-  chainemod, chainemult : TArrayOfChar;
-  temp : Char;
+  j, p, len, loop, longueur, dum_length, nombre : Integer;
+  dummy : array[0..49] of Integer;
+  chainemod : array[0..44] of Integer;
 begin
-  SetLength(chainemod, 50);
-  SetLength(chainemult, 100);
-  strcpy(chainemod, '');
-  for loop := 0 to 50 do
+  for loop := 0 to 49 do
     dummy[loop] := 0;
 
   chainemc[mc_length] := 902;
   mc_length := mc_length + 1;
 
   j := 0;
-  while(j < _length) do
+  while (j < _length) do
   begin
     dum_length := 0;
-    strcpy(chainemod, '');
     longueur := _length - j;
-    if (longueur > 44) then longueur := 44;
-    concat(chainemod, '1');
-    for loop := 1 to longueur do
-      chainemod[loop] := chaine[start + loop + j - 1];
-    chainemod[longueur + 1] := #0;
+    if (longueur > 44) then
+      longueur := 44;
+
+    len := longueur + 1;
+    chainemod[0] := 1;
+    for loop := 1 to len - 1 do
+      chainemod[loop] := ctoi(chaine[start + loop + j - 1]);
 
     repeat
-      diviseur := 900;
-
-      { 877 - gosub Modulo }
-      strcpy(chainemult, '');
+      p := 0;
       nombre := 0;
-      while (strlen(chainemod) <> 0) do
+      for loop := 0 to len - 1 do
       begin
         nombre := nombre * 10;
-        Inc(nombre, ctoi(chainemod[0]));
-        for loop := 0 to strlen(chainemod) - 1 do
-          chainemod[loop] := chainemod[loop + 1];
-
-        if (nombre < diviseur) then
+        Inc(nombre, chainemod[loop]);
+        if (nombre < 900) then
         begin
-          if (strlen(chainemult) <> 0) then concat(chainemult, '0');
+          if p <> 0 then
+          begin
+            chainemod[p] := 0;
+            Inc(p);
+          end;
         end
         else
         begin
-          temp := Chr((nombre div diviseur) + Ord('0'));
-          chainemult[strlen(chainemult) + 1] := #0;
-          chainemult[strlen(chainemult)] := temp;
+          chainemod[p] := (nombre div 900);
+          Inc(p);
+          nombre := nombre mod 900;
         end;
-        nombre := nombre mod diviseur;
       end;
-      diviseur := nombre;
-      { return to 723 }
 
-      for loop := dum_length downto 1 do
-        dummy[loop] := dummy[loop - 1];
-
-      dummy[0] := diviseur;
+      dummy[dum_length] := nombre;
       Inc(dum_length);
-      strcpy(chainemod, chainemult);
-    until not (strlen(chainemult) <> 0);
+      len := p;
+    until p = 0;
 
-    for loop := 0 to dum_length - 1 do
+    for loop := dum_length - 1 downto 0 do
     begin
       chainemc[mc_length] := dummy[loop];
       mc_length := mc_length + 1;
     end;
+
     Inc(j, longueur);
   end;
 end;
@@ -901,9 +896,9 @@ end;
 { 366 }
 function pdf417(symbol : zint_symbol; chaine : TArrayOfByte; _length : Integer) : Integer;
 var
-  i, k, j, indexchaine, indexliste, mode, longueur, loop, offset : Integer;
+  i, k, j, indexchaine, indexliste, mode, longueur, loop, offset, eci : Integer;
   mccorrection : array[0..519] of Integer;
-  total, mc_length, c1, c2, c3, codeerr : Integer;
+  total, mc_length, c1, c2, c3, codeerr, rows, cols, data_cws : Integer;
   chainemc : TArrayOfInteger;
   dummy : array[0..34] of Integer;
   codebarre, pattern : TArrayOfChar;
@@ -913,6 +908,20 @@ begin
   SetLength(codebarre, 140);
   SetLength(pattern, 580);
   codeerr := 0;
+
+  if (symbol.eci < 0) or (symbol.eci > 811799) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 472: ECI code ''%d'' out of range (0 to 811799)', [symbol.eci]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+
+  if (_length > 2710) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 463: Input length %d too long (maximum 2710)', [_length]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
+  end;
 
   { 456 }
   indexliste := 0;
@@ -946,6 +955,35 @@ begin
     chainemc[mc_length] := 921; { Reader Initialisation }
     Inc(mc_length);
   end;
+
+  if symbol.eci <> 0 then
+  begin
+    eci := symbol.eci;
+    if eci <= 899 then
+    begin
+      chainemc[mc_length] := 927;
+      Inc(mc_length);
+      chainemc[mc_length] := eci;
+      Inc(mc_length);
+    end
+    else if eci <= 810899 then
+    begin
+      chainemc[mc_length] := 926;
+      Inc(mc_length);
+      chainemc[mc_length] := eci div 900;
+      Inc(mc_length);
+      chainemc[mc_length] := eci mod 900;
+      Inc(mc_length);
+    end
+    else
+    begin
+      chainemc[mc_length] := 925;
+      Inc(mc_length);
+      chainemc[mc_length] := eci - 810900;
+      Inc(mc_length);
+    end;
+  end;
+
   for i := 0 to indexliste - 1 do
   begin
     case liste[1][i] of
@@ -960,41 +998,114 @@ begin
   end;
 
   { 752 - Now take care of the number of CWs per row }
+  data_cws := mc_length;
   if (symbol.option_1 < 0) then
   begin
     symbol.option_1 := 6;
-    if (mc_length <= 863) then symbol.option_1 := 5;
-    if (mc_length <= 320) then symbol.option_1 := 4;
-    if (mc_length <= 160) then symbol.option_1 := 3;
-    if (mc_length <= 40) then symbol.option_1 := 2;
+    if (data_cws <= 863) then symbol.option_1 := 5;
+    if (data_cws <= 320) then symbol.option_1 := 4;
+    if (data_cws <= 160) then symbol.option_1 := 3;
+    if (data_cws <= 40) then symbol.option_1 := 2;
   end;
   k := 1;
   for loop := 1 to symbol.option_1 + 1 do
     k := k * 2;
 
-  longueur := mc_length;
-  if (symbol.option_2 > 30) then symbol.option_2 := 30;
-  if (symbol.option_2 < 1) then
-    symbol.option_2 := Trunc(0.5 + sqrt((longueur + k) / 3.0));
+  longueur := mc_length + 1 + k;
 
-  if (((longueur + k) / symbol.option_2) > 90) then
-    { stop the symbol from becoming too high }
-    symbol.option_2 := symbol.option_2 + 1;
-
-
-  if (longueur + k > 928) then
+  if (longueur > 928) then
   begin
     { Enforce maximum codeword limit }
+    strcpy(symbol.errtxt, 'Error 464: Input too long, requires too many codewords (maximum 928)');
     result := 2; exit;
   end;
 
-  if (((longueur + k) / symbol.option_2) > 90) then
+  cols := symbol.option_2;
+  rows := symbol.option_3;
+
+  if rows > 0 then
   begin
-    result := 4; exit;
+    if cols < 1 then
+    begin
+      cols := (longueur + rows - 1) div rows;
+      if cols <= 1 then
+        cols := 1
+      else
+      begin
+        while (cols > 30) and (rows < 90) do
+        begin
+          Inc(rows);
+          cols := (longueur + rows - 1) div rows;
+        end;
+        while (cols >= 1) and (rows < 90) and ((rows * cols) > 928) do
+        begin
+          Inc(rows);
+          cols := (longueur + rows - 1) div rows;
+        end;
+        if (rows * cols) > 928 then
+        begin
+          strcpy(symbol.errtxt, 'Error 465: Input too long, requires too many codewords (maximum 928)');
+          result := 2;
+          Exit;
+        end;
+      end;
+    end
+    else
+    begin
+      while (rows <= 90) and ((rows * cols) < longueur) do
+        Inc(rows);
+      if (rows > 90) or ((rows * cols) > 928) then
+      begin
+        strcpy(symbol.errtxt, Format('Error 745: Input too long for number of columns ''%d''', [cols]));
+        result := 4;
+        Exit;
+      end;
+    end;
+
+    if rows <> symbol.option_3 then
+    begin
+      strcpy(symbol.errtxt, Format('Warning 746: Number of rows increased from %d to %d', [symbol.option_3, rows]));
+      codeerr := 3;
+    end;
+  end
+  else
+  begin
+    if cols < 1 then
+      cols := Round(Sqrt((longueur - 1) / 3.0));
+
+    rows := (longueur + cols - 1) div cols;
+    if rows <= 3 then
+      rows := 3
+    else
+    begin
+      while (rows > 90) and (cols < 30) do
+      begin
+        Inc(cols);
+        rows := (longueur + cols - 1) div cols;
+      end;
+      while (rows >= 3) and (cols < 30) and ((rows * cols) > 928) do
+      begin
+        Inc(cols);
+        rows := (longueur + cols - 1) div cols;
+      end;
+      if (rows * cols) > 928 then
+      begin
+        strcpy(symbol.errtxt, 'Error 747: Input too long, requires too many codewords (maximum 928)');
+        result := 2;
+        Exit;
+      end;
+      if (symbol.option_2 > 0) and (cols <> symbol.option_2) then
+      begin
+        strcpy(symbol.errtxt, Format('Warning 748: Number of columns increased from %d to %d', [symbol.option_2, cols]));
+        codeerr := 3;
+      end;
+    end;
   end;
 
+  symbol.option_2 := cols;
+  symbol.option_3 := rows;
+
   { 781 - Padding calculation }
-  longueur := mc_length + 1 + k;
   i := 0;
   if ((longueur / symbol.option_2) < 3) then
     i := (symbol.option_2 * 3) - longueur { A bar code must have at least three rows }
@@ -1130,7 +1241,7 @@ begin
     //if (symbol.height = 0) then
       symbol.row_height[i] := 3;
   end;
-  symbol.rows := (mc_length div symbol.option_2);
+  symbol.rows := rows;
   symbol.width := strlen(pattern);
 
   { 843 }
@@ -1144,17 +1255,40 @@ var
 begin
   error_number := 0;
 
+  if symbol.option_2 = -1 then
+    symbol.option_2 := 0;
+  if symbol.option_3 = -1 then
+    symbol.option_3 := 0;
+
   if ((symbol.option_1 < -1) or (symbol.option_1 > 8)) then
   begin
-    strcpy(symbol.errtxt, 'Security value out of range');
+    strcpy(symbol.errtxt, Format('Warning 460: Error correction level ''%d'' out of range (0 to 8), ignoring', [symbol.option_1]));
     symbol.option_1 := -1;
     error_number := ZWARN_INVALID_OPTION;
   end;
   if ((symbol.option_2 < 0) or (symbol.option_2 > 30)) then
   begin
-    strcpy(symbol.errtxt, 'Number of columns out of range');
+    strcpy(symbol.errtxt, Format('Warning 461: Number of columns ''%d'' out of range (1 to 30), ignoring', [symbol.option_2]));
     symbol.option_2 := 0;
     error_number := ZWARN_INVALID_OPTION;
+  end;
+  if (symbol.eci < 0) or (symbol.eci > 811799) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 472: ECI code ''%d'' out of range (0 to 811799)', [symbol.eci]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+  if (symbol.option_3 <> 0) and ((symbol.option_3 < 3) or (symbol.option_3 > 90)) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 466: Number of rows ''%d'' out of range (3 to 90)', [symbol.option_3]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+  if (symbol.option_2 > 0) and (symbol.option_3 > 0) and ((symbol.option_2 * symbol.option_3) > 928) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 475: Columns x rows value ''%d'' out of range (1 to 928)', [symbol.option_2 * symbol.option_3]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
   end;
 
   { 349 }
@@ -1163,6 +1297,21 @@ begin
   { 352 }
   if (codeerr <> 0) then
   begin
+    if codeerr >= ZERROR_TOO_LONG then
+    begin
+      Result := codeerr;
+      Exit;
+    end;
+    if strlen(symbol.errtxt) > 0 then
+    begin
+      case codeerr of
+        3: error_number := ZWARN_INVALID_OPTION;
+        2, 4: error_number := ZERROR_TOO_LONG;
+        else error_number := ZERROR_ENCODING_PROBLEM;
+      end;
+      Result := error_number;
+      Exit;
+    end;
     case codeerr of
       1:
       begin
@@ -1197,7 +1346,7 @@ end;
 { like PDF417 only much smaller! }
 function micro_pdf417(symbol : zint_symbol; chaine : TArrayOfByte; _length : Integer) : Integer;
 var
-  i, k, j, indexchaine, indexliste, mode, longueur, offset : Integer;
+  i, k, j, indexchaine, indexliste, mode, longueur, offset, eci : Integer;
   mccorrection : array[0..49] of Integer;
   total, mc_length, codeerr : Integer;
   chainemc : TArrayOfInteger;
@@ -1207,6 +1356,18 @@ var
   LeftRAP, CentreRAP, RightRAP, Cluster, writer, flip, loop : Integer;
   liste : TGLoballiste;
 begin
+  if symbol.option_2 = -1 then
+    symbol.option_2 := 0;
+  if symbol.option_3 = -1 then
+    symbol.option_3 := 0;
+
+  if (symbol.eci < 0) or (symbol.eci > 811799) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 472: ECI code ''%d'' out of range (0 to 811799)', [symbol.eci]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+
   SetLength(chainemc, 2700);
   SetLength(codebarre, 100);
   SetLength(pattern, 580);
@@ -1245,11 +1406,47 @@ begin
     chainemc[mc_length] := 921; { Reader Initialisation }
     Inc(mc_length);
   end;
+
+  if symbol.eci <> 0 then
+  begin
+    eci := symbol.eci;
+    if eci <= 899 then
+    begin
+      chainemc[mc_length] := 927;
+      Inc(mc_length);
+      chainemc[mc_length] := eci;
+      Inc(mc_length);
+    end
+    else if eci <= 810899 then
+    begin
+      chainemc[mc_length] := 926;
+      Inc(mc_length);
+      chainemc[mc_length] := eci div 900;
+      Inc(mc_length);
+      chainemc[mc_length] := eci mod 900;
+      Inc(mc_length);
+    end
+    else
+    begin
+      chainemc[mc_length] := 925;
+      Inc(mc_length);
+      chainemc[mc_length] := eci - 810900;
+      Inc(mc_length);
+    end;
+  end;
+
   for i := 0 to indexliste - 1 do
   begin
     case liste[1][i] of
       TEX: { 547 - text mode }
+      begin
+        if i = 0 then
+        begin
+          chainemc[mc_length] := 900;
+          Inc(mc_length);
+        end;
         textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(chaine), indexchaine, liste[0][i], i);
+      end;
       BYT: { 670 - octet stream mode }
         byteprocess(chainemc, mc_length, chaine, indexchaine, liste[0][i], i);
       NUM: { 712 - numeric mode }
@@ -1262,12 +1459,18 @@ begin
 
   if (mc_length > 126) then
   begin
-    strcpy(symbol.errtxt, 'Input data too long');
+    strcpy(symbol.errtxt, Format('Error 467: Input too long, requires %d codewords (maximum 126)', [mc_length]));
     result := ZERROR_TOO_LONG; exit;
+  end;
+  if (symbol.option_3 <> 0) then
+  begin
+    strcpy(symbol.errtxt, 'Error 476: Cannot specify rows for MicroPDF417');
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
   end;
   if (symbol.option_2 > 4) then
   begin
-    strcpy(symbol.errtxt, 'Specified width out of range');
+    strcpy(symbol.errtxt, Format('Warning 468: Number of columns ''%d'' out of range (1 to 4), ignoring', [symbol.option_2]));
     symbol.option_2 := 0;
     codeerr := ZWARN_INVALID_OPTION;
   end;

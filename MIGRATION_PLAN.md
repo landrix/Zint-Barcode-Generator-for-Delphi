@@ -44,7 +44,7 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (41 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
 | `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (5 Tests / 167 C-Indizes) | `test_input` C#0..C#38 vollstaendig + `test_large` C#104 aktiv + `test_encode` C#27..C#144 im Hauptsubset sowie fruehe Version-T-/Legacy-Faelle C#21..C#27 im Deep-Subset abgedeckt. `test_encode_segs` C#0..C#10 aktiv. `test_fuzz` vollstaendig C#0..C#5 aktiv (OSS-/CI-Fuzz-Repros inkl. #300-Varianten). C40/TEXT/DECIMAL/BYTE/GS1 Version-T-Pfade inkl. C#21/C#22/C#23/C#24/C#25/C#26/C#27 auf C-Paritaet. Dokumentierte Deltas: C#1 (kein `ZWARN_USES_ECI`; 22x22 statt 16x18), C#3 (kein `ZWARN_USES_ECI`), C#0/C#2/C#4/C#5/C#6/C#7/C#8/C#9/C#10 (`test_encode_segs`: `Error 799`/Mixed segment ECI not yet supported statt C-Erfolg bzw. C#10 `INVALID_OPTION` aus anderem Grund), C#28/C#30/C#32/C#34 (Erfolg statt TOO_LONG), C#39/C#43 (Too long statt C-Erfolg), C#48 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#50 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#56 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#65 (184 statt 183 CW), C#68 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#74 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#76 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#80 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#83 (734 statt 733 CW), C#86 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#90 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#93 (generischer Error-517-Pfad statt versionsspezifischem Overflow), C#94 (lower-max Digit-Quirk; generischer Error-517-Pfad statt C-Erfolg), C#96 (Alpha-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#100 (Byte-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#109 (T-32 statt T-16), C#117 (T-48 statt T-32), C#119 (T-48 statt T-32), C#129 (Too long statt C-Erfolg; 39 CW), C#142 (39 statt 40 CW), C#144 (Erfolg statt TOO_LONG). Verbleibend: keine Code-One-Testbloecke im aktuellen Scope. |
 
-**Gesamtstand (Session 6): 850 Tests, 850 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (Session 6): 865 Tests, 865 bestanden, 0 fehlgeschlagen** ✅
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie content_segs/API-Themen).
@@ -132,7 +132,7 @@ Ziel: Für jeden existierenden Barcode-Typ mindestens grundlegende Encode-Tests 
 | 2 | `Test_Code.pas` | Code 39, Code 93, Code 11, etc. | `test_code.c` | Hoch |
 | 3 | `Test_2of5.pas` | C25Matrix, C25Inter, C25IATA, ITF-14 | `test_2of5.c` | Hoch |
 | 4 | `Test_QR.pas` | QR Code, Micro QR | `test_qr.c` | Hoch |
-| 5 | `Test_DataMatrix.pas` | Data Matrix | `test_dmatrix.c` | Hoch |
+| 5 | `Test_DMatrix.pas` | Data Matrix | `test_dmatrix.c` | Hoch |
 | 6 | `Test_PDF417.pas` | PDF417, MicroPDF417 | `test_pdf417.c` | Hoch |
 | 7 | `Test_Aztec.pas` | Aztec Code | `test_aztec.c` | Hoch |
 | 8 | `Test_UPCEAN.pas` | EAN-8, EAN-13, UPC-A, UPC-E | `test_upcean.c` | Hoch |
@@ -221,7 +221,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `code16k.c` | `zint_code16k.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `code49.c` | `zint_code49.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `composite.c` | `zint_composite.pas` | in Arbeit |
-| `dmatrix.c` | `zint_dmatrix.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `dmatrix.c` | `zint_dmatrix.pas` | b3a3c0d port-check erweitert: `Test_DMatrix.pas` aktiv (`test_large`/`test_input`/`test_encode`/`test_options`/`test_reader_init`/`test_buffer`/`test_minimalenc`/`test_ct`/`test_ct_segs` Subsets). Core-Paritaet-Fixes: `Error 719` (MAXBARCODE), versionsspezifischer `Error 522`-Overflow-Text bei fixierter `option_2`, GS1+ReaderInit `Error 521`, ECC-Option `Error 524`, konsistente Rueckmeldung von `option_2` auf CLI-Version. Dokumentierte Restdeltas: (1) `test_ct` C#2-C#3: Auto-ECI-Warnklassifikation (Delphi: kein ZWARN_USES_ECI, statt Return-code 0 + warning 3; Ursache: UNICODE_MODE→DATA_MODE Konvertierung in Vorverarbeitung verliert semantischen Kontext fuer Auto-ECI-Retry). (2) `test_ct_segs` C#0-C#1: Symbolgroesse-Delta 16x16 (Delphi) vs 14x14 (C); Ursache: C nutzt `dm_encode_segs()` mit per-Segment-ECI-Markern interleaved in Binary-Stream (kompaktere Kodierung), Delphi nutzt aktuell Merged-Bytes via Single-Symbol-ECI-Pfad. Segmentweise ECI-Marker-Interleaving wuerden Umstrukturierung des dm200encode()-State-Machines erfordern (nicht portiert). |
 | `dotcode.c` | `zint_dotcode.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `gb2312.h` | `zint_gb2312.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `gridmtx.c` | `zint_gridmtx.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
@@ -230,7 +230,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `large.c` | `zint_large.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `maxicode.c` | `zint_maxicode.pas` | in Arbeit |
 | `medical.c` | `zint_medical.pas` | b3a3c0d portiert + Tests gruen |
-| `pdf417.c` | `zint_pdf417.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `pdf417.c` | `zint_pdf417.pas` | Port-Check + Kernport auf b3a3c0d-Verhalten fortgesetzt: `Test_PDF417.pas` aktiv (`test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie `test_encode`-Subset C#0/C#2/C#4/C#6/C#8/C#10/C#12/C#14/C#16/C#20/C#22/C#24/C#25/C#26/C#28/C#29/C#31/C#33/C#35/C#37/C#39/C#41/C#43/C#47/C#48/C#50/C#51/C#53/C#55/C#57/C#59/C#61/C#63/C#65/C#67/C#69/C#71/C#72/C#75/C#77/C#79/C#81/C#83/C#85/C#87/C#89/C#91/C#93/C#95/C#97/C#99/C#101/C#103/C#105/C#107/C#109/C#111/C#113/C#115/C#117/C#119/C#121/C#123/C#125/C#127/C#129/C#131/C#133/C#135/C#137/C#139/C#141/C#143/C#145/C#147/C#149/C#151/C#153/C#155/C#157/C#159/C#161/C#163/C#164/C#175/C#177/C#179/C#181/C#183/C#185/C#187/C#188/C#189/C#190/C#191/C#192/C#193/C#194/C#195/C#196/C#197/C#198/C#199/C#200/C#201/C#202/C#203/C#204/C#205/C#206/C#207/C#208/C#209/C#210, 149 Tests gruen). Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), exakte PDF417-/MicroPDF417-Optionsfehler (`460/461/466/467/468/472/475/476/745/746/747/748` im aktuellen Scope), korrekte Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`) und ECI-Codeword-Ausgabe (927/926/925-Pfade). Dokumentierte Deltas: `test_encode` C#53 (Rows: Delphi 6 statt C 7, Width identisch 154), C#147 (Rows: Delphi 38 statt C 32), C#149 (Rows: Delphi 44 statt C 38), C#151 (Delphi `TOO_LONG` statt C-Erfolg 44x99), C#175 (Rows: Delphi 10 statt C 9), C#177 (Rows: Delphi 10 statt C 9), C#183 (Rows/Width: Delphi 7x120 statt C 10x103), C#185 (Rows/Width: Delphi 7x120 statt C 10x103), C#187 (Rows/Width: Delphi 7x120 statt C 10x103), C#188 (Rows/Width: Delphi 7x120 statt C 10x103), C#189 (Rows: Delphi 10 statt C 9), C#190 (Rows: Delphi 10 statt C 9), C#197 (Rows: Delphi 8 statt C 9), C#202 (Rows: Delphi 9 statt C 8), C#206 (Rows: Delphi 9 statt C 8), C#207 (Rows: Delphi 9 statt C 8), C#208 (Rows: Delphi 9 statt C 8), C#209 (Rows/Width: Delphi 7x120 statt C 10x103), C#210 (Rows/Width: Delphi 7x120 statt C 10x103). Verbleibend: grosse C-Bloecke `test_encode_segs`/`test_rt`/`test_rt_segs`/`test_fuzz` noch nicht portiert; Structured-Append/Segment-Roundtrip noch nicht voll b3a3c0d-verifiziert. |
 | `plessey.c` | `zint_plessey.pas` | b3a3c0d portiert + Tests gruen |
 | `postal.c` | `zint_postal.pas` | b3a3c0d portiert + Tests gruen |
 | `qr.c` | `zint_qr.pas` | b3a3c0d portiert + Tests gruen (Segment/content-API-Paritaet offen) |
@@ -368,6 +368,8 @@ UnitTests/
 
 ---
 
-## Nächster Schritt
+## Naechste Arbeitsschritte
 
-**→ QR-Paritaetsdeltas gezielt abbauen (content_segs/RT-content + Warning-3-vs-4-Faelle), danach naechstes legacy-Modul auf b3a3c0d heben (z.B. `zint_dmatrix.pas` oder `zint_pdf417.pas`) und 1:1 C-Tests erweitern.**
+1. QR-Paritaetsdeltas gezielt abbauen: `content_segs`/RT-content, Structured-Append/API-Paritaet sowie Warning-3-vs-4-Faelle.
+2. PDF417 vervollstaendigen: die offenen C-Bloecke `test_encode_segs`, `test_rt`, `test_rt_segs` und `test_fuzz` 1:1 in Delphi uebernehmen.
+3. Data Matrix nachziehen: die verbleibenden Deltas in `test_ct` und `test_ct_segs` gezielt schliessen.

@@ -12,11 +12,13 @@ uses
   TestHelper_Zint,
   Test_CommonCore,
   Test_Code1,
+  Test_DMatrix,
   //Test_Code128,
   Test_Telepen,
   Test_Medical,
   Test_Plessey,
-  Test_PZN
+  Test_PZN,
+  Test_PDF417
   ;
 
 begin

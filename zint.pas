@@ -2562,10 +2562,12 @@ begin
   result := 0;
 end;
 
+procedure qr_normalize_content_segs_eci(symbol: zint_symbol); forward;
+
 
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  error_number, error_buffer, i, base_mode : Integer;
+  error_number, error_buffer, i, base_mode, content_eci : Integer;
   local_source : TArrayOfByte;
 begin
   SetLength(symbol.content_segs, 0);
@@ -2781,8 +2783,9 @@ begin
 		if not ((symbol.input_mode = UNICODE_MODE) and
   (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_GRIDMATRIX, BARCODE_UPNQR, BARCODE_RMQR])) then
     begin
-      { Preserve GS1_MODE for encoders that interrogate input_mode internally (Code One) }
-      if not (((symbol.input_mode and $07) = GS1_MODE) and (symbol.symbology = BARCODE_CODEONE)) then
+      { Preserve GS1_MODE for encoders that interrogate input_mode internally }
+      if not (((symbol.input_mode and $07) = GS1_MODE) and
+              (symbol.symbology in [BARCODE_CODEONE, BARCODE_DATAMATRIX])) then
         symbol.input_mode := DATA_MODE;
     end;
   end;
@@ -2807,7 +2810,6 @@ begin
     else
 			error_number := reduced_charset(symbol, local_source, _length);
 	end;
-
 	if ((symbol.symbology = BARCODE_CODE128) or (symbol.symbology = BARCODE_CODE128B)) then
   begin
 		for i := 0 to _length - 1 do
@@ -2835,6 +2837,24 @@ begin
 
 	if (error_number = 0) then
 		error_number := error_buffer;
+
+  if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0)
+    and (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
+  begin
+    SetLength(symbol.content_segs, 1);
+    SetLength(symbol.content_segs[0].Source, _length);
+    if _length > 0 then
+      Move(local_source[0], symbol.content_segs[0].Source[0], _length);
+    symbol.content_segs[0].Length := _length;
+    if base_mode = GS1_MODE then
+      content_eci := 3
+    else
+      content_eci := symbol.eci;
+    symbol.content_segs[0].ECI := content_eci;
+    symbol.content_segs[0].SourceMode := -1;
+    symbol.content_segs_count := 1;
+    qr_normalize_content_segs_eci(symbol);
+  end;
 
 	error_tag(symbol.errtxt, error_number);
 
@@ -2886,6 +2906,48 @@ begin
   Result := 26;
 end;
 
+function dm_convert_seg_to_bytes(symbol: zint_symbol; const source: TArrayOfByte;
+  const seg_len, seg_eci: Integer; out converted_bytes: TArrayOfByte; out converted_len: Integer): Boolean;
+var
+  i, target_eci, conv_len: Integer;
+  utfdata, converted: TArrayOfInteger;
+begin
+  Result := False;
+  converted_len := 0;
+  SetLength(converted_bytes, 0);
+
+  target_eci := seg_eci;
+  if target_eci < 0 then
+    target_eci := symbol.eci;
+  if target_eci = 0 then
+    target_eci := 3;
+
+  if target_eci = 26 then
+  begin
+    converted_len := seg_len;
+    SetLength(converted_bytes, converted_len);
+    if converted_len > 0 then
+      Move(source[0], converted_bytes[0], converted_len);
+    Result := True;
+    Exit;
+  end;
+
+  conv_len := seg_len;
+  SetLength(utfdata, conv_len + 1);
+  SetLength(converted, conv_len + 1);
+  if utf8toutf16(symbol, source, utfdata, conv_len) <> 0 then
+    Exit;
+  if not try_single_byte_eci(utfdata, conv_len, target_eci, converted) then
+    Exit;
+
+  converted_len := conv_len;
+  SetLength(converted_bytes, converted_len);
+  for i := 0 to converted_len - 1 do
+    converted_bytes[i] := Byte(converted[i]);
+
+  Result := True;
+end;
+
 procedure qr_normalize_content_segs_eci(symbol: zint_symbol);
 var
   i, seg_len, base_mode: Integer;
@@ -2917,9 +2979,12 @@ end;
 
 function ZBarcode_Encode_Segs(symbol : zint_symbol; const segs : TZintSegments) : Integer;
 var
-  i, seg_len, total_len, posn, resolved_eci : Integer;
+  i, seg_len, total_len, posn, resolved_eci, conv_len : Integer;
   first_eci, first_mode, original_input_mode : Integer;
-  merged : TArrayOfByte;
+  merged, dm_conv_bytes : TArrayOfByte;
+  saved_content_segs: TZintSegments;
+  saved_content_count: Integer;
+  restore_dm_content_segs, dm_all_converted : Boolean;
 begin
   SetLength(symbol.content_segs, 0);
   symbol.content_segs_count := 0;
@@ -2935,6 +3000,9 @@ begin
   first_eci := -1;
   first_mode := -1;
   original_input_mode := symbol.input_mode;
+  saved_content_count := 0;
+  restore_dm_content_segs := False;
+  dm_all_converted := False;
 
   if symbol.symbology = BARCODE_QRCODE then
   begin
@@ -3055,9 +3123,14 @@ begin
         first_eci := segs[i].ECI
       else if first_eci <> segs[i].ECI then
       begin
-        strcpy(symbol.errtxt, 'Error 799: Mixed segment ECI not yet supported');
-        Result := ZERROR_INVALID_OPTION;
-        Exit;
+        if symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM] then
+          first_eci := 0
+        else
+        begin
+          strcpy(symbol.errtxt, 'Error 799: Mixed segment ECI not yet supported');
+          Result := ZERROR_INVALID_OPTION;
+          Exit;
+        end;
       end;
     end;
 
@@ -3067,9 +3140,14 @@ begin
         first_mode := segs[i].SourceMode
       else if first_mode <> segs[i].SourceMode then
       begin
-        strcpy(symbol.errtxt, 'Error 799: Mixed segment input modes not yet supported');
-        Result := ZERROR_INVALID_OPTION;
-        Exit;
+        if symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM] then
+          first_mode := -1
+        else
+        begin
+          strcpy(symbol.errtxt, 'Error 799: Mixed segment input modes not yet supported');
+          Result := ZERROR_INVALID_OPTION;
+          Exit;
+        end;
       end;
     end;
   end;
@@ -3088,19 +3166,66 @@ begin
       symbol.content_segs[i].SourceMode := segs[i].SourceMode;
     end;
     symbol.content_segs_count := Length(symbol.content_segs);
+    if symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM] then
+    begin
+      qr_normalize_content_segs_eci(symbol);
+      saved_content_segs := Copy(symbol.content_segs);
+      saved_content_count := symbol.content_segs_count;
+      restore_dm_content_segs := True;
+    end;
   end;
 
-  SetLength(merged, total_len + 1);
-  posn := 0;
-  for i := 0 to High(segs) do
+  if (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM])
+    and ((original_input_mode and $07) = UNICODE_MODE) then
   begin
-    seg_len := segs[i].Length;
-    if (seg_len = 0) and (Length(segs[i].Source) > 0) then
-      seg_len := ustrlen(segs[i].Source);
-    if seg_len > 0 then
+    dm_all_converted := True;
+    total_len := 0;
+    SetLength(merged, 0);
+    for i := 0 to High(segs) do
     begin
-      Move(segs[i].Source[0], merged[posn], seg_len);
-      Inc(posn, seg_len);
+      seg_len := segs[i].Length;
+      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+        seg_len := ustrlen(segs[i].Source);
+
+      if not dm_convert_seg_to_bytes(symbol, segs[i].Source, seg_len, segs[i].ECI, dm_conv_bytes, conv_len) then
+      begin
+        dm_all_converted := False;
+        Break;
+      end;
+
+      if conv_len > 0 then
+      begin
+        posn := total_len;
+        Inc(total_len, conv_len);
+        SetLength(merged, total_len + 1);
+        Move(dm_conv_bytes[0], merged[posn], conv_len);
+      end;
+    end;
+  end;
+
+  if not dm_all_converted then
+  begin
+    total_len := 0;
+    for i := 0 to High(segs) do
+    begin
+      seg_len := segs[i].Length;
+      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+        seg_len := ustrlen(segs[i].Source);
+      Inc(total_len, seg_len);
+    end;
+
+    SetLength(merged, total_len + 1);
+    posn := 0;
+    for i := 0 to High(segs) do
+    begin
+      seg_len := segs[i].Length;
+      if (seg_len = 0) and (Length(segs[i].Source) > 0) then
+        seg_len := ustrlen(segs[i].Source);
+      if seg_len > 0 then
+      begin
+        Move(segs[i].Source[0], merged[posn], seg_len);
+        Inc(posn, seg_len);
+      end;
     end;
   end;
   merged[total_len] := 0;
@@ -3111,6 +3236,12 @@ begin
     symbol.input_mode := first_mode;
 
   Result := ZBarcode_Encode(symbol, merged, total_len);
+  if restore_dm_content_segs and (Result < ZERROR_TOO_LONG) then
+  begin
+    symbol.content_segs := saved_content_segs;
+    symbol.content_segs_count := saved_content_count;
+    qr_normalize_content_segs_eci(symbol);
+  end;
 end;
 
 { TZintCustomRenderTarget }

@@ -47,9 +47,11 @@ uses
   Test_Code,
   Test_CommonCore,
   Test_Code1,
+  Test_DMatrix,
   Test_2of5,
   Test_Auspost,
-  Test_QR
+   Test_QR,
+   Test_PDF417
   ;
 
 var
