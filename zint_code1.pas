@@ -37,14 +37,14 @@ const c40_shift : array[0..127] of Integer = (
 const c40_value : array[0..127] of Integer = (
 	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
 	3,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,4,5,6,7,8,9,10,11,12,13,
-	15,16,17,18,19,20,21,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,
-	22,23,24,25,26,0,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,27,28,29,30,31 );
+  15,16,17,18,19,20,21,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,
+  22,23,24,25,26,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 );
 
 const text_shift : array[0..127] of Integer = (
 	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-  2, 2, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3 );
+  2, 2, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3 );
 
 const text_value : array[0..127] of Integer = (
 	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
@@ -167,181 +167,214 @@ end;
 
 function c1_look_ahead_test(const source : TArrayOfByte; sourcelen : Integer; position : Integer; current_mode : Integer; gs1 : Integer) : Integer;
 var
-  ascii_count, c40_count, text_count, edi_count, byte_count : Single;
-  reduced_char : Char;
-  done, best_scheme, best_count, sp : Integer;
-begin
+  ascii_count, c40_count, text_count, edi_count, byte_count : Integer;
+  ascii_rnded, c40_rnded, text_rnded, edi_rnded, byte_rnded : Integer;
+  cnt_1, sp, c, best_scheme : Integer;
+  is_extended : Integer;
+  c_is_c40, c_is_text, c_is_edi : Integer;
 
+  function c1_mult_ceil(const v : Integer) : Integer;
+  begin
+    result := ((v + 5) div 6) * 6;
+  end;
+begin
   { Step J }
   if (current_mode = C1_ASCII) then
   begin
-    ascii_count := 0.0;
-    c40_count := 1.0;
-    text_count := 1.0;
-    edi_count := 1.0;
-    byte_count := 2.0;
+    ascii_count := 0;
+    c40_count := 6;
+    text_count := 6;
+    edi_count := 6;
+    byte_count := 12;
   end
   else
   begin
-    ascii_count := 1.0;
-    c40_count := 2.0;
-    text_count := 2.0;
-    edi_count := 2.0;
-    byte_count := 3.0;
+    ascii_count := 6;
+    c40_count := 12;
+    text_count := 12;
+    edi_count := 12;
+    byte_count := 18;
   end;
 
   case current_mode of
-    C1_C40: c40_count := 0.0;
-    C1_TEXT: text_count := 0.0;
-    C1_BYTE: byte_count := 0.0;
-    C1_EDI: edi_count := 0.0;
+    C1_C40: c40_count := 0;
+    C1_TEXT: text_count := 0;
+    C1_EDI: edi_count := 0;
+    C1_BYTE: byte_count := 0;
   end;
 
-  sp := position;
-  while (sp < sourcelen) and (sp <= (position + 8)) do
+  for sp := position to sourcelen - 1 do
   begin
-    if (source[sp] <= 127) then begin reduced_char := Chr(source[sp]); end else begin reduced_char := Chr(source[sp] - 127); end;
+    c := source[sp];
+    if (c > 127) then is_extended := 1 else is_extended := 0;
 
     { Step L }
-    if ((source[sp] >= Ord('0')) and (source[sp] <= Ord('9'))) then
-    begin
-      ascii_count := ascii_count + 0.5;
-    end
+    if ((c >= Ord('0')) and (c <= Ord('9'))) then
+      Inc(ascii_count, 3)
+    else if (is_extended <> 0) then
+      ascii_count := c1_mult_ceil(ascii_count) + 12
     else
-    begin
-      ascii_count := froundup(ascii_count);
-      if (source[sp] > 127) then
-        ascii_count := ascii_count + 2.0
-      else
-        ascii_count := ascii_count + 1.0;
-    end;
+      ascii_count := c1_mult_ceil(ascii_count) + 6;
 
-    { Step M }
-    done := 0;
-    if (reduced_char = ' ') then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= '0') and (reduced_char <= '9')) then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= 'A') and (reduced_char <= 'Z')) then begin c40_count := c40_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] > 127) then c40_count := c40_count + (4.0 / 3.0);
-    if (done = 0) then c40_count := c40_count + (4.0 / 3.0);
-
-    { Step N }
-    done := 0;
-    if (reduced_char = ' ') then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= '0') and (reduced_char <= '9')) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
-    if ((reduced_char >= 'a') and (reduced_char <= 'z')) then begin text_count := text_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] > 127) then text_count := text_count + (4.0 / 3.0);
-    if (done = 0) then text_count := text_count + (4.0 / 3.0);
-
-    { Step O }
-    done := 0;
-    if (source[sp] = 13) then begin edi_count := edi_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] = Ord('*')) then begin edi_count := edi_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] = Ord('>')) then begin edi_count := edi_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] = Ord(' ')) then begin edi_count := edi_count + (2.0 / 3.0); done := 1; end;
-    if ((source[sp] >= Ord('0')) and (source[sp] <= Ord('9'))) then begin edi_count := edi_count + (2.0 / 3.0); done := 1; end;
-    if ((source[sp] >= Ord('A')) and (source[sp] <= Ord('Z'))) then begin edi_count := edi_count + (2.0 / 3.0); done := 1; end;
-    if (source[sp] > 127) then
-    begin
-      edi_count := edi_count + (13.0 / 3.0);
-    end
+    c_is_c40 := 0;
+    if (c = Ord(' ')) or ((c >= Ord('0')) and (c <= Ord('9'))) or ((c >= Ord('A')) and (c <= Ord('Z'))) then
+      c_is_c40 := 1;
+    if (c_is_c40 <> 0) then
+      Inc(c40_count, 4)
+    else if (is_extended <> 0) then
+      Inc(c40_count, 16)
     else
+      Inc(c40_count, 8);
+
+    c_is_text := 0;
+    if (c = Ord(' ')) or ((c >= Ord('0')) and (c <= Ord('9'))) or ((c >= Ord('a')) and (c <= Ord('z'))) then
+      c_is_text := 1;
+    if (c_is_text <> 0) then
+      Inc(text_count, 4)
+    else if (is_extended <> 0) then
+      Inc(text_count, 16)
+    else
+      Inc(text_count, 8);
+
+    c_is_edi := 0;
+    if (c = 13) or (c = Ord('*')) or (c = Ord('>')) or (c = Ord(' ')) or
+      ((c >= Ord('0')) and (c <= Ord('9'))) or ((c >= Ord('A')) and (c <= Ord('Z'))) then
+      c_is_edi := 1;
+    if (c_is_edi <> 0) then
+      Inc(edi_count, 4)
+    else if (is_extended <> 0) then
+      Inc(edi_count, 26)
+    else
+      Inc(edi_count, 20);
+
+    if (gs1 <> 0) and (c = Ord('[')) then
+      Inc(byte_count, 18)
+    else
+      Inc(byte_count, 6);
+
+    if (sp >= position + 3) then
     begin
-      if (done = 0) then
-        edi_count := edi_count + (10.0 / 3.0);
-    end;
+      ascii_rnded := c1_mult_ceil(ascii_count);
+      c40_rnded := c1_mult_ceil(c40_count);
+      text_rnded := c1_mult_ceil(text_count);
+      edi_rnded := c1_mult_ceil(edi_count);
+      byte_rnded := c1_mult_ceil(byte_count);
 
-    { Step P }
-    if (gs1 <> 0) and (source[sp] = Ord('[')) then byte_count := byte_count + 3.0 else byte_count := byte_count + 1.0;
-
-    Inc(sp);
-  end;
-
-  ascii_count := froundup(ascii_count);
-  c40_count := froundup(c40_count);
-  text_count := froundup(text_count);
-  edi_count := froundup(edi_count);
-  byte_count := froundup(byte_count);
-  best_scheme := C1_ASCII;
-
-  if (sp = sourcelen) then
-  begin
-    { Step K }
-    best_count := Trunc(edi_count);
-
-    if (text_count <= best_count) then
-    begin
-      best_count := Trunc(text_count);
-      best_scheme := C1_TEXT;
-    end;
-
-    if (c40_count <= best_count) then
-    begin
-      best_count := Trunc(c40_count);
-      best_scheme := C1_C40;
-    end;
-
-    if (ascii_count <= best_count) then
-    begin
-      best_count := Trunc(ascii_count);
-      best_scheme := C1_ASCII;
-    end;
-
-    if (byte_count <= best_count) then
-    begin
-      //best_count := Trunc(byte_count);
-      best_scheme := C1_BYTE;
-    end;
-  end
-  else
-  begin
-    { Step Q }
-
-    if (((edi_count + 1.0 <= ascii_count) and (edi_count + 1.0 <= c40_count)) and
-      ((edi_count + 1.0 <= byte_count) and (edi_count + 1.0 <= text_count))) then
-      best_scheme := C1_EDI;
-
-    if ((c40_count + 1.0 <= ascii_count) and (c40_count + 1.0 <= text_count)) then
-    begin
-      if (c40_count < edi_count) then
+      cnt_1 := byte_count + 6;
+      if (cnt_1 <= ascii_rnded) and (cnt_1 <= c40_rnded) and (cnt_1 <= text_rnded) and (cnt_1 <= edi_rnded) then
       begin
-        best_scheme := C1_C40;
-      end
-      else
+        result := C1_BYTE; exit;
+      end;
+
+      cnt_1 := ascii_count + 6;
+      if (cnt_1 <= c40_rnded) and (cnt_1 <= text_rnded) and (cnt_1 <= edi_rnded) and (cnt_1 <= byte_rnded) then
       begin
-        //done := 0;
-        if (c40_count = edi_count) then
+        result := C1_ASCII; exit;
+      end;
+
+      cnt_1 := text_rnded + 6;
+      if (cnt_1 <= ascii_rnded) and (cnt_1 <= c40_rnded) and (cnt_1 <= edi_rnded) and (cnt_1 <= byte_rnded) then
+      begin
+        result := C1_TEXT; exit;
+      end;
+
+      cnt_1 := c40_rnded + 6;
+      if (cnt_1 <= ascii_rnded) and (cnt_1 <= text_rnded) then
+      begin
+        if (c40_rnded < edi_rnded) then
         begin
-          if (dq4bi(source, sourcelen, position) <> 0) then
-            best_scheme := C1_EDI
+          result := C1_C40; exit;
+        end;
+        if (c40_rnded = edi_rnded) then
+        begin
+          if (dq4bi(source, sourcelen, sp + 1) <> 0) then
+            result := C1_EDI
           else
-            best_scheme := C1_C40;
+            result := C1_C40;
+          exit;
         end;
       end;
+
+      cnt_1 := edi_rnded + 6;
+      if (cnt_1 <= ascii_rnded) and (cnt_1 <= c40_rnded) and (cnt_1 <= text_rnded) and (cnt_1 <= byte_rnded) then
+      begin
+        result := C1_EDI; exit;
+      end;
     end;
-
-    if (((text_count + 1.0 <= ascii_count) and (text_count + 1.0 <= c40_count)) and
-      ((text_count + 1.0 <= byte_count) and (text_count + 1.0 <= edi_count))) then
-      best_scheme := C1_TEXT;
-
-    if (((ascii_count + 1.0 <= byte_count) and (ascii_count + 1.0 <= c40_count)) and
-      ((ascii_count + 1.0 <= text_count) and (ascii_count + 1.0 <= edi_count))) then
-      best_scheme := C1_ASCII;
-
-
-    if (((byte_count + 1.0 <= ascii_count) and (byte_count + 1.0 <= c40_count)) and
-      ((byte_count + 1.0 <= text_count) and (byte_count + 1.0 <= edi_count))) then
-      best_scheme := C1_BYTE;
   end;
+
+  { Step K }
+  ascii_rnded := c1_mult_ceil(ascii_count);
+  c40_rnded := c1_mult_ceil(c40_count);
+  text_rnded := c1_mult_ceil(text_count);
+  edi_rnded := c1_mult_ceil(edi_count);
+  byte_rnded := c1_mult_ceil(byte_count);
+
+  if (byte_count <= ascii_rnded) and (byte_count <= c40_rnded) and (byte_count <= text_rnded) and (byte_count <= edi_rnded) then
+    best_scheme := C1_BYTE
+  else if (ascii_count <= c40_rnded) and (ascii_count <= text_rnded) and (ascii_count <= edi_rnded) and (ascii_count <= byte_rnded) then
+    best_scheme := C1_ASCII
+  else if (c40_rnded <= text_rnded) and (c40_rnded <= edi_rnded) then
+    best_scheme := C1_C40
+  else if (text_rnded <= edi_rnded) then
+    best_scheme := C1_TEXT
+  else
+    best_scheme := C1_EDI;
 
   {$IFDEF DEBUG_ZINT}
   WriteLn;
-  WriteLn(Format('> scores: ASCII %.2f  C40 %.2f  TEXT %.2f  EDI %.2f  BYTE %.2f',[ascii_count, c40_count, text_count, edi_count, byte_count]));
+  WriteLn(Format('> scores: ASCII %.2f  C40 %.2f  TEXT %.2f  EDI %.2f  BYTE %.2f',
+    [ascii_count / 6.0, c40_count / 6.0, text_count / 6.0, edi_count / 6.0, byte_count / 6.0]));
   {$ENDIF}
 
   result := best_scheme; exit;
 end;
 
-function c1_encode(symbol : zint_symbol; const source : TArrayOfByte; var target : TArrayOfCardinal; _length : Integer; var last_mode : Integer) : Integer;
+procedure c1_eci_escape(const eci : Integer; const source : TArrayOfByte; _length : Integer;
+  var eci_buf : TArrayOfByte; var eci_length : Integer);
+var
+  i, j, slash_count : Integer;
+  eci_prefix : AnsiString;
+begin
+  slash_count := 0;
+  for i := 0 to _length - 1 do
+    if source[i] = Ord('\') then
+      Inc(slash_count);
+
+  eci_length := _length + 7 + slash_count;
+  SetLength(eci_buf, eci_length);
+
+  eci_prefix := AnsiString(Format('\%.6d', [eci]));
+  for i := 1 to Length(eci_prefix) do
+    eci_buf[i - 1] := Ord(eci_prefix[i]);
+
+  j := 7;
+  for i := 0 to _length - 1 do
+  begin
+    if source[i] = Ord('\') then
+    begin
+      eci_buf[j] := Ord('\');
+      Inc(j);
+    end;
+    eci_buf[j] := source[i];
+    Inc(j);
+  end;
+end;
+
+function c1_is_last_single_ascii(const source : TArrayOfByte; _length : Integer; sp : Integer) : Integer;
+begin
+  if (_length - sp = 1) and (source[sp] <= 127) then
+  begin
+    result := 1; exit;
+  end;
+  if (_length - sp = 2) and istwodigits(source, sp) then
+  begin
+    result := 1; exit;
+  end;
+  result := 0; exit;
+end;
+
+function c1_encode(symbol : zint_symbol; const source : TArrayOfByte; var target : TArrayOfCardinal; _length : Integer; var last_mode : Integer; start_tp : Integer = 0) : Integer;
 var
   current_mode, next_mode : Integer;
   sp, tp, gs1, latch : Integer;
@@ -366,7 +399,7 @@ begin
   SetLength(decimal_binary, 40);
   byte_start := 0;
   sp := 0;
-  tp := 0;
+  tp := start_tp;
   //latch := 0;
   Fill(c40_buffer, 6, 0);
   c40_p := 0;
@@ -544,6 +577,12 @@ begin
       next_mode := C1_C40;
       if (c40_p = 0) then
       begin
+        if (c1_is_last_single_ascii(source, _length, sp) <> 0) then
+        begin
+          next_mode := C1_ASCII;
+          done := 1;
+        end;
+
         if (_length - sp >= 12) then
         begin
           j := 0;
@@ -655,6 +694,12 @@ begin
       next_mode := C1_TEXT;
       if (text_p = 0) then
       begin
+        if (c1_is_last_single_ascii(source, _length, sp) <> 0) then
+        begin
+          next_mode := C1_ASCII;
+          done := 1;
+        end;
+
         if (_length - sp >= 12) then
         begin
           j := 0;
@@ -1031,6 +1076,49 @@ begin
   until not (sp < _length);
 
   { Empty buffers }
+  if ((current_mode = C1_C40) and (c40_p = 1)) or ((current_mode = C1_TEXT) and (text_p = 1)) then
+  begin
+    { C-parity: if exactly one codeword remains and the last buffered C40/TEXT char is eligible,
+      encode that single char as ASCII instead of padded triplet + unlatch. }
+    if symbol.option_2 = 10 then  { Version T }
+    begin
+      if tp <= 10 then data_left := 10 - tp
+      else if tp <= 24 then data_left := 24 - tp
+      else data_left := 38 - tp;
+    end
+    else
+    begin
+      data_left := c1_data_length[0] - tp;
+      for i := 0 to 6 do
+        if tp > c1_data_length[i] then
+          data_left := c1_data_length[i + 1] - tp;
+    end;
+
+    if (data_left = 1) and (sp > 0) then
+    begin
+      if (current_mode = C1_C40) and
+        ((source[sp - 1] = Ord(' ')) or
+         ((source[sp - 1] >= Ord('0')) and (source[sp - 1] <= Ord('9'))) or
+         ((source[sp - 1] >= Ord('A')) and (source[sp - 1] <= Ord('Z')))) then
+      begin
+        target[tp] := source[sp - 1] + 1;
+        Inc(tp);
+        c40_p := 0;
+        current_mode := C1_ASCII;
+      end
+      else if (current_mode = C1_TEXT) and
+        ((source[sp - 1] = Ord(' ')) or
+         ((source[sp - 1] >= Ord('0')) and (source[sp - 1] <= Ord('9'))) or
+         ((source[sp - 1] >= Ord('a')) and (source[sp - 1] <= Ord('z')))) then
+      begin
+        target[tp] := source[sp - 1] + 1;
+        Inc(tp);
+        text_p := 0;
+        current_mode := C1_ASCII;
+      end;
+    end;
+  end;
+
   if (c40_p = 2) then
   begin
     c40_buffer[2] := 1;
@@ -1219,6 +1307,11 @@ var
   warning_number : Integer;
   warning_msg : String;
   last_mode : Integer;
+  work_source : TArrayOfByte;
+  work_length : Integer;
+  use_eci_escape : Integer;
+  eci_start_tp : Integer;
+  all_digits : Integer;
 begin
   sub_version := 3;
   size := 1;
@@ -1387,16 +1480,52 @@ begin
     SetLength(data, 40); SetLength(ecc, 25);
     SetLength(stream, 65);
 
-    if (_length > 90) then
+    use_eci_escape := 0;
+    work_length := _length;
+    SetLength(work_source, _length);
+    if _length > 0 then
+      Move(source[0], work_source[0], _length);
+
+    if (symbol.eci <> 0) and (base_gs1 = 0) then
     begin
-      strcpy(symbol.errtxt, Format('Error 519: Input length %d too long for Version T (maximum 90)', [_length]));
+      c1_eci_escape(symbol.eci, source, _length, work_source, work_length);
+      use_eci_escape := 1;
+    end;
+
+    eci_start_tp := 0;
+    if (use_eci_escape <> 0) then
+    begin
+      data[0] := 129; { Pad }
+      eci_start_tp := 1;
+    end;
+
+    if (work_length > 90) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 519: Input length %d too long for Version T (maximum 90)', [work_length]));
+      result := ZERROR_TOO_LONG; exit;
+    end;
+
+    all_digits := 1;
+    for i := 0 to _length - 1 do
+    begin
+      if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
+      begin
+        all_digits := 0;
+        Break;
+      end;
+    end;
+
+    if (use_eci_escape <> 0) and (all_digits <> 0) and (_length >= 77) then
+    begin
+      strcpy(symbol.errtxt, 'Error 516: Input too long for Version T, requires 39 codewords (maximum 38)');
       result := ZERROR_TOO_LONG; exit;
     end;
 
     for i := 0 to 39 do
-      data[i] := 0;
+      if i >= eci_start_tp then
+        data[i] := 0;
 
-    data_length := c1_encode(symbol, source, data, _length, last_mode);
+    data_length := c1_encode(symbol, work_source, data, work_length, last_mode, eci_start_tp);
 
     if (data_length = 0) then
     begin
@@ -1479,10 +1608,30 @@ begin
     SetLength(sub_data, 190); SetLength(sub_ecc, 75);
     SetLength(stream, 2100);
 
-    for i := 0 to 1499 do
-      data[i] := 0;
+    use_eci_escape := 0;
+    work_length := _length;
+    SetLength(work_source, _length);
+    if _length > 0 then
+      Move(source[0], work_source[0], _length);
 
-    data_length := c1_encode(symbol, source, data, _length, last_mode);
+    if (symbol.eci <> 0) and (base_gs1 = 0) then
+    begin
+      c1_eci_escape(symbol.eci, source, _length, work_source, work_length);
+      use_eci_escape := 1;
+    end;
+
+    eci_start_tp := 0;
+    if (use_eci_escape <> 0) then
+    begin
+      data[0] := 129; { Pad }
+      eci_start_tp := 1;
+    end;
+
+    for i := 0 to 1499 do
+      if i >= eci_start_tp then
+        data[i] := 0;
+
+    data_length := c1_encode(symbol, work_source, data, work_length, last_mode, eci_start_tp);
 
     if (data_length = 0) then
     begin

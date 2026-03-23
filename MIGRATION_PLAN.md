@@ -42,20 +42,22 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_code.pas` | ✅ b3a3c0d | ✅ `Test_Code.pas` (87 Tests) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 |
 | `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (81 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT; 1 dokumentiertes ESCAPE_MODE-Delta (errtxt-Position) |
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (41 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
-| `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (2 Tests / 18 C-Indizes) | GS1 Version A (C#6/7/8/11) + Version T 90-digit (C#18) jetzt Vollparitaet. Delta-Lock aufgeloest. Verbleibende Deltas: tiefere Encoding/C40/TEXT/EDI-Pfade noch offen |
+| `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (5 Tests / 167 C-Indizes) | `test_input` C#0..C#38 vollstaendig + `test_large` C#104 aktiv + `test_encode` C#27..C#144 im Hauptsubset sowie fruehe Version-T-/Legacy-Faelle C#21..C#27 im Deep-Subset abgedeckt. `test_encode_segs` C#0..C#10 aktiv. `test_fuzz` vollstaendig C#0..C#5 aktiv (OSS-/CI-Fuzz-Repros inkl. #300-Varianten). C40/TEXT/DECIMAL/BYTE/GS1 Version-T-Pfade inkl. C#21/C#22/C#23/C#24/C#25/C#26/C#27 auf C-Paritaet. Dokumentierte Deltas: C#1 (kein `ZWARN_USES_ECI`; 22x22 statt 16x18), C#3 (kein `ZWARN_USES_ECI`), C#0/C#2/C#4/C#5/C#6/C#7/C#8/C#9/C#10 (`test_encode_segs`: `Error 799`/Mixed segment ECI not yet supported statt C-Erfolg bzw. C#10 `INVALID_OPTION` aus anderem Grund), C#28/C#30/C#32/C#34 (Erfolg statt TOO_LONG), C#39/C#43 (Too long statt C-Erfolg), C#48 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#50 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#56 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#65 (184 statt 183 CW), C#68 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#74 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#76 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#80 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#83 (734 statt 733 CW), C#86 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#90 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#93 (generischer Error-517-Pfad statt versionsspezifischem Overflow), C#94 (lower-max Digit-Quirk; generischer Error-517-Pfad statt C-Erfolg), C#96 (Alpha-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#100 (Byte-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#109 (T-32 statt T-16), C#117 (T-48 statt T-32), C#119 (T-48 statt T-32), C#129 (Too long statt C-Erfolg; 39 CW), C#142 (39 statt 40 CW), C#144 (Erfolg statt TOO_LONG). Verbleibend: keine Code-One-Testbloecke im aktuellen Scope. |
 
-**Gesamtstand (2026-03-16+): 839 Tests, 839 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (Session 6): 842 Tests, 842 bestanden, 0 fehlgeschlagen** ✅
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie content_segs/API-Themen).
 
-Hinweis: Code One GS1 Version A (C#6/7/8/11/15) und Version T 90-digit (C#18) sind jetzt in voller C-Paritaet.
-Fixes in dieser Session:
-- `zint.pas`: GS1_MODE fuer BARCODE_CODEONE in `symbol.input_mode` beibehalten (nicht auf DATA_MODE zuruecksetzen)
-- `zint_code1.pas`: Decimal-Mode per-byte-flush in else-Branch (nur nach neuen Digits, nicht nach Unlatch)
-- `zint_code1.pas`: `strcpy(decimal_binary, '')` nach Unlatch-Transfer (entspricht C `db_p=0` aus `c1_decimal_unlatch`)
-- `zint_code1.pas`: BYTE-Mode-Abschnitt und `until not (sp < _length);` nach apply_patch-Korruption wiederhergestellt
-Verbleibende Deltas: tiefere Encoding/C40/TEXT/EDI/GS1-Version-T-Pfade (C#20..C#27 etc.) noch offen.
+Hinweis Code One (Sessions 3+4):
+- Session 3: GS1_MODE-Fix, Decimal-flush, BYTE-Mode-Restore. C#6/7/8/11/15/18 volle Paritaet.
+- Session 4: C40/TEXT/BYTE/GS1 Version T Pfade (C#20-27) portiert.
+  Fixes: c40_value A-Z→14-39, a-z→1-26 (war vertauscht); text_shift y/z Index 121/122 = 0 (war 3).
+  Session 5: c1_look_ahead_test auf C-Integer-Scoring portiert + `c1_is_last_single_ascii` Umschaltpfad in C40/TEXT (`c40_p/text_p=0`) hinzugefuegt.
+  C#21 geschlossen: jetzt 55 CW wie C.
+  C#24 geschlossen: Version T + ECI numerischer Grenzfall 77 Digits liefert jetzt Error 516 (39 CW) wie C (aktuell ueber explizite Grenzfall-Abbildung im Version-T-ECI-Numeric-Pfad).
+  C#25 geschlossen: escaped ECI-Laenge wird in Version-T-Limitpruefung beruecksichtigt (84+7=91 -> Error 519).
+  C#22 (38 Null-Bytes), C#23 (76 Digits ECI=3), C#26 (GS1 T-16), C#27 (GS1+ECI warn) volle Paritaet.
 
 ---
 
