@@ -10,6 +10,7 @@ uses
   DUnitX.TestFramework,
   DUnitX.Loggers.GUI.VCL,
   TestHelper_Zint,
+  Test_CommonCore,
   Test_Code1,
   //Test_Code128,
   Test_Telepen,
