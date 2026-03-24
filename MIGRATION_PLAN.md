@@ -388,3 +388,18 @@ UnitTests/
 1. QR-Paritaetsdeltas weiter abbauen: symbol.eci fuer Thai (ECI 13), ZWARN_NONCOMPLIANT fuer Kanji/GS1+ECI-Faelle, Structured-Append API-Paritaet.
 2. PDF417 vervollstaendigen: die offenen C-Bloecke `test_encode_segs`, `test_rt`, `test_rt_segs` und `test_fuzz` 1:1 in Delphi uebernehmen.
 3. Data Matrix nachziehen: die verbleibenden Deltas in `test_ct` und `test_ct_segs` gezielt schliessen.
+
+### PDF417 Segment-Blocker (Session 8)
+
+- Verbleibender Blocker:
+  - PDF417 braucht `pdf_initial_segs()` fuer per-segment ECI-Handling.
+  - Current Merge-Approach = Loss aller ECI-Grenzen.
+  - Folgeeffekt im PoC: Symbol auto-sizing weicht ab (z.B. Rows-Delta ggue. C).
+
+- Next Actions Optionen:
+  1. Port `pdf_initial_segs()` von C nach Delphi (ca. 3-5h).
+  2. PoC vereinfachen: nur Single-ECI-Segmente.
+  3. Delta dokumentieren: PDF417 Multi-ECI noch nicht voll unterstuetzt.
+
+- Aktive Umsetzung:
+  - Option 1 gestartet: Segment-aware PDF417-Pfad wird in Delphi nachgezogen.

@@ -1939,7 +1939,7 @@ begin
 	width := 0;
 	option_1 := -1;
 	option_2 := 0;
-	option_3 := 928; // PDF_MAX
+  option_3 := 0;
 	input_mode := DATA_MODE;
   structapp.index := 0;
   structapp.count := 0;
@@ -3021,6 +3021,43 @@ begin
   Result := True;
 end;
 
+function pdf417_seg_convert(symbol: zint_symbol; const source: TArrayOfByte;
+  const seg_len, seg_eci: Integer; out converted_bytes: TArrayOfByte; out converted_len: Integer): Boolean;
+var
+  i, target_eci, conv_len: Integer;
+  utfdata, converted: TArrayOfInteger;
+begin
+  Result := False;
+  converted_len := 0;
+  SetLength(converted_bytes, 0);
+  { Use Latin-1 (ECI 3) as default for ECI=0 — compatible with PDF417 default encoding }
+  target_eci := seg_eci;
+  if target_eci <= 0 then
+    target_eci := 3;
+  if target_eci = 26 then
+  begin
+    { UTF-8: pass bytes as-is }
+    converted_len := seg_len;
+    SetLength(converted_bytes, converted_len);
+    if converted_len > 0 then
+      Move(source[0], converted_bytes[0], converted_len);
+    Result := True;
+    Exit;
+  end;
+  conv_len := seg_len;
+  SetLength(utfdata, conv_len + 1);
+  SetLength(converted, conv_len + 1);
+  if utf8toutf16(symbol, source, utfdata, conv_len) <> 0 then
+    Exit;
+  if not try_single_byte_eci(utfdata, conv_len, target_eci, converted) then
+    Exit;
+  converted_len := conv_len;
+  SetLength(converted_bytes, converted_len);
+  for i := 0 to converted_len - 1 do
+    converted_bytes[i] := Byte(converted[i]);
+  Result := True;
+end;
+
 procedure qr_normalize_content_segs_eci(symbol: zint_symbol);
 var
   i, seg_len, base_mode: Integer;
@@ -3052,12 +3089,13 @@ end;
 
 function ZBarcode_Encode_Segs(symbol : zint_symbol; const segs : TZintSegments) : Integer;
 var
-  i, seg_len, total_len, posn, resolved_eci, conv_len : Integer;
-  first_eci, first_mode, original_input_mode : Integer;
-  merged, dm_conv_bytes : TArrayOfByte;
+  i, seg_len, total_len, posn, resolved_eci, conv_len, pdf_conv_len : Integer;
+  first_eci, first_mode, original_input_mode, guessed_eci : Integer;
+  merged, dm_conv_bytes, pdf_conv : TArrayOfByte;
   saved_content_segs: TZintSegments;
+  local_segs: TZintSegments;
   saved_content_count: Integer;
-  restore_dm_content_segs, dm_all_converted : Boolean;
+  restore_dm_content_segs, dm_all_converted, pdf_all_ok, pdf_warn_uses_eci : Boolean;
 begin
   SetLength(symbol.content_segs, 0);
   symbol.content_segs_count := 0;
@@ -3076,6 +3114,7 @@ begin
   saved_content_count := 0;
   restore_dm_content_segs := False;
   dm_all_converted := False;
+  pdf_warn_uses_eci := False;
 
   if symbol.symbology = BARCODE_QRCODE then
   begin
@@ -3172,11 +3211,7 @@ begin
   begin
     seg_len := segs[i].Length;
     if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
-        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
-        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
-        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
-        if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
-      seg_len := ustrlen(segs[i].Source);
+      seg_len := Length(segs[i].Source);
 
     if seg_len < 0 then
     begin
@@ -3249,6 +3284,66 @@ begin
       saved_content_segs := Copy(symbol.content_segs);
       saved_content_count := symbol.content_segs_count;
       restore_dm_content_segs := True;
+    end;
+  end;
+
+  { PDF417 family with multiple segments: convert UTF-8->ECI bytes per segment
+    and route to pdf417_segs_encode() - mirrors C's reduced_charset()+pdf_initial_segs() }
+  if (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417,
+                            BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF])
+    and (Length(segs) >= 1)
+    and ((original_input_mode and $07) = UNICODE_MODE) then
+  begin
+    { Validate option_1/2/3 as pdf417enc does }
+    if symbol.option_2 = -1 then symbol.option_2 := 0;
+    if symbol.option_3 = -1 then symbol.option_3 := 0;
+    { Convert each segment from UTF-8 to its ECI-specific byte representation }
+    SetLength(merged, 0);  { not used; we work with local_segs below }
+    SetLength(local_segs, Length(segs));
+    pdf_all_ok := True;
+    for i := 0 to High(segs) do
+    begin
+      seg_len := segs[i].Length;
+      if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
+        seg_len := Length(segs[i].Source);
+      guessed_eci := segs[i].ECI;
+      if not pdf417_seg_convert(symbol, segs[i].Source, seg_len, guessed_eci,
+                                pdf_conv, pdf_conv_len) then
+      begin
+        if guessed_eci = 0 then
+        begin
+          guessed_eci := qr_guess_best_eci_from_utf8(symbol, segs[i].Source, seg_len);
+          if (guessed_eci > 0) and (guessed_eci <> 3)
+            and pdf417_seg_convert(symbol, segs[i].Source, seg_len, guessed_eci,
+                                   pdf_conv, pdf_conv_len) then
+          begin
+            pdf_warn_uses_eci := True;
+          end
+          else
+          begin
+            pdf_all_ok := False;
+            Break;
+          end;
+        end
+        else
+        begin
+          pdf_all_ok := False;
+          Break;
+        end;
+      end;
+      local_segs[i].Source := pdf_conv;
+      local_segs[i].Length := pdf_conv_len;
+      { Keep ECI as-is unless auto-ECI was needed for ECI=0 segment }
+      local_segs[i].ECI := guessed_eci;
+      local_segs[i].SourceMode := segs[i].SourceMode;
+    end;
+    if pdf_all_ok then
+    begin
+      if first_eci >= 0 then symbol.eci := first_eci;
+      Result := pdf417_segs_encode(symbol, local_segs);
+      if (Result = 0) and pdf_warn_uses_eci then
+        Result := ZWARN_USES_ECI;
+      Exit;
     end;
   end;
 

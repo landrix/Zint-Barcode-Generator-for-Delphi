@@ -2302,9 +2302,9 @@ begin
   Cases[0].Option1 := -1;
   Cases[0].Option2 := -1;
   Cases[0].Option3 := -1;
-  Cases[0].Seg0_Data := '¶';     { Pilcrow, Latin }
+  Cases[0].Seg0_Data := #$00B6;   { Pilcrow, Latin }
   Cases[0].Seg0_Eci := 0;         { ECI 0 = use auto-detect or symbol.eci }
-  Cases[0].Seg1_Data := 'Ж';     { Cyrillic }
+  Cases[0].Seg1_Data := #$0416;   { Cyrillic }
   Cases[0].Seg1_Eci := 7;         { ECI 7 = Cyrillic }
   Cases[0].Seg2_Data := '';      { Empty seg }
   Cases[0].Seg2_Eci := -1;
@@ -2321,9 +2321,9 @@ begin
   Cases[1].Option1 := -1;
   Cases[1].Option2 := -1;
   Cases[1].Option3 := -1;
-  Cases[1].Seg0_Data := '¶';
+  Cases[1].Seg0_Data := #$00B6;
   Cases[1].Seg0_Eci := 0;
-  Cases[1].Seg1_Data := 'Ж';
+  Cases[1].Seg1_Data := #$0416;
   Cases[1].Seg1_Eci := 7;
   Cases[1].Seg2_Data := '';
   Cases[1].Seg2_Eci := -1;
@@ -2340,9 +2340,9 @@ begin
   Cases[2].Option1 := -1;
   Cases[2].Option2 := -1;
   Cases[2].Option3 := -1;
-  Cases[2].Seg0_Data := '¶';
+  Cases[2].Seg0_Data := #$00B6;
   Cases[2].Seg0_Eci := 0;      { Auto-detect (Latin) }
-  Cases[2].Seg1_Data := 'Ж';
+  Cases[2].Seg1_Data := #$0416;
   Cases[2].Seg1_Eci := 0;      { Auto-detect (should detect Cyrillic) }
   Cases[2].Seg2_Data := '';
   Cases[2].Seg2_Eci := -1;

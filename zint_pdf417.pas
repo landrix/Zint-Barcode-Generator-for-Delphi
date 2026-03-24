@@ -24,6 +24,7 @@ uses
 
 function pdf417(symbol : zint_symbol; chaine : TArrayOfByte; _length : Integer) : Integer;
 function pdf417enc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
+function pdf417_segs_encode(symbol : zint_symbol; const segs : TZintSegments) : Integer;
 function micro_pdf417(symbol : zint_symbol; chaine : TArrayOfByte; _length : Integer) : Integer;
 
 procedure byteprocess(var chainemc : TArrayOfInteger; var mc_length : Integer; chaine : TArrayOfByte; start : Integer; _length : Integer; block : Integer);
@@ -1249,6 +1250,328 @@ begin
 end;
 
 { 345 }
+{ Per-segment encoding for PDF417 — mirrors C's pdf_initial_segs() + pdf_enc() }
+function pdf417_segs_encode(symbol : zint_symbol; const segs : TZintSegments) : Integer;
+var
+  i, j, k, indexchaine, indexliste, mode, longueur, loop, offset : Integer;
+  mccorrection : array[0..519] of Integer;
+  total, mc_length, c1, c2, c3, codeerr, rows, cols, data_cws : Integer;
+  chainemc : TArrayOfInteger;
+  dummy : array[0..34] of Integer;
+  codebarre, pattern : TArrayOfChar;
+  liste : TGLoballiste;
+  seg_idx, block_counter, seg_len, seg_eci : Integer;
+  seg_data : TArrayOfByte;
+begin
+  SetLength(chainemc, 2700);
+  SetLength(codebarre, 140);
+  SetLength(pattern, 580);
+  codeerr := 0;
+  mc_length := 0;
+  block_counter := 0;
+
+  { Process each segment: optionally insert ECI codewords, then encode data }
+  for seg_idx := 0 to High(segs) do
+  begin
+    seg_len := segs[seg_idx].Length;
+    if (seg_len <= 0) and (Length(segs[seg_idx].Source) > 0) then
+      seg_len := ustrlen(segs[seg_idx].Source);
+    if seg_len <= 0 then
+      Continue;
+
+    seg_data := segs[seg_idx].Source;
+    seg_eci  := segs[seg_idx].ECI;
+
+    { Insert ECI codeword only when eci > 0 (eci=0 = default Latin-1, no codeword needed) }
+    if seg_eci > 0 then
+    begin
+      if seg_eci <= 899 then
+      begin
+        chainemc[mc_length] := 927; Inc(mc_length);
+        chainemc[mc_length] := seg_eci; Inc(mc_length);
+      end
+      else if seg_eci <= 810899 then
+      begin
+        chainemc[mc_length] := 926; Inc(mc_length);
+        chainemc[mc_length] := seg_eci div 900 - 1; Inc(mc_length);
+        chainemc[mc_length] := seg_eci mod 900; Inc(mc_length);
+      end
+      else
+      begin
+        chainemc[mc_length] := 925; Inc(mc_length);
+        chainemc[mc_length] := seg_eci - 810900; Inc(mc_length);
+      end;
+    end;
+
+    { Mode analysis for this segment's (already ECI-converted) bytes }
+    indexliste := 0;
+    indexchaine := 0;
+    mode := quelmode(Chr(seg_data[0]));
+    for i := 0 to 999 do
+      liste[0][i] := 0;
+    repeat
+      liste[1][indexliste] := mode;
+      while (liste[1][indexliste] = mode) and (indexchaine < seg_len) do
+      begin
+        Inc(liste[0][indexliste]);
+        Inc(indexchaine);
+        if indexchaine < seg_len then
+          mode := quelmode(Chr(seg_data[indexchaine]))
+        else
+          mode := BYT; { sentinel – won't be reached }
+      end;
+      Inc(indexliste);
+    until not (indexchaine < seg_len);
+
+    pdfsmooth(indexliste, liste);
+
+    { Encode mode blocks, tracking block_counter across all segments }
+    indexchaine := 0;
+    for i := 0 to indexliste - 1 do
+    begin
+      case liste[1][i] of
+        TEX:
+          textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], block_counter);
+        BYT:
+          byteprocess(chainemc, mc_length, seg_data, indexchaine, liste[0][i], block_counter);
+        NUM:
+          numbprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], block_counter);
+      end;
+      Inc(indexchaine, liste[0][i]);
+      Inc(block_counter);
+    end;
+  end;
+
+  { 752 - Now take care of the number of CWs per row (same as pdf417) }
+  data_cws := mc_length;
+  if (symbol.option_1 < 0) then
+  begin
+    symbol.option_1 := 6;
+    if (data_cws <= 863) then symbol.option_1 := 5;
+    if (data_cws <= 320) then symbol.option_1 := 4;
+    if (data_cws <= 160) then symbol.option_1 := 3;
+    if (data_cws <= 40)  then symbol.option_1 := 2;
+  end;
+  k := 1;
+  for loop := 1 to symbol.option_1 + 1 do
+    k := k * 2;
+
+  longueur := mc_length + 1 + k;
+
+  if (longueur > 928) then
+  begin
+    strcpy(symbol.errtxt, 'Error 464: Input too long, requires too many codewords (maximum 928)');
+    Result := 2; Exit;
+  end;
+
+  cols := symbol.option_2;
+  rows := symbol.option_3;
+
+  if rows > 0 then
+  begin
+    if cols < 1 then
+    begin
+      cols := (longueur + rows - 1) div rows;
+      if cols <= 1 then
+        cols := 1
+      else
+      begin
+        while (cols > 30) and (rows < 90) do
+        begin
+          Inc(rows);
+          cols := (longueur + rows - 1) div rows;
+        end;
+        while (cols >= 1) and (rows < 90) and ((rows * cols) > 928) do
+        begin
+          Inc(rows);
+          cols := (longueur + rows - 1) div rows;
+        end;
+        if (rows * cols) > 928 then
+        begin
+          strcpy(symbol.errtxt, 'Error 465: Input too long, requires too many codewords (maximum 928)');
+          Result := 2; Exit;
+        end;
+      end;
+    end
+    else
+    begin
+      while (rows <= 90) and ((rows * cols) < longueur) do
+        Inc(rows);
+      if (rows > 90) or ((rows * cols) > 928) then
+      begin
+        strcpy(symbol.errtxt, Format('Error 745: Input too long for number of columns ''%d''', [cols]));
+        Result := 4; Exit;
+      end;
+    end;
+
+    if rows <> symbol.option_3 then
+    begin
+      strcpy(symbol.errtxt, Format('Warning 746: Number of rows increased from %d to %d', [symbol.option_3, rows]));
+      codeerr := 3;
+    end;
+  end
+  else
+  begin
+    if cols < 1 then
+      cols := Round(Sqrt((longueur - 1) / 3.0));
+
+    rows := (longueur + cols - 1) div cols;
+    if rows <= 3 then
+      rows := 3
+    else
+    begin
+      while (rows > 90) and (cols < 30) do
+      begin
+        Inc(cols);
+        rows := (longueur + cols - 1) div cols;
+      end;
+      while (rows >= 3) and (cols < 30) and ((rows * cols) > 928) do
+      begin
+        Inc(cols);
+        rows := (longueur + cols - 1) div cols;
+      end;
+      if (rows * cols) > 928 then
+      begin
+        strcpy(symbol.errtxt, 'Error 747: Input too long, requires too many codewords (maximum 928)');
+        Result := 2; Exit;
+      end;
+      if (symbol.option_2 > 0) and (cols <> symbol.option_2) then
+      begin
+        strcpy(symbol.errtxt, Format('Warning 748: Number of columns increased from %d to %d', [symbol.option_2, cols]));
+        codeerr := 3;
+      end;
+    end;
+  end;
+
+  symbol.option_2 := cols;
+  symbol.option_3 := rows;
+
+  { 781 - Padding calculation }
+  i := 0;
+  if ((longueur / symbol.option_2) < 3) then
+    i := (symbol.option_2 * 3) - longueur
+  else
+    if ((longueur mod symbol.option_2) > 0) then i := symbol.option_2 - (longueur mod symbol.option_2);
+
+  while (i > 0) do
+  begin
+    chainemc[mc_length] := 900;
+    Inc(mc_length);
+    Dec(i);
+  end;
+  { length descriptor }
+  for i := mc_length downto 1 do
+    chainemc[i] := chainemc[i - 1];
+  chainemc[0] := mc_length + 1;
+  Inc(mc_length);
+
+  { 796 - Reed Solomon }
+  case symbol.option_1 of
+    1: offset := 2;
+    2: offset := 6;
+    3: offset := 14;
+    4: offset := 30;
+    5: offset := 62;
+    6: offset := 126;
+    7: offset := 254;
+    8: offset := 510;
+    else offset := 0;
+  end;
+
+  longueur := mc_length;
+  for loop := 0 to 519 do
+    mccorrection[loop] := 0;
+
+  for i := 0 to longueur - 1 do
+  begin
+    total := (chainemc[i] + mccorrection[k - 1]) mod 929;
+    for j := k - 1 downto 1 do
+      mccorrection[j] := (mccorrection[j - 1] + 929 - (total * coefrs[offset + j]) mod 929) mod 929;
+    j := 0;
+    mccorrection[0] := (929 - (total * coefrs[offset + j]) mod 929) mod 929;
+  end;
+
+  for i := k - 1 downto 0 do
+  begin
+    if mccorrection[i] <> 0 then
+      chainemc[mc_length] := 929 - mccorrection[i]
+    else
+      chainemc[mc_length] := 0;
+    Inc(mc_length);
+  end;
+
+  { 818 - The CW string is finished }
+  c1 := (mc_length div symbol.option_2 - 1) div 3;
+  c2 := symbol.option_1 * 3 + (mc_length div symbol.option_2 - 1) mod 3;
+  c3 := symbol.option_2 - 1;
+
+  for i := 0 to (mc_length div symbol.option_2) - 1 do
+  begin
+    for j := 0 to symbol.option_2 - 1 do
+      dummy[j + 1] := chainemc[i * symbol.option_2 + j];
+
+    k := (i div 3) * 30;
+    case i mod 3 of
+      0:
+      begin
+        dummy[0] := k + c1;
+        dummy[symbol.option_2 + 1] := k + c3;
+      end;
+      1:
+      begin
+        dummy[0] := k + c2;
+        dummy[symbol.option_2 + 1] := k + c1;
+      end;
+      2:
+      begin
+        dummy[0] := k + c3;
+        dummy[symbol.option_2 + 1] := k + c2;
+      end;
+    end;
+    strcpy(codebarre, '+*');
+    if (symbol.symbology = BARCODE_PDF417TRUNC) then
+    begin
+      for j := 0 to symbol.option_2 do
+      begin
+        case i mod 3 of
+          1: offset := 929;
+          2: offset := 1858;
+          else offset := 0;
+        end;
+        concat(codebarre, codagemc[offset + dummy[j]]);
+        concat(codebarre, '*');
+      end;
+    end
+    else
+    begin
+      for j := 0 to symbol.option_2 + 1 do
+      begin
+        case i mod 3 of
+          1: offset := 929;
+          2: offset := 1858;
+          else offset := 0;
+        end;
+        concat(codebarre, codagemc[offset + dummy[j]]);
+        concat(codebarre, '*');
+      end;
+      concat(codebarre, '-');
+    end;
+
+    strcpy(pattern, '');
+    for loop := 0 to strlen(codebarre) - 1 do
+      lookup(BRSET, PDFttf, codebarre[loop], pattern);
+
+    for loop := 0 to strlen(pattern) - 1 do
+      if (pattern[loop] = '1') then set_module(symbol, i, loop);
+
+    symbol.row_height[i] := 3;
+  end;
+  symbol.rows := rows;
+  symbol.width := strlen(pattern);
+
+  Result := codeerr;
+end;
+
 function pdf417enc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   codeerr, error_number : Integer;
