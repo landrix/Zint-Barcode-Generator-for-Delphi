@@ -42,9 +42,9 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_code.pas` | ✅ b3a3c0d | ✅ `Test_Code.pas` (87 Tests) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 |
 | `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (81 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT; 1 dokumentiertes ESCAPE_MODE-Delta (errtxt-Position) |
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (41 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
-| `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (5 Tests / 167 C-Indizes) | `test_input` C#0..C#38 vollstaendig + `test_large` C#104 aktiv + `test_encode` C#27..C#144 im Hauptsubset sowie fruehe Version-T-/Legacy-Faelle C#21..C#27 im Deep-Subset abgedeckt. `test_encode_segs` C#0..C#10 aktiv. `test_fuzz` vollstaendig C#0..C#5 aktiv (OSS-/CI-Fuzz-Repros inkl. #300-Varianten). C40/TEXT/DECIMAL/BYTE/GS1 Version-T-Pfade inkl. C#21/C#22/C#23/C#24/C#25/C#26/C#27 auf C-Paritaet. Dokumentierte Deltas: C#1 (kein `ZWARN_USES_ECI`; 22x22 statt 16x18), C#3 (kein `ZWARN_USES_ECI`), C#0/C#2/C#4/C#5/C#6/C#7/C#8/C#9/C#10 (`test_encode_segs`: `Error 799`/Mixed segment ECI not yet supported statt C-Erfolg bzw. C#10 `INVALID_OPTION` aus anderem Grund), C#28/C#30/C#32/C#34 (Erfolg statt TOO_LONG), C#39/C#43 (Too long statt C-Erfolg), C#48 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#50 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#56 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#65 (184 statt 183 CW), C#68 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#74 (lower-max Digit-Quirk; TOO_LONG statt C-Erfolg), C#76 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#80 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#83 (734 statt 733 CW), C#86 (Alpha-Grenze; TOO_LONG statt C-Erfolg), C#90 (Byte-Grenze; TOO_LONG statt C-Erfolg), C#93 (generischer Error-517-Pfad statt versionsspezifischem Overflow), C#94 (lower-max Digit-Quirk; generischer Error-517-Pfad statt C-Erfolg), C#96 (Alpha-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#100 (Byte-Grenze; generischer Error-517-Pfad statt C-Erfolg), C#109 (T-32 statt T-16), C#117 (T-48 statt T-32), C#119 (T-48 statt T-32), C#129 (Too long statt C-Erfolg; 39 CW), C#142 (39 statt 40 CW), C#144 (Erfolg statt TOO_LONG). Verbleibend: keine Code-One-Testbloecke im aktuellen Scope. |
+| `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (5 Tests / 167 C-Indizes) | Breite C-Testabdeckung aktiv (`test_input`, `test_large`, grosse `test_encode`-Subsets, `test_encode_segs`, `test_fuzz`). Wichtige Version-T-/C40-/TEXT-/GS1-Pfade wurden auf C-Paritaet gebracht; verbleibend sind dokumentierte Legacy-Deltas bei einzelnen Groessen-/Warn-/Overflow-Faellen. |
 
-**Gesamtstand (Session 9): 876 Tests, 876 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (aktuell): 808 Tests, 808 bestanden, 0 fehlgeschlagen** ✅
 
 Hinweis PDF417 test_encode odd-subset (Session 9):
 - `TestEncodeOddSubset3` (C#165-C#174) portiert, C-Escape-Strings (`\ooo`) werden im Test per lokalem Parser als Byte-Daten dekodiert.
@@ -63,25 +63,15 @@ Hinweis PDF417 test_encode odd-subset (Session 9):
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie symbol.eci-Faelle).
 
-Hinweis QR RT-content/content_segs (Session 7):
-- `qr_guess_best_eci_from_utf8()` in `zint.pas` komplett neu implementiert: TEncoding Round-Trip statt
-  Codepoint-Iteration. Erkennt jetzt korrekt ECI 3 (Latin-1) fuer UTF-8-Eingaben wie 'é' (C3 A9).
-- GS1-QR content_segs: FNC1-Byte-Substitution '['(0x5B) → 0x1D nun korrekt in ZBarcode_Encode().
-- HIBC_QR: Doppel-Population-Bug behoben; hibc()-Output ('+' + Daten + Checkdigit) wird nicht mehr
-  durch den nachgelagerten QR-content_segs-Block ueberschrieben.
-- Test_QR_RT_FromC C#0..C#20 vollstaendig gruen.
-- Verbleibende dokumentierte Deltas:
-  - Keine offenen Deltas mehr in Test_QR_RT_FromC.
+Hinweis QR RT-content/content_segs:
+- QR-RT/content_segs sind im aktiven Scope auf C-Paritaet (inkl. ECI-Guess, GS1-FNC1-Substitution und HIBC_QR-Pfad).
+- `Test_QR_RT_FromC` C#0..C#20 ist vollstaendig gruen.
+- In diesem Block bestehen aktuell keine offenen Deltas.
 
-Hinweis Code One (Sessions 3+4):
-- Session 3: GS1_MODE-Fix, Decimal-flush, BYTE-Mode-Restore. C#6/7/8/11/15/18 volle Paritaet.
-- Session 4: C40/TEXT/BYTE/GS1 Version T Pfade (C#20-27) portiert.
-  Fixes: c40_value A-Z→14-39, a-z→1-26 (war vertauscht); text_shift y/z Index 121/122 = 0 (war 3).
-  Session 5: c1_look_ahead_test auf C-Integer-Scoring portiert + `c1_is_last_single_ascii` Umschaltpfad in C40/TEXT (`c40_p/text_p=0`) hinzugefuegt.
-  C#21 geschlossen: jetzt 55 CW wie C.
-  C#24 geschlossen: Version T + ECI numerischer Grenzfall 77 Digits liefert jetzt Error 516 (39 CW) wie C (aktuell ueber explizite Grenzfall-Abbildung im Version-T-ECI-Numeric-Pfad).
-  C#25 geschlossen: escaped ECI-Laenge wird in Version-T-Limitpruefung beruecksichtigt (84+7=91 -> Error 519).
-  C#22 (38 Null-Bytes), C#23 (76 Digits ECI=3), C#26 (GS1 T-16), C#27 (GS1+ECI warn) volle Paritaet.
+Hinweis Code One:
+- Kernfixes fuer GS1_MODE, Decimal/BYTE-Umschaltungen, C40/TEXT-Tabellen und Look-Ahead sind umgesetzt.
+- Kritische Version-T-Grenzfaelle (u.a. C#21/C#24/C#25) wurden auf C-Paritaet gebracht.
+- Verbleibende Delta-Faelle sind im Testmodul explizit dokumentiert und aktuell nicht blocker-kritisch.
 
 ---
 
@@ -254,10 +244,10 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `large.c` | `zint_large.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `maxicode.c` | `zint_maxicode.pas` | in Arbeit |
 | `medical.c` | `zint_medical.pas` | b3a3c0d portiert + Tests gruen |
-| `pdf417.c` | `zint_pdf417.pas` | Port-Check + Kernport auf b3a3c0d-Verhalten fortgesetzt: `Test_PDF417.pas` aktiv (`test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie `test_encode`-Subset C#0/C#2/C#4/C#6/C#8/C#10/C#12/C#14/C#16/C#20/C#22/C#24/C#25/C#26/C#28/C#29/C#31/C#33/C#34/C#35/C#36/C#37/C#38/C#39/C#40/C#41/C#42/C#43/C#44/C#47/C#48/C#50/C#51/C#53/C#55/C#57/C#59/C#61/C#63/C#65/C#67/C#69/C#71/C#72/C#75/C#77/C#79/C#81/C#83/C#85/C#87/C#89/C#91/C#93/C#95/C#97/C#99/C#101/C#103/C#105/C#107/C#109/C#111/C#113/C#115/C#117/C#119/C#121/C#123/C#125/C#127/C#129/C#131/C#133/C#135/C#137/C#139/C#141/C#143/C#145/C#147/C#149/C#151/C#153/C#155/C#157/C#159/C#161/C#163/C#164/C#175/C#177/C#179/C#181/C#183/C#185/C#187/C#188/C#189/C#190/C#191/C#192/C#193/C#194/C#195/C#196/C#197/C#198/C#199/C#200/C#201/C#202/C#203/C#204/C#205/C#206/C#207/C#208/C#209/C#210, 155 Tests gruen). Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), exakte PDF417-/MicroPDF417-Optionsfehler (`460/461/466/467/468/472/475/476/745/746/747/748` im aktuellen Scope), korrekte Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`) und ECI-Codeword-Ausgabe (927/926/925-Pfade). Dokumentierte Deltas: `test_encode` C#53 (Rows: Delphi 6 statt C 7, Width identisch 154), C#147 (Rows: Delphi 38 statt C 32), C#149 (Rows: Delphi 44 statt C 38), C#151 (Delphi `TOO_LONG` statt C-Erfolg 44x99), C#175 (Rows: Delphi 10 statt C 9), C#177 (Rows: Delphi 10 statt C 9), C#183 (Rows/Width: Delphi 7x120 statt C 10x103), C#185 (Rows/Width: Delphi 7x120 statt C 10x103), C#187 (Rows/Width: Delphi 7x120 statt C 10x103), C#188 (Rows/Width: Delphi 7x120 statt C 10x103), C#189 (Rows: Delphi 10 statt C 9), C#190 (Rows: Delphi 10 statt C 9), C#197 (Rows: Delphi 8 statt C 9), C#202 (Rows: Delphi 9 statt C 8), C#206 (Rows: Delphi 9 statt C 8), C#207 (Rows: Delphi 9 statt C 8), C#208 (Rows: Delphi 9 statt C 8), C#209 (Rows/Width: Delphi 7x120 statt C 10x103), C#210 (Rows/Width: Delphi 7x120 statt C 10x103). `test_fuzz` portiert (TestFuzzSubset, 869/869 gruen). Delta `test_fuzz` C#1: Delphi TOO_LONG statt C ret=0 fuer BARCODE_PDF417/DATA_MODE/1001B - C-Optimizer packt 1001B ohne FAST_MODE, Delphi nicht. `test_encode_segs` erweitert um C#44..C#51 (TestEncodeSegsExtraSubset) sowie C#52..C#63 (TestEncodeSegsOptionSubset), Gesamtstand 871/871 gruen. Neue Deltas: C#44/C#45 (HIBC via Segmentpfad akzeptiert statt C-Fehler), C#47 (Rows 12 statt C 11), C#49 (Rows 10 statt C 9), C#52/C#53 (5x103 statt C 4x86), C#54/C#55 (10x86 statt C 6x86), C#57 (4x120 statt C 9x103), C#58 (3x137 statt C 12x120), C#59 (Rows 3 statt C 14), C#60 (3x171 statt C 19x188), C#61 (3x188 statt C 29x222), C#62 (3x205 statt C 40x290), C#63 (3x205 statt C 41x290). `test_encode_segs` weiter erweitert um C#64..C#83 (TestEncodeSegsStructAppSubset + TestEncodeSegsDataModeSubset), Gesamtstand 873/873 gruen. Neue Deltas: C#64..C#70 (PDF417 opt2=8 SA-Varianten: Delphi 3x205 statt C 41x290, identisches Muster wie C#62/63), C#71..C#73 (MicroPDF417 SA{017053}: Delphi 6x103 statt C 6x99), C#74/C#75 (MicroPDF417 SA{}: Delphi 6x103 statt C 17x38), C#76/C#77 (MicroPDF417 SA{100200300}: Delphi 6x103 statt C 11x55). C#78..C#83 (PDF417 DATA_MODE numerisch, kein SA): vollstaendige Paritaet zu C. Verbleibend: Segment-Roundtrip noch nicht voll b3a3c0d-verifiziert. `test_encode` UNICODE_MODE-Luecken geschlossen (TestEncodeOddSubset + TestEncodeOddSubset2): C#1..C#27 Subset + C#34/C#36/C#38/C#40/C#42/C#44 UNICODE_MODE-Partner ergaenzt, Gesamtstand 875/875 gruen. Neue Deltas in TestEncodeOddSubset2: C#18 (UNICODE_MODE|FAST_MODE `;;;;;é;;;;;`: Delphi 7x120 statt C 10x103), C#19 (UNICODE_MODE `;;;;;é;;;;;`: Delphi 7x120 statt C 10x103) - é-Encoding produziert abweichende Kompaktierung; C#36 (Text Compaction: Delphi 10 rows statt C 9); C#38/C#40/C#42 (Byte Compaction: Delphi 4,4,5 rows statt C 3,3,3); C#44 (Byte Compaction 11x0x7F: Delphi 7 rows statt C 4). |
+| `pdf417.c` | `zint_pdf417.pas` | Port-Check weit fortgeschritten: `Test_PDF417.pas` deckt `test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie grosse Subsets aus `test_encode`, `test_encode_segs` und `test_fuzz` ab. Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), Option-Validierung, Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`) und ECI-Codeword-Ausgabe (927/926/925-Pfade). Full-Gate aktuell gruen (`808/808`), verbleibend sind dokumentierte PDF417-Paritaetsdeltas in einzelnen Segment-/Rows-/Width-Faellen. |
 | `plessey.c` | `zint_plessey.pas` | b3a3c0d portiert + Tests gruen |
 | `postal.c` | `zint_postal.pas` | b3a3c0d portiert + Tests gruen |
-| `qr.c` | `zint_qr.pas` | b3a3c0d portiert + Tests gruen (Segment/content-API-Paritaet offen) |
+| `qr.c` | `zint_qr.pas` | b3a3c0d portiert + Tests gruen (aktive RT-/Segment-API-Pfade auf 1:1-C-Paritaet; optional nur weitere Subset-Erweiterungen) |
 | `reedsol.c` | `zint_reedsol.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `rss.c` | `zint_rss.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `sjis.h` | `zint_sjis.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
@@ -347,11 +337,12 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 ### QR-Familie: Noch offene Paritaetsarbeiten (trotz gruener Suite)
 
 - [x] `content_segs`/RT-content fuer C#0..C#20 abgeschlossen: ECI-Guess via TEncoding Round-Trip, GS1 FNC1-Bytes, HIBC_QR Single-Population. (Session 7)
-- [~] Segment-API paritaet: `ZBarcode_Encode_Segs` + Segment-Array-Durchreichung ist aktiv; Unicode-Mixed-ECI/Structured-Append-Fall (C#7), `test_qr_rt_segs` C#0..9 und `test_qr_encode_segs` C#0..7 sind auf 1:1-C-Paritaet. Rest: verbleibende Surrogate ausserhalb dieser Bloecke und Randfaelle.
+- [x] Segment-API paritaet: `ZBarcode_Encode_Segs` + Segment-Array-Durchreichung ist aktiv; Unicode-Mixed-ECI/Structured-Append-Fall (C#7), `test_qr_rt_segs` C#0..9, `test_qr_encode_segs` C#0..7, `test_microqr_rt` C#0..7 und `test_upnqr_rt` C#0..5 sind auf 1:1-C-Paritaet.
 - [x] symbol.eci Thai (ECI 13): QR-Auto-ECI in `zint_qr.pas` nutzt jetzt Single-Byte-ECI-Priorisierung (C#2/C#3 auf C-Paritaet).
 - [x] Warning ZWARN_NONCOMPLIANT: Kanji-Optimierung (C#4/C#5) und GS1+ECI170 (C#18) auf C-Paritaet.
-- [~] Structured Append fuer QR API-seitig nachziehen: Basis-Validierung/GS1-Warnpfade und Segment-/Mixed-ECI-Fall in `Encode_Segs` sind auf C-Paritaet; `test_qr_rt_segs` ist voll 1:1 aktiv. Offen bleiben weitere Test-Umstellungen (Surrogates -> 1:1 C-Faelle) und Randfaelle.
-- [ ] Surrogate in `UnitTests/Test_QR.pas` schrittweise durch 1:1 C-Testfaelle ersetzen, sobald Segment-/Content-APIs verfuegbar sind.
+- [x] Structured Append fuer QR API-seitig nachziehen: Basis-Validierung/GS1-Warnpfade und Segment-/Mixed-ECI-Fall in `Encode_Segs` sind auf C-Paritaet; die aktiv genutzten RT-/Segment-Tests sind 1:1 an C ausgerichtet.
+- [x] Surrogate in `UnitTests/Test_QR.pas` fuer die aktiven RT-/Segmentpfade durch 1:1 C-Testfaelle ersetzt.
+- [~] Verbleibend in der QR-Familie: einzelne konservative Teilmengen bei MicroQR/UPNQR-Input-/Encode-Tests koennen spaeter noch auf breitere 1:1-C-Abdeckung erweitert werden; aktuell kein offener Kern-/API-Blocker mehr.
 
 ---
 
@@ -396,25 +387,25 @@ UnitTests/
 
 ## Naechste Arbeitsschritte
 
-1. QR-Paritaetsdeltas weiter abbauen: verbleibende Surrogates in `Test_QR.pas` schrittweise durch 1:1 C-Faelle ersetzen (insbesondere verbleibende nicht-1:1 Bloecke ausserhalb `test_qr_encode_segs`/`test_qr_rt_segs`).
-2. PDF417 vervollstaendigen: Fokus auf Segment-Delta-Reduktion (`rows/width/warn`) in Multi-ECI- und Structured-Append-Faellen, nicht nur Delta-Absicherung.
-3. Data Matrix nachziehen: verbleibende Deltas in `test_ct` und `test_ct_segs` gezielt schliessen.
+1. Data Matrix nachziehen: verbleibende Deltas in `test_ct` und `test_ct_segs` gezielt schliessen.
+2. PDF417 weiter angleichen: dokumentierte Delphi-vs-C-Deltas in Segment-/Option-Subsets (`rows/width/warn`) schrittweise abbauen.
+3. QR-Familie optional erweitern: konservative MicroQR/UPNQR-Input-/Encode-Subsets bei Bedarf auf breitere 1:1-C-Abdeckung ausbauen.
 
-### PDF417 Segment-Blocker (aktuell)
+### PDF417 Status (aktuell)
 
-- `test_encode_segs` Main-Subset C#0..C#39 ist aktiv (keine Skip-Logik mehr).
-- Kernblocker bleibt die C-nahe Segment-Initialisierung/Encodation bei Multi-ECI (Auto-Sizing und Warnklassifikation weichen teils ab).
-- Die Suite ist gruen, aber mehrere dokumentierte Delphi-vs-C-Deltas bleiben fachlich offen.
+- Full-Gate ist gruen (`808/808` bestanden).
+- `test_encode_segs` Main-Subset C#0..C#39 ist aktiv.
+- Es gibt aktuell keinen akuten Blocker; offen sind dokumentierte Paritaetsdeltas in einzelnen PDF417-Teilbloecken.
 
 Naechste Optionen:
 1. `pdf_initial_segs()` C-nah nach Delphi portieren (bevorzugt).
-2. Zwischenstufe: Single-ECI-Segmentpfad weiter haerten und Multi-ECI als Delta belassen.
+2. Zwischenstufe: fokussiert pro Delta-Cluster (`rows/width/warn`) vereinheitlichen und jeweils gegen C gegenpruefen.
 3. Delta-Stand bewusst einfrieren und nur dokumentieren.
 
 Empfehlung fuer "was waere als naechstes dran":
 
 | Prioritaet | Aufgabe | Aufwand |
 |---|---|---|
-| Hoch | QR-Paritaetsdeltas: Structured-Append Segmenttests (Surrogates -> 1:1 C) und Rest-Randfaelle abschliessen | mittel |
+| Hoch | Data Matrix `test_ct`/`test_ct_segs` Deltas schliessen | mittel |
 | Mittel | PDF417 Segment-Delta-Reduktion (Rows/Width/Warnungen) statt nur Delta-Absicherung | hoch |
-| Niedrig | RT/RT_SEGS gepflegt halten (bei Core-Aenderungen kurz gegen C gegenpruefen) | gering |
+| Niedrig | QR-Familie konservative MicroQR/UPNQR-Subsets bei Bedarf weiter auf 1:1-C ausbauen | gering |

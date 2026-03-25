@@ -896,7 +896,8 @@ uses zint_common, zint_helper, zint_dmatrix,
   zint_aztec, zint_qr, zint_upcean,
   zint_maxicode, zint_auspost, zint_code, zint_medical,
   zint_code16k, zint_code49, zint_pdf417, zint_composite, zint_gridmtx,
-  zint_plessey, zint_code1, zint_telepen, zint_postal, zint_imail, zint_rss, zint_dotcode;
+  zint_plessey, zint_code1, zint_telepen, zint_postal, zint_imail, zint_rss, zint_dotcode,
+  zint_gb2312, zint_sjis;
 
 const
   TECHNETIUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%';
@@ -2854,10 +2855,12 @@ begin
 		error_number := error_buffer;
 
   if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0)
-    and (symbol.symbology in [BARCODE_QRCODE, BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
+    and (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_UPNQR, BARCODE_RMQR,
+                              BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
   begin
     SetLength(symbol.content_segs, 1);
-    if (symbol.symbology = BARCODE_QRCODE) and (base_mode <> GS1_MODE) then
+    if (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_UPNQR, BARCODE_RMQR])
+      and (base_mode <> GS1_MODE) then
     begin
       SetLength(symbol.content_segs[0].Source, _length);
       if _length > 0 then
@@ -3026,7 +3029,7 @@ end;
 function pdf417_seg_convert(symbol: zint_symbol; const source: TArrayOfByte;
   const seg_len, seg_eci: Integer; out converted_bytes: TArrayOfByte; out converted_len: Integer): Boolean;
 var
-  i, target_eci, conv_len: Integer;
+  i, j, target_eci, conv_len, glyph: Integer;
   utfdata, converted: TArrayOfInteger;
 begin
   Result := False;
@@ -3036,6 +3039,102 @@ begin
   target_eci := seg_eci;
   if target_eci <= 0 then
     target_eci := 3;
+  if target_eci = 20 then
+  begin
+    conv_len := seg_len;
+    SetLength(utfdata, conv_len + 1);
+    if utf8toutf16(symbol, source, utfdata, conv_len) <> 0 then
+      Exit;
+
+    SetLength(converted_bytes, conv_len * 2);
+    converted_len := 0;
+    for i := 0 to conv_len - 1 do
+    begin
+      if (utfdata[i] < $80) and (utfdata[i] <> $5C) and (utfdata[i] <> $7E) then
+      begin
+        converted_bytes[converted_len] := Byte(utfdata[i]);
+        Inc(converted_len);
+        Continue;
+      end;
+      if (utfdata[i] >= $FF61) and (utfdata[i] <= $FF9F) then
+      begin
+        converted_bytes[converted_len] := Byte((utfdata[i] - $FF61) + $A1);
+        Inc(converted_len);
+        Continue;
+      end;
+      if utfdata[i] = $203E then
+      begin
+        converted_bytes[converted_len] := $7E;
+        Inc(converted_len);
+        Continue;
+      end;
+
+      glyph := 0;
+      for j := 0 to 6842 do
+      begin
+        if sjis_lookup[j * 2] = utfdata[i] then
+        begin
+          glyph := sjis_lookup[(j * 2) + 1];
+          Break;
+        end;
+      end;
+      if glyph = 0 then
+        Exit;
+
+      if glyph > $FF then
+      begin
+        converted_bytes[converted_len] := Byte((glyph shr 8) and $FF);
+        Inc(converted_len);
+      end;
+      converted_bytes[converted_len] := Byte(glyph and $FF);
+      Inc(converted_len);
+    end;
+    SetLength(converted_bytes, converted_len);
+    Result := True;
+    Exit;
+  end;
+  if target_eci = 29 then
+  begin
+    conv_len := seg_len;
+    SetLength(utfdata, conv_len + 1);
+    if utf8toutf16(symbol, source, utfdata, conv_len) <> 0 then
+      Exit;
+
+    SetLength(converted_bytes, conv_len * 2);
+    converted_len := 0;
+    for i := 0 to conv_len - 1 do
+    begin
+      if utfdata[i] < $80 then
+      begin
+        converted_bytes[converted_len] := Byte(utfdata[i]);
+        Inc(converted_len);
+        Continue;
+      end;
+
+      glyph := 0;
+      for j := 0 to 7444 do
+      begin
+        if Integer(gb2312_lookup[j * 2]) = utfdata[i] then
+        begin
+          glyph := gb2312_lookup[(j * 2) + 1];
+          Break;
+        end;
+      end;
+      if glyph = 0 then
+        Exit;
+
+      if glyph > $FF then
+      begin
+        converted_bytes[converted_len] := Byte((glyph shr 8) and $FF);
+        Inc(converted_len);
+      end;
+      converted_bytes[converted_len] := Byte(glyph and $FF);
+      Inc(converted_len);
+    end;
+    SetLength(converted_bytes, converted_len);
+    Result := True;
+    Exit;
+  end;
   if target_eci = 26 then
   begin
     { UTF-8: pass bytes as-is }
@@ -3227,7 +3326,10 @@ begin
       else if first_eci <> segs[i].ECI then
       begin
         if symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM, BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417, BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF] then
-          first_eci := 0
+        begin
+          { C library keeps symbol ECI aligned to segment 0 and allows later
+            segments to switch ECI independently. }
+        end
         else
         begin
           strcpy(symbol.errtxt, 'Error 799: Mixed segment ECI not yet supported');
@@ -3283,7 +3385,7 @@ begin
   if (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417,
                             BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF])
     and (Length(segs) >= 1)
-    and ((original_input_mode and $07) = UNICODE_MODE) then
+    and ((original_input_mode and $07) in [UNICODE_MODE, DATA_MODE]) then
   begin
     { Validate option_1/2/3 as pdf417enc does }
     if symbol.option_2 = -1 then symbol.option_2 := 0;
@@ -3298,10 +3400,22 @@ begin
       if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
         seg_len := Length(segs[i].Source);
       guessed_eci := segs[i].ECI;
-      if not pdf417_seg_convert(symbol, segs[i].Source, seg_len, guessed_eci,
-                                pdf_conv, pdf_conv_len) then
+      if (original_input_mode and $07) = DATA_MODE then
       begin
-        if guessed_eci = 0 then
+        pdf_conv_len := seg_len;
+        SetLength(pdf_conv, pdf_conv_len);
+        if pdf_conv_len > 0 then
+          Move(segs[i].Source[0], pdf_conv[0], pdf_conv_len);
+      end
+      else if not pdf417_seg_convert(symbol, segs[i].Source, seg_len, guessed_eci,
+                                     pdf_conv, pdf_conv_len) then
+      begin
+        if guessed_eci > 0 then
+        begin
+          pdf_all_ok := False;
+          Break;
+        end
+        else if guessed_eci = 0 then
         begin
           guessed_eci := qr_guess_best_eci_from_utf8(symbol, segs[i].Source, seg_len);
           if (guessed_eci > 0) and (guessed_eci <> 3)
@@ -3326,6 +3440,11 @@ begin
       local_segs[i].Length := pdf_conv_len;
       { Keep ECI as-is unless auto-ECI was needed for ECI=0 segment }
       local_segs[i].ECI := guessed_eci;
+      { Mirror C z_segs_cpy(): if a default-ECI segment follows a non-default
+        ECI segment, make the default explicit so backend emits the reset. }
+      if (i > 0) and (local_segs[i].ECI = 0)
+        and (local_segs[i - 1].ECI <> 0) and (local_segs[i - 1].ECI <> 3) then
+        local_segs[i].ECI := 3;
       local_segs[i].SourceMode := segs[i].SourceMode;
     end;
     if pdf_all_ok then

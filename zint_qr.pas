@@ -3950,13 +3950,17 @@ var
 	binary_count: TArrayOfInteger;
 	ecc_level, autoversion, version: Integer;
 	n_count, a_count, bitmask, format, format_full: Integer;
-  source_length, auto_eci_warning, auto_eci_fallback, auto_eci_mode: Integer;
+  source_length, auto_eci_warning, auto_eci_mode: Integer;
+	eci_for_encoding: Integer;
+  latin_data: TArrayOfInteger;
+  latin_ok: Boolean;
   grid: TArrayOfByte;
 begin
 	SetLength(binary_stream, 200);
 	SetLength(full_stream, 200);
 	SetLength(utfdata, 40);
 	SetLength(jisdata, 40);
+	SetLength(latin_data, 40);
 	SetLength(mode, 40);
 	kanji_used := 0;
   alphanum_used := 0;
@@ -3991,89 +3995,82 @@ begin
 			// Convert Unicode input to Shift-JIS
 			error_number := utf8toutf16(symbol, source, utfdata, _length);
 			if(error_number <> 0) then begin Result:=error_number; Exit end;
+			eci_for_encoding := symbol.eci;
 
 			if symbol.eci = 0 then
 			begin
-				symbol.eci := 20;
-				auto_eci_mode := 1;
+					latin_ok := try_single_byte_eci(utfdata, _length, 3, latin_data);
+					if latin_ok then
+					begin
+						for i := 0 to _length - 1 do
+							jisdata[i] := latin_data[i];
+						auto_eci_mode := 0;
+					end
+					else
+					begin
+						eci_for_encoding := 20;
+						auto_eci_mode := 1;
+					end;
 			end
 			else
 				auto_eci_mode := 0;
 
-			auto_eci_fallback := 0;
-
-			for i := 0 to _length - 1 do
+				if not ((eci_for_encoding = 0) and latin_ok) then
       begin
-				if (symbol.eci = 3) and (utfdata[i] > $FF) then
-          begin
-					strcpy(symbol.errtxt, 'Error 575: Invalid character in input for ECI ''3''');
-					Result := ZERROR_INVALID_DATA;
-            Exit;
-          end;
-
-				if(utfdata[i] <= $ff) then
-				begin
-					if symbol.eci = 20 then
-					begin
-						if utfdata[i] = $A5 then
-							jisdata[i] := $5C
-						else if (utfdata[i] <= $7F) and (utfdata[i] <> $7E) then
-							jisdata[i] := utfdata[i]
-						else
-              begin
-							if (symbol.eci = 20) and (auto_eci_mode <> 0) then
-							begin
-								auto_eci_fallback := 1;
-								Break;
-							end;
-							strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
+					for i := 0 to _length - 1 do
+	      begin
+						if (eci_for_encoding = 3) and (utfdata[i] > $FF) then
+	          begin
+							strcpy(symbol.errtxt, 'Error 575: Invalid character in input for ECI ''3''');
 							Result := ZERROR_INVALID_DATA;
-                Exit;
-              end;
-					end
-					else
-						jisdata[i] := utfdata[i];
-				end
-				else if (symbol.eci = 20) and (utfdata[i] >= $FF61) and (utfdata[i] <= $FF9F) then
-					jisdata[i] := (utfdata[i] - $FF61) + $A1
-				else if (symbol.eci = 20) and (utfdata[i] = $203E) then
-					jisdata[i] := $7E
-				else
-        begin
-					j := 0;
-					glyph := 0;
-					repeat
-						if(sjis_lookup[j * 2] = utfdata[i]) then
-							glyph := sjis_lookup[(j * 2) + 1];
+	            Exit;
+	          end;
 
-						inc(j);
-					until not ((j < 6843) and (glyph = 0));
-					if(glyph = 0) then
-          begin
-							if (symbol.eci = 20) and (auto_eci_mode <> 0) then
+						if(utfdata[i] <= $ff) then
+						begin
+							if eci_for_encoding = 20 then
 							begin
-								auto_eci_fallback := 1;
-								Break;
-							end;
-							if symbol.eci = 3 then
-								strcpy(symbol.errtxt, 'Error 575: Invalid character in input for ECI ''3''')
+								if utfdata[i] = $A5 then
+									jisdata[i] := $5C
+								else if (utfdata[i] <= $7F) and (utfdata[i] <> $7E) then
+									jisdata[i] := utfdata[i]
+								else
+	              begin
+									strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
+									Result := ZERROR_INVALID_DATA;
+	                Exit;
+	              end;
+							end
 							else
-								strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
-						Result:=ZERROR_INVALID_DATA;
-            Exit;
-					end;
-					jisdata[i] := glyph;
-				end;
-			end;
+								jisdata[i] := utfdata[i];
+						end
+						else if (eci_for_encoding = 20) and (utfdata[i] >= $FF61) and (utfdata[i] <= $FF9F) then
+							jisdata[i] := (utfdata[i] - $FF61) + $A1
+						else if (eci_for_encoding = 20) and (utfdata[i] = $203E) then
+							jisdata[i] := $7E
+						else
+	        begin
+							j := 0;
+							glyph := 0;
+							repeat
+								if(sjis_lookup[j * 2] = utfdata[i]) then
+									glyph := sjis_lookup[(j * 2) + 1];
 
-			if auto_eci_fallback <> 0 then
-			begin
-				symbol.eci := 26;
-				auto_eci_warning := ZWARN_USES_ECI;
-				_length := source_length;
-				for i := 0 to _length - 1 do
-					jisdata[i] := source[i];
-			end;
+								inc(j);
+							until not ((j < 6843) and (glyph = 0));
+							if(glyph = 0) then
+	          begin
+								if eci_for_encoding = 3 then
+									strcpy(symbol.errtxt, 'Error 575: Invalid character in input for ECI ''3''')
+								else
+									strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
+								Result:=ZERROR_INVALID_DATA;
+	            Exit;
+							end;
+							jisdata[i] := glyph;
+						end;
+					end;
+				end;
 	end;
 
 	define_mode(mode, jisdata, _length, 0);
@@ -4118,9 +4115,25 @@ begin
 	end;
 
 	if (kanji_used<>0) then
-  begin
+	begin
 		version_valid[0] := 0;
 		version_valid[1] := 0;
+	end;
+
+	{ C parity guard: in DATA_MODE, any non-numeric/non-alpha byte forces
+		Byte/Kanji behavior and therefore excludes M1/M2. }
+	if (symbol.input_mode = DATA_MODE) and (version_valid[0] <> 0) then
+	begin
+		for i := 0 to _length - 1 do
+		begin
+			if ((jisdata[i] < Ord('0')) or (jisdata[i] > Ord('9')))
+				and ((jisdata[i] > $FF) or (in_alpha(Byte(jisdata[i])) = 0)) then
+			begin
+				version_valid[0] := 0;
+				version_valid[1] := 0;
+				Break;
+			end;
+		end;
 	end;
 
 	// Eliminate possible versions depending on _length of binary data

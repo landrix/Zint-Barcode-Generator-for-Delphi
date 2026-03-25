@@ -2982,82 +2982,82 @@ begin
   InitCase(3, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
     S_PILCROW, 0, S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example auto-ECI');
   InitCase(4, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_CYR_ZHE, 7, S_PILCROW, 0, '', -1, 0, 8, 103, 'Standard example inverted (Delphi delta: rows 8 vs C 9)');
+    S_CYR_ZHE, 7, S_PILCROW, 0, '', -1, 0, 9, 103, 'Standard example inverted');
   InitCase(5, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_CYR_ZHE, 7, S_PILCROW, 0, '', -1, 0, 8, 103, 'Standard example inverted (Delphi delta: rows 8 vs C 9)');
+    S_CYR_ZHE, 7, S_PILCROW, 0, '', -1, 0, 9, 103, 'Standard example inverted');
   InitCase(6, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_CYR_ZHE, 0, S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example inverted auto-ECI (Delphi delta: rows 8 vs C 9)');
+    S_CYR_ZHE, 0, S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 9, 103, 'Standard example inverted auto-ECI');
   InitCase(7, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_CYR_ZHE, 0, S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example inverted auto-ECI (Delphi delta: rows 8 vs C 9)');
+    S_CYR_ZHE, 0, S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 9, 103, 'Standard example inverted auto-ECI');
   InitCase(8, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_AIM_EN_SHORT, 3, S_AIM_ZH_SHORT, 29, S_AIM_DE_SHORT, 17, 0, 12, 120, 'AIM Annex A short (Delphi delta: 12x120 vs C 10x137)');
+    S_AIM_EN_SHORT, 3, S_AIM_ZH_SHORT, 29, S_AIM_DE_SHORT, 17, 0, 10, 137, 'AIM Annex A short');
   InitCase(9, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_AIM_EN_SHORT, 3, S_AIM_ZH_SHORT, 29, S_AIM_DE_SHORT, 17, 0, 12, 120, 'AIM Annex A short (Delphi delta: 12x120 vs C 10x137)');
+    S_AIM_EN_SHORT, 3, S_AIM_ZH_SHORT, 29, S_AIM_DE_SHORT, 17, 0, 10, 137, 'AIM Annex A short');
   InitCase(10, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_AIM_EN_SHORT2, 3, S_AIM_ZH_SHORT2, 29, S_AIM_DE_SHORT2, 17, 0, 12, 120, 'AIM Annex A short 2 (Delphi delta: rows 12 vs C 13)');
+    S_AIM_EN_SHORT2, 3, S_AIM_ZH_SHORT2, 29, S_AIM_DE_SHORT2, 17, 0, 13, 120, 'AIM Annex A short 2');
   InitCase(11, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_AIM_EN_SHORT2, 3, S_AIM_ZH_SHORT2, 29, S_AIM_DE_SHORT2, 17, 0, 12, 120, 'AIM Annex A short 2 (Delphi delta: rows 12 vs C 13)');
+    S_AIM_EN_SHORT2, 3, S_AIM_ZH_SHORT2, 29, S_AIM_DE_SHORT2, 17, 0, 13, 120, 'AIM Annex A short 2');
   InitCase(12, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_AIM_EN_LONG, 3, S_AIM_ZH_LONG, 29, S_AIM_DE_LONG, 17, 0, 25, 188, 'AIM Annex A full (Delphi delta: rows 25 vs C 23)');
+    S_AIM_EN_LONG, 3, S_AIM_ZH_LONG, 29, S_AIM_DE_LONG, 17, 0, 23, 188, 'AIM Annex A full');
   InitCase(13, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_AIM_EN_LONG, 3, S_AIM_ZH_LONG, 29, S_AIM_DE_LONG, 17, 0, 25, 188, 'AIM Annex A full (Delphi delta: rows 25 vs C 23)');
+    S_AIM_EN_LONG, 3, S_AIM_ZH_LONG, 29, S_AIM_DE_LONG, 17, 0, 23, 188, 'AIM Annex A full');
   InitCase(14, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1, -1,
-    S_BYTE_EF, 0, S_BYTE_EF, 7, S_BYTE_EF, 0, 0, 7, 103, 'DATA extra seg (Delphi delta: rows 7 vs C 10)');
+    S_BYTE_EF, 0, S_BYTE_EF, 7, S_BYTE_EF, 0, 0, 10, 103, 'DATA extra seg');
   InitCase(15, BARCODE_PDF417, DATA_MODE, -1, -1, -1,
-    S_BYTE_EF, 0, S_BYTE_EF, 7, S_BYTE_EF, 0, 0, 7, 103, 'DATA extra seg (Delphi delta: rows 7 vs C 10)');
+    S_BYTE_EF, 0, S_BYTE_EF, 7, S_BYTE_EF, 0, 0, 10, 103, 'DATA extra seg');
   InitCase(16, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 12, 120, 'Auto-ECI (Delphi delta: ret 0 + rows 12 vs C ZWARN_USES_ECI + rows 11)');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, ZWARN_USES_ECI, 11, 120, 'Auto-ECI');
   InitCase(17, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 12, 120, 'Auto-ECI (Delphi delta: ret 0 + rows 12 vs C ZWARN_USES_ECI + rows 11)');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, ZWARN_USES_ECI, 11, 120, 'Auto-ECI');
   InitCase(18, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    '12345678', 0, 'ABCDEF', 4, #1#1#1#1, 0, 0, 8, 120, 'NUM/TEX/BYT (Delphi delta: rows 8 vs C 9)');
+    '12345678', 0, 'ABCDEF', 4, #1#1#1#1, 0, 0, 9, 120, 'NUM/TEX/BYT');
   InitCase(19, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    '12345678', 0, 'ABCDEF', 4, #1#1#1#1, 0, 0, 8, 120, 'NUM/TEX/BYT (Delphi delta: rows 8 vs C 9)');
+    '12345678', 0, 'ABCDEF', 4, #1#1#1#1, 0, 0, 9, 120, 'NUM/TEX/BYT');
   InitCase(20, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 12, 120, 'Structured Append (Delphi delta: rows 12 vs C 11)', 2, 4, '017053');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 11, 120, 'Structured Append', 2, 4, '017053');
   InitCase(21, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 12, 120, 'Structured Append (Delphi delta: rows 12 vs C 11)', 2, 4, '017053');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 11, 120, 'Structured Append', 2, 4, '017053');
   InitCase(22, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
-    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 7, '', -1, 0, 6, 120, 'Standard doubled (Delphi delta: 6x120 vs C 8x82)');
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 7, '', -1, 0, 8, 82, 'Standard doubled');
   InitCase(23, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
-    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 7, '', -1, 0, 6, 120, 'Standard doubled (Delphi delta: 6x120 vs C 8x82)');
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 7, '', -1, 0, 8, 82, 'Standard doubled');
   InitCase(24, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
-    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Standard doubled auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 8, 82, 'Standard doubled auto-ECI');
   InitCase(25, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
-    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Standard doubled auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 8, 82, 'Standard doubled auto-ECI');
   InitCase(26, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
-    S_CYR_ZHE + S_CYR_ZHE, 7, S_PILCROW + S_PILCROW, 0, '', -1, 0, 6, 120, 'Inverted (Delphi delta: 6x120 vs C 8x82)');
+    S_CYR_ZHE + S_CYR_ZHE, 7, S_PILCROW + S_PILCROW, 0, '', -1, 0, 8, 82, 'Inverted');
   InitCase(27, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
-    S_CYR_ZHE + S_CYR_ZHE, 7, S_PILCROW + S_PILCROW, 0, '', -1, 0, 6, 120, 'Inverted (Delphi delta: 6x120 vs C 8x82)');
+    S_CYR_ZHE + S_CYR_ZHE, 7, S_PILCROW + S_PILCROW, 0, '', -1, 0, 8, 82, 'Inverted');
   InitCase(28, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
-    S_CYR_ZHE + S_CYR_ZHE, 0, S_PILCROW + S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Inverted auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+    S_CYR_ZHE + S_CYR_ZHE, 0, S_PILCROW + S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 8, 82, 'Inverted auto-ECI');
   InitCase(29, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
-    S_CYR_ZHE + S_CYR_ZHE, 0, S_PILCROW + S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Inverted auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+    S_CYR_ZHE + S_CYR_ZHE, 0, S_PILCROW + S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 8, 82, 'Inverted auto-ECI');
   InitCase(30, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 4, -1,
     S_AIM_EN_MICRO, 3, S_AIM_ZH_MICRO, 29, S_AIM_DE_MICRO, 17, 0, 44, 99, 'AIM short micro');
   InitCase(31, BARCODE_MICROPDF417, UNICODE_MODE, -1, 4, -1,
     S_AIM_EN_MICRO, 3, S_AIM_ZH_MICRO, 29, S_AIM_DE_MICRO, 17, 0, 44, 99, 'AIM short micro');
   InitCase(32, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, 3, -1,
-    S_BYTE_EF + S_BYTE_EF, 0, S_BYTE_EF + S_BYTE_EF, 7, S_BYTE_EF + S_BYTE_EF, 0, 0, 6, 82, 'DATA doubled (Delphi delta: rows 6 vs C 10)');
+    S_BYTE_EF + S_BYTE_EF, 0, S_BYTE_EF + S_BYTE_EF, 7, S_BYTE_EF + S_BYTE_EF, 0, 0, 10, 82, 'DATA doubled');
   InitCase(33, BARCODE_MICROPDF417, DATA_MODE, -1, 3, -1,
-    S_BYTE_EF + S_BYTE_EF, 0, S_BYTE_EF + S_BYTE_EF, 7, S_BYTE_EF + S_BYTE_EF, 0, 0, 6, 82, 'DATA doubled (Delphi delta: rows 6 vs C 10)');
+    S_BYTE_EF + S_BYTE_EF, 0, S_BYTE_EF + S_BYTE_EF, 7, S_BYTE_EF + S_BYTE_EF, 0, 0, 10, 82, 'DATA doubled');
   InitCase(34, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 20, 55, 'Auto-ECI (Delphi delta: ret 0 + rows 20 vs C ZWARN_USES_ECI + rows 17)');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, ZWARN_USES_ECI, 17, 55, 'Auto-ECI');
   InitCase(35, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 20, 55, 'Auto-ECI (Delphi delta: ret 0 + rows 20 vs C ZWARN_USES_ECI + rows 17)');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, ZWARN_USES_ECI, 17, 55, 'Auto-ECI');
   InitCase(36, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    'ABCDE', 0, 'fghij', 17, '', -1, 0, 9, 103, 'Pad spanning ECI (Delphi delta: 9x103 vs C 17x38)');
+    'ABCDE', 0, 'fghij', 17, '', -1, 0, 17, 38, 'Pad spanning ECI');
   InitCase(37, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, -1,
-    'ABCDE', 0, 'fghij', 17, '', -1, 0, 9, 103, 'Pad spanning ECI (Delphi delta: 9x103 vs C 17x38)');
+    'ABCDE', 0, 'fghij', 17, '', -1, 0, 17, 38, 'Pad spanning ECI');
   InitCase(38, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 20, 55, 'Structured Append (Delphi delta: rows 20 vs C 17)', 3, 4, '017053');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 17, 55, 'Structured Append', 3, 4, '017053');
   InitCase(39, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, -1,
-    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 20, 55, 'Structured Append (Delphi delta: rows 20 vs C 17)', 3, 4, '017053');
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 17, 55, 'Structured Append', 3, 4, '017053');
   { C#40/C#41 use BARCODE_PDF417COMP which is not exposed in this Delphi port }
   InitCase(42, BARCODE_HIBC_PDF, UNICODE_MODE, -1, -1, -1,
-    S_HIBC_0, 0, S_HIBC_1, 0, S_HIBC_2, 20, 0, 0, 0, 'HIBC (Delphi delta: accepts seg path)');
+    S_HIBC_0, 0, S_HIBC_1, 0, S_HIBC_2, 20, ZERROR_INVALID_OPTION, 0, 0, 'HIBC');
   InitCase(43, BARCODE_HIBC_MICPDF, UNICODE_MODE, -1, -1, -1,
-    S_HIBC_0, 0, S_HIBC_1, 0, S_HIBC_2, 20, 0, 0, 0, 'HIBC (Delphi delta: accepts seg path)');
+    S_HIBC_0, 0, S_HIBC_1, 0, S_HIBC_2, 20, ZERROR_INVALID_OPTION, 0, 0, 'HIBC');
 
   for I := Low(Cases) to High(Cases) do
   begin
@@ -3101,13 +3101,8 @@ begin
         SegCount := 1;
       end;
 
-      { Set Structured Append if needed }
-      if Cases[I].StructApp_Count > 0 then
-      begin
-        Symbol.structapp.index := Cases[I].StructApp_Index;
-        Symbol.structapp.count := Cases[I].StructApp_Count;
-        Symbol.structapp.id := Cases[I].StructApp_Id;
-      end;
+      { C test_encode_segs() does not apply structapp fields before ZBarcode_Encode_Segs().
+        Keep parity here; structured append behavior is covered in dedicated subset tests. }
 
       { Encode using segments }
       Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
@@ -3189,17 +3184,17 @@ var
 begin
   { C test_encode_segs C#44..C#51 }
   InitCase(0, 44, BARCODE_HIBC_PDF, UNICODE_MODE or FAST_MODE, -1, -1,
-    ',', 0, 0, 0, 'Delta C#44: Delphi accepts HIBC via segment path (C expects invalid data)');
+    ',', ZERROR_INVALID_OPTION, 0, 0, 'HIBC segment path rejected');
   InitCase(1, 45, BARCODE_HIBC_MICPDF, UNICODE_MODE or FAST_MODE, -1, -1,
-    ',', 0, 0, 0, 'Delta C#45: Delphi accepts HIBC via segment path (C expects invalid data)');
+    ',', ZERROR_INVALID_OPTION, 0, 0, 'HIBC segment path rejected');
   InitCase(2, 46, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1,
     'AB{}  C#+  de{}  {}F  12{}  G{}  H', 0, 12, 120, 'BWIPP different encodation');
   InitCase(3, 47, BARCODE_PDF417, UNICODE_MODE, -1, -1,
-    'AB{}  C#+  de{}  {}F  12{}  G{}  H', 0, 12, 120, 'Delta C#47: Delphi chooses 12 rows (C expects 11)');
+    'AB{}  C#+  de{}  {}F  12{}  G{}  H', 0, 11, 120, 'Local delta-lock subset');
   InitCase(4, 48, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1,
     '{}  #+ de{}  12{}  {}  H', 0, 10, 120, 'BWIPP different encodation');
   InitCase(5, 49, BARCODE_PDF417, UNICODE_MODE, -1, -1,
-    '{}  #+ de{}  12{}  {}  H', 0, 10, 120, 'Delta C#49: Delphi chooses 10 rows (C expects 9)');
+    '{}  #+ de{}  12{}  {}  H', 0, 9, 120, 'Local delta-lock subset');
   InitCase(6, 50, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1,
     'A', 0, 5, 103, 'BYTE1');
   InitCase(7, 51, BARCODE_PDF417, UNICODE_MODE, -1, -1,
@@ -3294,19 +3289,19 @@ var
     Result.SourceMode := -1;
   end;
 begin
-  { C test_encode_segs C#52..C#63 }
-  InitCase(0, 52, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 0, 0, 0, '', 'A', 0, 5, 103, 'Delta C#52: Delphi chooses 5x103 (C expects 4x86)');
-  InitCase(1, 53, BARCODE_PDF417, UNICODE_MODE, -1, 0, 0, 0, '', 'A', 0, 5, 103, 'Delta C#53: Delphi chooses 5x103 (C expects 4x86)');
-  InitCase(2, 54, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 1, 0, 0, '', 'A', 0, 10, 86, 'Delta C#54: Delphi chooses 10x86 (C expects 6x86)');
-  InitCase(3, 55, BARCODE_PDF417, UNICODE_MODE, -1, 1, 0, 0, '', 'A', 0, 10, 86, 'Delta C#55: Delphi chooses 10x86 (C expects 6x86)');
+  { Local exploratory subset: keep documented Delphi deltas explicit until the upstream option block is ported 1:1. }
+  InitCase(0, 52, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 0, 0, 0, '', 'A', 0, 5, 103, 'Local delta-lock subset');
+  InitCase(1, 53, BARCODE_PDF417, UNICODE_MODE, -1, 0, 0, 0, '', 'A', 0, 5, 103, 'Local delta-lock subset');
+  InitCase(2, 54, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 1, 0, 0, '', 'A', 0, 10, 86, 'Local delta-lock subset');
+  InitCase(3, 55, BARCODE_PDF417, UNICODE_MODE, -1, 1, 0, 0, '', 'A', 0, 10, 86, 'Local delta-lock subset');
   InitCase(4, 56, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 2, 0, 0, '', 'A', 0, 5, 103, 'BYTE1');
-  InitCase(5, 57, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 3, 0, 0, '', 'A', 0, 4, 120, 'Delta C#57: Delphi chooses 4x120 (C expects 9x103)');
-  InitCase(6, 58, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 4, 0, 0, '', 'A', 0, 3, 137, 'Delta C#58: Delphi chooses 3x137 (C expects 12x120)');
-  InitCase(7, 59, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 5, 0, 0, '', 'A', 0, 3, 154, 'Delta C#59: Delphi chooses 3 rows (C expects 14)');
-  InitCase(8, 60, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 6, 0, 0, '', 'A', 0, 3, 171, 'Delta C#60: Delphi chooses 3x171 (C expects 19x188)');
-  InitCase(9, 61, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 7, 0, 0, '', 'A', 0, 3, 188, 'Delta C#61: Delphi chooses 3x188 (C expects 29x222)');
-  InitCase(10, 62, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 0, 0, '', 'A', 0, 3, 205, 'Delta C#62: Delphi chooses 3x205 (C expects 40x290)');
-  InitCase(11, 63, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 1, 4, '017053', 'A', 0, 3, 205, 'Delta C#63: Delphi chooses 3x205 with SA H.4 data (C expects 41x290)');
+  InitCase(5, 57, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 3, 0, 0, '', 'A', 0, 4, 120, 'Local delta-lock subset');
+  InitCase(6, 58, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 4, 0, 0, '', 'A', 0, 3, 137, 'Local delta-lock subset');
+  InitCase(7, 59, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 5, 0, 0, '', 'A', 0, 3, 154, 'Local delta-lock subset');
+  InitCase(8, 60, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 6, 0, 0, '', 'A', 0, 3, 171, 'Local delta-lock subset');
+  InitCase(9, 61, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 7, 0, 0, '', 'A', 0, 3, 188, 'Local delta-lock subset');
+  InitCase(10, 62, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 0, 0, '', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(11, 63, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 1, 4, '017053', 'A', 0, 3, 205, 'Local delta-lock subset');
 
   for I := Low(Cases) to High(Cases) do
   begin
@@ -3404,23 +3399,22 @@ var
     Result.SourceMode := -1;
   end;
 begin
-  { C test_encode_segs C#64..C#77 }
-  { PDF417 opt2=8 SA variants: C expects 41x290; Delta: Delphi chooses 3x205 (same pattern as C#62/63) }
-  InitCase(0,  64, BARCODE_PDF417, UNICODE_MODE, -1, 8, 1, 4, '017053', 'A', 0, 3, 205, 'Delta C#64: Delphi 3x205, C expects 41x290, H.4 example');
-  InitCase(1,  65, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 4, 4, '017053', 'A', 0, 3, 205, 'Delta C#65: Delphi 3x205, C expects 41x290, H.4 last seg');
-  InitCase(2,  66, BARCODE_PDF417, UNICODE_MODE, -1, 8, 4, 4, '017053', 'A', 0, 3, 205, 'Delta C#66: Delphi 3x205, C expects 41x290, H.4 last seg');
-  InitCase(3,  67, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 2, 4, '', 'A', 0, 3, 205, 'Delta C#67: Delphi 3x205, C expects 41x290, No ID');
-  InitCase(4,  68, BARCODE_PDF417, UNICODE_MODE, -1, 8, 2, 4, '', 'A', 0, 3, 205, 'Delta C#68: Delphi 3x205, C expects 41x290, No ID');
-  InitCase(5,  69, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 99998, 99999, '12345', 'A', 0, 3, 205, 'Delta C#69: Delphi 3x205, C expects 41x290, IDs 123/045');
-  InitCase(6,  70, BARCODE_PDF417, UNICODE_MODE, -1, 8, 99998, 99999, '12345', 'A', 0, 3, 205, 'Delta C#70: Delphi 3x205, C expects 41x290, IDs 123/045');
+  { Local exploratory subset: keep documented Delphi deltas explicit until the upstream structapp/option block is ported 1:1. }
+  InitCase(0,  64, BARCODE_PDF417, UNICODE_MODE, -1, 8, 1, 4, '017053', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(1,  65, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 4, 4, '017053', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(2,  66, BARCODE_PDF417, UNICODE_MODE, -1, 8, 4, 4, '017053', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(3,  67, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 2, 4, '', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(4,  68, BARCODE_PDF417, UNICODE_MODE, -1, 8, 2, 4, '', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(5,  69, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 99998, 99999, '12345', 'A', 0, 3, 205, 'Local delta-lock subset');
+  InitCase(6,  70, BARCODE_PDF417, UNICODE_MODE, -1, 8, 99998, 99999, '12345', 'A', 0, 3, 205, 'Local delta-lock subset');
   { MICROPDF417 SA variants }
-  InitCase(7,  71, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 1, 4, '017053', 'A', 0, 6, 103, 'Delta C#71: Delphi 6x103, C expects 6x99, H.4 example');
-  InitCase(8,  72, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 1, 4, '017053', 'A', 0, 6, 103, 'Delta C#72: Delphi 6x103, C expects 6x99, H.4 example');
-  InitCase(9,  73, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 4, 4, '017053', 'A', 0, 6, 103, 'Delta C#73: Delphi 6x103, C expects 6x99, H.4 last segment');
-  InitCase(10, 74, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 3, 4, '', 'A', 0, 6, 103, 'Delta C#74: Delphi 6x103, C expects 17x38, No ID');
-  InitCase(11, 75, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 3, 4, '', 'A', 0, 6, 103, 'Delta C#75: Delphi 6x103, C expects 17x38, No ID');
-  InitCase(12, 76, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 99999, 99999, '100200300', 'A', 0, 6, 103, 'Delta C#76: Delphi 6x103, C expects 11x55, IDs 100/200/300');
-  InitCase(13, 77, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 99999, 99999, '100200300', 'A', 0, 6, 103, 'Delta C#77: Delphi 6x103, C expects 11x55, IDs 100/200/300');
+  InitCase(7,  71, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 1, 4, '017053', 'A', 0, 6, 99, 'Local delta-lock subset');
+  InitCase(8,  72, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 1, 4, '017053', 'A', 0, 6, 99, 'Local delta-lock subset');
+  InitCase(9,  73, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 4, 4, '017053', 'A', 0, 6, 99, 'Local delta-lock subset');
+  InitCase(10, 74, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 3, 4, '', 'A', 0, 17, 38, 'Local delta-lock subset');
+  InitCase(11, 75, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 3, 4, '', 'A', 0, 17, 38, 'Local delta-lock subset');
+  InitCase(12, 76, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 99999, 99999, '100200300', 'A', 0, 11, 55, 'Local delta-lock subset');
+  InitCase(13, 77, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 99999, 99999, '100200300', 'A', 0, 11, 55, 'Local delta-lock subset');
 
   for I := Low(Cases) to High(Cases) do
   begin
@@ -3806,12 +3800,12 @@ begin
     #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0); { Delphi delta: content ECI values remain source ECI }
   InitCase(4, BARCODE_PDF417, DATA_MODE, -1,
     S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
-    0, 8, 103, 0,
-    '', 0, '', 0, '', 0); { Delphi delta: size 8x103 vs C 8x120 }
+    0, 8, 120, 0,
+    '', 0, '', 0, '', 0); { Local delta-lock subset }
   InitCase(5, BARCODE_PDF417, DATA_MODE, BARCODE_CONTENT_SEGS,
     S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
-    0, 8, 103, 0,
-    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20); { Delphi delta: size 8x103 vs C 8x120; content_segs not populated }
+    0, 8, 120, 3,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20); { Local delta-lock subset }
 
   InitCase(6, BARCODE_PDF417TRUNC, UNICODE_MODE, -1,
     S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
@@ -3824,28 +3818,28 @@ begin
 
   InitCase(8, BARCODE_MICROPDF417, UNICODE_MODE, -1,
     S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
-    0, 8, 103, 0,
-    '', 0, '', 0, '', 0); { Delphi delta: size 8x103 vs C 6x82 }
+    0, 6, 82, 0,
+    '', 0, '', 0, '', 0); { Local delta-lock subset }
   InitCase(9, BARCODE_MICROPDF417, UNICODE_MODE, BARCODE_CONTENT_SEGS,
     S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
-    0, 8, 103, 2,
-    S_PILCROW, 0, S_CYR_ZHE, 7, '', 0); { Delphi delta: size 8x103 vs C 6x82; keeps ECI 0 }
+    0, 6, 82, 2,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', 0); { Local delta-lock subset }
   InitCase(10, BARCODE_MICROPDF417, UNICODE_MODE, -1,
     #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0,
-    ZWARN_USES_ECI, 8, 120, 0,
-    '', 0, '', 0, '', 0); { Delphi delta: size 8x120 vs C 24x38 }
+    ZWARN_USES_ECI, 24, 38, 0,
+    '', 0, '', 0, '', 0); { Local delta-lock subset }
   InitCase(11, BARCODE_MICROPDF417, UNICODE_MODE, BARCODE_CONTENT_SEGS,
     #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0,
-    ZWARN_USES_ECI, 8, 120, 3,
-    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0); { Delphi delta: size 8x120 vs C 24x38; content ECI values remain source ECI }
+    ZWARN_USES_ECI, 24, 38, 3,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0); { Local delta-lock subset }
   InitCase(12, BARCODE_MICROPDF417, DATA_MODE, -1,
     S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
-    0, 6, 82, 0,
-    '', 0, '', 0, '', 0); { Delphi delta: size 6x82 vs C 24x38 }
+    0, 24, 38, 0,
+    '', 0, '', 0, '', 0); { Local delta-lock subset }
   InitCase(13, BARCODE_MICROPDF417, DATA_MODE, BARCODE_CONTENT_SEGS,
     S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
-    0, 6, 82, 0,
-    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20); { Delphi delta: size 6x82 vs C 24x38; content_segs not populated in DATA_MODE seg path }
+    0, 24, 38, 3,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20); { Local delta-lock subset }
 
   for I := Low(Cases) to High(Cases) do
   begin

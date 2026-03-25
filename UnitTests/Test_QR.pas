@@ -7,8 +7,9 @@ unit Test_QR;
   Hinweis:
   - test_qr_large ist vollstaendig uebernommen.
   - QR/MicroQR/UPNQR/rMQR Testbloecke sind aktiv und laufen in der DUnitX-Suite.
-  - Einzelne C-Bloecke verwenden weiterhin Surrogate, solange zentrale APIs
-    fehlen (insb. content_segs/Structured Append).
+  - QR-Structured-Append/Segment- und RT/content_segs-Kernpfade sind 1:1 aus
+    test_qr.c uebernommen; einzelne UPNQR-Input/Encode-Bloecke bleiben bewusst
+    als konservative Teilmengen aktiv.
 }
 
 interface
@@ -1907,21 +1908,33 @@ type
     Index: Integer;
     InputMode: Integer;
     Option3: Integer;
+    OutputOptions: Integer;
     Data: string;
+    DataHex: string;
     ExpectedRet: Integer;
+    ExpectedECI: Integer;
     ExpectedRows: Integer;
     ExpectedWidth: Integer;
+    ExpectedContentSegCount: Integer;
+    ExpectedContentECI: Integer;
+    ExpectedContentHex: string;
   end;
 const
-  // Temporary surrogate from C test_microqr_rt without content_segs API.
-  // Keep only non-content checks (ret/rows/width).
-  CItems: array[0..1] of TMicroQRRTItem = (
-    (Index: 0; InputMode: UNICODE_MODE; Option3: -1; Data: #$00E9; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 15; ExpectedWidth: 15),
-    (Index: 2; InputMode: UNICODE_MODE; Option3: -1; Data: #$70B9; ExpectedRet: 0;                  ExpectedRows: 15; ExpectedWidth: 15)
+  // Full C test_microqr_rt matrix C#0..7, including BARCODE_CONTENT_SEGS behavior.
+  CItems: array[0..7] of TMicroQRRTItem = (
+    (Index: 0; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Data: #$00E9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 1; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 1; ExpectedContentECI: 3; ExpectedContentHex: 'C3 A9'),
+    (Index: 2; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Data: #$70B9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 3; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$70B9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 1; ExpectedContentECI: 20; ExpectedContentHex: 'E7 82 B9'),
+    (Index: 4; InputMode: DATA_MODE;    Option3: -1;                  OutputOptions: -1;                   Data: '';     DataHex: 'E9';      ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 5; InputMode: DATA_MODE;    Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '';     DataHex: 'E9';      ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 1; ExpectedContentECI: 3; ExpectedContentHex: 'E9'),
+    (Index: 6; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Data: '';     DataHex: '93 5F';   ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 7; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; OutputOptions: BARCODE_CONTENT_SEGS; Data: '';     DataHex: '93 5F';   ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 1; ExpectedContentECI: 3; ExpectedContentHex: '93 5F')
   );
 var
-  i, ret: Integer;
+  i, ret, rawLen: Integer;
   sym: TZintSymbol;
+  expectedSource, rawData: TArrayOfByte;
 begin
   for i := Low(CItems) to High(CItems) do
   begin
@@ -1930,8 +1943,17 @@ begin
       sym.input_mode := CItems[i].InputMode;
       if CItems[i].Option3 >= 0 then
         sym.option_3 := CItems[i].Option3;
+      if CItems[i].OutputOptions >= 0 then
+        sym.output_options := CItems[i].OutputOptions;
 
-      ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
+      if CItems[i].DataHex <> '' then
+      begin
+        rawData := HexToByteArray(CItems[i].DataHex);
+        rawLen := Length(rawData) - 1;
+        ret := TZintTestHelper.EncodeData(sym, rawData, rawLen);
+      end
+      else
+        ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
       Assert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
@@ -1939,10 +1961,41 @@ begin
 
       if ret < ZINT_ERROR then
       begin
+        Assert.IsTrue(sym.eci = CItems[i].ExpectedECI,
+          Format('C#%d eci expected %d got %d', [CItems[i].Index, CItems[i].ExpectedECI, sym.eci]));
         Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
         Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
+
+        Assert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
+          Format('C#%d content_segs_count expected %d got %d',
+            [CItems[i].Index, CItems[i].ExpectedContentSegCount, sym.content_segs_count]));
+
+        if CItems[i].ExpectedContentSegCount = 0 then
+          Assert.IsTrue(sym.content_segs = nil,
+            Format('C#%d content_segs expected nil', [CItems[i].Index]))
+        else
+        begin
+          Assert.IsFalse(sym.content_segs = nil,
+            Format('C#%d content_segs expected non-nil', [CItems[i].Index]));
+          Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
+            Format('C#%d content_segs length expected %d got %d',
+              [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
+          expectedSource := HexToByteArray(CItems[i].ExpectedContentHex);
+          SetLength(expectedSource, Length(expectedSource) - 1);
+          Assert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
+            Format('C#%d content seg length expected %d got %d',
+              [CItems[i].Index, Length(expectedSource), sym.content_segs[0].Length]));
+          if Length(expectedSource) > 0 then
+            Assert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
+              Format('C#%d content seg source bytes differ expected [%s] got [%s]',
+                [CItems[i].Index, CItems[i].ExpectedContentHex,
+                 BytesToHex(sym.content_segs[0].Source, sym.content_segs[0].Length)]));
+          Assert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
+            Format('C#%d content seg ECI expected %d got %d',
+              [CItems[i].Index, CItems[i].ExpectedContentECI, sym.content_segs[0].ECI]));
+        end;
       end;
     finally
       sym.Free;
@@ -2098,31 +2151,48 @@ type
   TUPNQRRTItem = record
     Index: Integer;
     InputMode: Integer;
+    OutputOptions: Integer;
     Data: string;
+    DataHex: string;
     ExpectedRet: Integer;
+    ExpectedECI: Integer;
     ExpectedRows: Integer;
     ExpectedWidth: Integer;
+    ExpectedContentSegCount: Integer;
+    ExpectedContentECI: Integer;
+    ExpectedContentHex: string;
   end;
 const
-  // Temporary surrogate from C test_upnqr_rt without content_segs checks.
-  CItems: array[0..4] of TUPNQRRTItem = (
-    (Index: 0; InputMode: UNICODE_MODE; Data: #$00E9; ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 2; InputMode: UNICODE_MODE; Data: #$0154; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 4; InputMode: DATA_MODE;    Data: #$00C0; ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 5; InputMode: DATA_MODE;    Data: #$00A1; ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 6; InputMode: DATA_MODE;    Data: #$E9;   ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77)
+  // Full C test_upnqr_rt matrix C#0..5, including BARCODE_CONTENT_SEGS behavior.
+  CItems: array[0..5] of TUPNQRRTItem = (
+    (Index: 0; InputMode: UNICODE_MODE; OutputOptions: -1;                   Data: #$00E9; DataHex: '';     ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 77; ExpectedWidth: 77; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 1; InputMode: UNICODE_MODE; OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9; DataHex: '';     ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 77; ExpectedWidth: 77; ExpectedContentSegCount: 1; ExpectedContentECI: 4; ExpectedContentHex: 'C3 A9'),
+    (Index: 2; InputMode: UNICODE_MODE; OutputOptions: -1;                   Data: #$0154; DataHex: '';     ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 77; ExpectedWidth: 77; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 3; InputMode: UNICODE_MODE; OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0154; DataHex: '';     ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 77; ExpectedWidth: 77; ExpectedContentSegCount: 1; ExpectedContentECI: 4; ExpectedContentHex: 'C5 94'),
+    (Index: 4; InputMode: DATA_MODE;    OutputOptions: -1;                   Data: '';     DataHex: 'C0';   ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 77; ExpectedWidth: 77; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    (Index: 5; InputMode: DATA_MODE;    OutputOptions: BARCODE_CONTENT_SEGS; Data: '';     DataHex: 'C0';   ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 77; ExpectedWidth: 77; ExpectedContentSegCount: 1; ExpectedContentECI: 4; ExpectedContentHex: 'C0')
   );
 var
-  i, ret: Integer;
+  i, ret, rawLen: Integer;
   sym: TZintSymbol;
+  expectedSource, rawData: TArrayOfByte;
 begin
   for i := Low(CItems) to High(CItems) do
   begin
     sym := TZintTestHelper.CreateSymbol(BARCODE_UPNQR);
     try
       sym.input_mode := CItems[i].InputMode;
+      if CItems[i].OutputOptions >= 0 then
+        sym.output_options := CItems[i].OutputOptions;
 
-      ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
+      if CItems[i].DataHex <> '' then
+      begin
+        rawData := HexToByteArray(CItems[i].DataHex);
+        rawLen := Length(rawData) - 1;
+        ret := TZintTestHelper.EncodeData(sym, rawData, rawLen);
+      end
+      else
+        ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
       Assert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
@@ -2130,6 +2200,8 @@ begin
 
       if ret < ZINT_ERROR then
       begin
+        Assert.IsTrue(sym.eci = CItems[i].ExpectedECI,
+          Format('C#%d eci expected %d got %d', [CItems[i].Index, CItems[i].ExpectedECI, sym.eci]));
         Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
         Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
@@ -2138,6 +2210,35 @@ begin
           Format('C#%d option_1 expected 2 got %d', [CItems[i].Index, sym.option_1]));
         Assert.IsTrue(sym.option_2 = 15,
           Format('C#%d option_2 expected 15 got %d', [CItems[i].Index, sym.option_2]));
+
+        Assert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
+          Format('C#%d content_segs_count expected %d got %d',
+            [CItems[i].Index, CItems[i].ExpectedContentSegCount, sym.content_segs_count]));
+
+        if CItems[i].ExpectedContentSegCount = 0 then
+          Assert.IsTrue(sym.content_segs = nil,
+            Format('C#%d content_segs expected nil', [CItems[i].Index]))
+        else
+        begin
+          Assert.IsFalse(sym.content_segs = nil,
+            Format('C#%d content_segs expected non-nil', [CItems[i].Index]));
+          Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
+            Format('C#%d content_segs length expected %d got %d',
+              [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
+          expectedSource := HexToByteArray(CItems[i].ExpectedContentHex);
+          SetLength(expectedSource, Length(expectedSource) - 1);
+          Assert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
+            Format('C#%d content seg length expected %d got %d',
+              [CItems[i].Index, Length(expectedSource), sym.content_segs[0].Length]));
+          if Length(expectedSource) > 0 then
+            Assert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
+              Format('C#%d content seg source bytes differ expected [%s] got [%s]',
+                [CItems[i].Index, CItems[i].ExpectedContentHex,
+                 BytesToHex(sym.content_segs[0].Source, sym.content_segs[0].Length)]));
+          Assert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
+            Format('C#%d content seg ECI expected %d got %d',
+              [CItems[i].Index, CItems[i].ExpectedContentECI, sym.content_segs[0].ECI]));
+        end;
       end;
     finally
       sym.Free;

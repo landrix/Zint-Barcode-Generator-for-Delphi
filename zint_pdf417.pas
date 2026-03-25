@@ -1328,136 +1328,1191 @@ begin
 end;
 
 { 345 }
-{ Per-segment encoding for PDF417 — mirrors C's pdf_initial_segs() + pdf_enc() }
-function pdf417_segs_encode(symbol : zint_symbol; const segs : TZintSegments) : Integer;
+function pdf417_total_seg_length(const segs : TZintSegments) : Integer;
 var
-  i, j, k, indexchaine, indexliste, mode, longueur, loop, offset : Integer;
-  mccorrection : array[0..519] of Integer;
-  total, mc_length, c1, c2, c3, codeerr, rows, cols, data_cws : Integer;
-  chainemc : TArrayOfInteger;
-  dummy : array[0..34] of Integer;
-  codebarre, pattern : TArrayOfChar;
-  liste : TGLoballiste;
-  seg_idx, block_counter, seg_len, seg_eci, current_mode : Integer;
-  seg_data : TArrayOfByte;
+  i, seg_len : Integer;
 begin
-  SetLength(chainemc, 2700);
-  SetLength(codebarre, 140);
-  SetLength(pattern, 580);
-  codeerr := 0;
-  mc_length := 0;
-  block_counter := 0;
-
-  if symbol.symbology in [BARCODE_MICROPDF417, BARCODE_HIBC_MICPDF] then
-    current_mode := BYT
-  else
-    current_mode := TEX;
-
-  { Process each segment: optionally insert ECI codewords, then encode data }
-  for seg_idx := 0 to High(segs) do
+  Result := 0;
+  for i := 0 to High(segs) do
   begin
-    seg_len := segs[seg_idx].Length;
-    if (seg_len <= 0) and (Length(segs[seg_idx].Source) > 0) then
-      seg_len := Length(segs[seg_idx].Source);
-    if seg_len <= 0 then
-      Continue;
+    seg_len := segs[i].Length;
+    if (seg_len <= 0) and (Length(segs[i].Source) > 0) then
+      seg_len := Length(segs[i].Source);
+    if seg_len > 0 then
+      Inc(Result, seg_len);
+  end;
+end;
 
-    seg_data := segs[seg_idx].Source;
-    seg_eci  := segs[seg_idx].ECI;
+const
+  PDF_ALP_MODE = 1;
+  PDF_LOW_MODE = 2;
+  PDF_MIX_MODE = 3;
+  PDF_PNC_MODE = 4;
+  PDF_TEX_MODE = 4;
+  PDF_BYT_MODE = 5;
+  PDF_NUM_MODE = 6;
+  PDF_NUM_MODES = 6;
+  T_ALPHA = 1;
+  T_LOWER = 2;
+  T_MIXED = 4;
+  T_PUNCT = 8;
+  T_ALWMX = T_ALPHA or T_LOWER or T_MIXED;
+  T_MXPNC = T_MIXED or T_PUNCT;
+  PDF417_MAX_LEN = 2710;
+  PDF417_MAX_STREAM_LEN = PDF417_MAX_LEN * 3;
 
-    { Insert ECI codeword only when eci > 0 (eci=0 = default Latin-1, no codeword needed) }
-    if seg_eci > 0 then
+type
+  TPDFListe = array[0..2] of array[0..PDF417_MAX_LEN - 1] of SmallInt;
+  TPDFEdge = record
+    Mode: Byte;
+    FromPos: Word;
+    SegLen: Word;
+    Units: Word;
+    UnitSize: Word;
+    Size: Word;
+    Previous: Word;
+  end;
+
+function pdf_real_mode(const mode : Integer) : Integer;
+begin
+  if mode <= PDF_TEX_MODE then
+    Result := PDF_TEX_MODE
+  else
+    Result := mode;
+end;
+
+function pdf_table_to_mode(const t_table : Integer) : Integer;
+begin
+  Result := (t_table shr 1) + Ord((t_table and $07) <> 0);
+end;
+
+function pdf_submode_mask(const codeascii : Byte) : Integer;
+begin
+  case codeascii of
+    9,
+    13:
+      Result := T_MXPNC;
+    10:
+      Result := T_PUNCT;
+    32..126:
+      Result := asciix[codeascii - 32];
+  else
+    Result := 0;
+  end;
+end;
+
+function pdf_submode_value(const codeascii : Byte) : Integer;
+begin
+  case codeascii of
+    9:
+      Result := 12;
+    10:
+      Result := 15;
+    13:
+      Result := 11;
+    32..126:
+      Result := asciiy[codeascii - 32];
+  else
+    Result := 0;
+  end;
+end;
+
+function pdf_quelmode_byte(const codeascii : Byte) : Integer;
+begin
+  if (codeascii >= Ord('0')) and (codeascii <= Ord('9')) then
+    Result := PDF_NUM_MODE
+  else if pdf_submode_mask(codeascii) <> 0 then
+    Result := PDF_TEX_MODE
+  else
+    Result := PDF_BYT_MODE;
+end;
+
+function pdf_textprocess_switch(const curtable, newtable : Integer; var chainet : array of Integer;
+  wnet : Integer) : Integer;
+begin
+  case curtable of
+    T_ALPHA:
+      case newtable of
+        T_LOWER:
+          begin
+            chainet[wnet] := 27;
+            Inc(wnet);
+          end;
+        T_MIXED:
+          begin
+            chainet[wnet] := 28;
+            Inc(wnet);
+          end;
+        T_PUNCT:
+          begin
+            chainet[wnet] := 28;
+            Inc(wnet);
+            chainet[wnet] := 25;
+            Inc(wnet);
+          end;
+      end;
+    T_LOWER:
+      case newtable of
+        T_ALPHA:
+          begin
+            chainet[wnet] := 28;
+            Inc(wnet);
+            chainet[wnet] := 28;
+            Inc(wnet);
+          end;
+        T_MIXED:
+          begin
+            chainet[wnet] := 28;
+            Inc(wnet);
+          end;
+        T_PUNCT:
+          begin
+            chainet[wnet] := 28;
+            Inc(wnet);
+            chainet[wnet] := 25;
+            Inc(wnet);
+          end;
+      end;
+    T_MIXED:
+      case newtable of
+        T_ALPHA:
+          begin
+            chainet[wnet] := 28;
+            Inc(wnet);
+          end;
+        T_LOWER:
+          begin
+            chainet[wnet] := 27;
+            Inc(wnet);
+          end;
+        T_PUNCT:
+          begin
+            chainet[wnet] := 25;
+            Inc(wnet);
+          end;
+      end;
+    T_PUNCT:
+      case newtable of
+        T_ALPHA:
+          begin
+            chainet[wnet] := 29;
+            Inc(wnet);
+          end;
+        T_LOWER:
+          begin
+            chainet[wnet] := 29;
+            Inc(wnet);
+            chainet[wnet] := 27;
+            Inc(wnet);
+          end;
+        T_MIXED:
+          begin
+            chainet[wnet] := 29;
+            Inc(wnet);
+            chainet[wnet] := 28;
+            Inc(wnet);
+          end;
+      end;
+  end;
+
+  Result := wnet;
+end;
+
+function pdf_text_num_length(const liste : TPDFListe; const indexliste, start : Integer) : Integer;
+var
+  i, len : Integer;
+begin
+  len := 0;
+  for i := start to indexliste - 1 do
+  begin
+    if liste[1][i] = PDF_BYT_MODE then
+      Break;
+    Inc(len, liste[0][i]);
+    if len >= 5 then
+      Break;
+  end;
+  Result := len;
+end;
+
+function pdf_text_submode_length(const chaine : TArrayOfByte; const start, _length : Integer;
+  var curtable : Integer) : Integer;
+var
+  j, indexlistet, newtable, wnet : Integer;
+  listet : array[0..PDF417_MAX_LEN - 1] of Integer;
+  chainet : array[0..PDF417_MAX_STREAM_LEN - 1] of Integer;
+begin
+  for indexlistet := 0 to _length - 1 do
+    listet[indexlistet] := pdf_submode_mask(chaine[start + indexlistet]);
+
+  wnet := 0;
+  for j := 0 to _length - 1 do
+  begin
+    if (listet[j] and curtable) <> 0 then
+      Inc(wnet)
+    else
     begin
-      if seg_eci <= 899 then
+      if (j = _length - 1) or ((listet[j] and listet[j + 1]) = 0) then
       begin
-        chainemc[mc_length] := 927; Inc(mc_length);
-        chainemc[mc_length] := seg_eci; Inc(mc_length);
-      end
-      else if seg_eci <= 810899 then
-      begin
-        chainemc[mc_length] := 926; Inc(mc_length);
-        chainemc[mc_length] := seg_eci div 900 - 1; Inc(mc_length);
-        chainemc[mc_length] := seg_eci mod 900; Inc(mc_length);
+        if ((listet[j] and T_ALPHA) <> 0) and (curtable = T_LOWER) then
+        begin
+          Inc(wnet, 2);
+          Continue;
+        end;
+        if (listet[j] and T_PUNCT) <> 0 then
+        begin
+          Inc(wnet, 2);
+          Continue;
+        end;
+        newtable := listet[j];
       end
       else
+        newtable := listet[j] and listet[j + 1];
+
+      if newtable = T_ALWMX then
+        newtable := T_ALPHA
+      else if newtable = T_MXPNC then
+        newtable := T_MIXED;
+
+      wnet := pdf_textprocess_switch(curtable, newtable, chainet, wnet);
+      curtable := newtable;
+      Inc(wnet);
+    end;
+  end;
+
+  Result := wnet;
+end;
+
+function pdf_num_stay(const chaine : TArrayOfByte; const indexliste : Integer; const liste : TPDFListe;
+  const i : Integer) : Boolean;
+var
+  curtable, last_len, next_len, num_cws, tex_cws : Integer;
+  not_tex, last_ml : Boolean;
+begin
+  if (liste[0][i] >= 13) or ((indexliste = 1) and (liste[0][i] > 5)) then
+  begin
+    Result := True;
+    Exit;
+  end;
+  if liste[0][i] < 11 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  curtable := T_ALPHA;
+  not_tex := (i = 0) or (liste[1][i - 1] = PDF_BYT_MODE);
+  if not_tex then
+    last_len := 0
+  else
+    last_len := pdf_text_submode_length(chaine, liste[2][i - 1], liste[0][i - 1], curtable);
+  last_ml := curtable = T_MIXED;
+
+  curtable := T_ALPHA;
+  not_tex := (i = indexliste - 1) or (liste[1][i + 1] = PDF_BYT_MODE);
+  if not_tex then
+    next_len := 0
+  else
+    next_len := pdf_text_submode_length(chaine, liste[2][i + 1], liste[0][i + 1], curtable);
+  num_cws := ((last_len + 1) shr 1) + 1 + 4 + Ord(liste[0][i] > 11) + 1 + ((next_len + 1) shr 1);
+
+  curtable := T_MIXED;
+  if not_tex then
+    next_len := 0
+  else
+    next_len := pdf_text_submode_length(chaine, liste[2][i + 1], liste[0][i + 1], curtable);
+  tex_cws := (last_len + Ord(not last_ml) + liste[0][i] + next_len + 1) shr 1;
+
+  Result := num_cws <= tex_cws;
+end;
+
+procedure pdf_appendix_d_encode(const chaine : TArrayOfByte; var liste : TPDFListe; var indexliste : Integer);
+var
+  i, next, last : Integer;
+  stayintext : Boolean;
+begin
+  i := 0;
+  last := 0;
+  stayintext := False;
+
+  while i < indexliste do
+  begin
+    if (liste[1][i] = PDF_NUM_MODE) and pdf_num_stay(chaine, indexliste, liste, i) then
+    begin
+      liste[0][last] := liste[0][i];
+      liste[1][last] := PDF_NUM_MODE;
+      liste[2][last] := liste[2][i];
+      stayintext := False;
+      Inc(last);
+    end
+    else if ((liste[1][i] = PDF_TEX_MODE) or (liste[1][i] = PDF_NUM_MODE))
+      and (stayintext or (i = indexliste - 1) or (liste[0][i] >= 5)
+      or (pdf_text_num_length(liste, indexliste, i) >= 5)) then
+    begin
+      liste[0][last] := liste[0][i];
+      liste[1][last] := PDF_TEX_MODE;
+      liste[2][last] := liste[2][i];
+      stayintext := False;
+
+      next := i + 1;
+      while next < indexliste do
       begin
-        chainemc[mc_length] := 925; Inc(mc_length);
-        chainemc[mc_length] := seg_eci - 810900; Inc(mc_length);
+        if (liste[1][next] = PDF_NUM_MODE) and pdf_num_stay(chaine, indexliste, liste, next) then
+          Break;
+        if liste[1][next] = PDF_BYT_MODE then
+          Break;
+        Inc(liste[0][last], liste[0][next]);
+        Inc(next);
+      end;
+
+      Inc(last);
+      i := next;
+      Continue;
+    end
+    else
+    begin
+      liste[0][last] := liste[0][i];
+      liste[1][last] := PDF_BYT_MODE;
+      liste[2][last] := liste[2][i];
+      stayintext := False;
+
+      next := i + 1;
+      while next < indexliste do
+      begin
+        if liste[1][next] <> PDF_BYT_MODE then
+        begin
+          if (liste[0][last] = 1) and (last > 0) and (liste[1][last - 1] = PDF_TEX_MODE) then
+          begin
+            stayintext := True;
+            Break;
+          end;
+          if (liste[0][next] >= 5) or (pdf_text_num_length(liste, indexliste, next) >= 5) then
+            Break;
+        end;
+        Inc(liste[0][last], liste[0][next]);
+        Inc(next);
+      end;
+
+      Inc(last);
+      i := next;
+      Continue;
+    end;
+
+    Inc(i);
+  end;
+
+  indexliste := last;
+end;
+
+procedure pdf_textprocess_end(var chainemc : TArrayOfInteger; var mc_length : Integer; const is_last_seg : Boolean;
+  var chainet : array of Integer; var wnet : Integer; var curtable : Integer; var tex_padded : Boolean);
+var
+  i : Integer;
+begin
+  tex_padded := (wnet and 1) <> 0;
+  if tex_padded then
+  begin
+    if is_last_seg then
+    begin
+      chainet[wnet] := 29;
+      Inc(wnet);
+    end
+    else
+    begin
+      chainet[wnet] := 28 + Ord(curtable = T_PUNCT);
+      Inc(wnet);
+      if (curtable = T_ALPHA) or (curtable = T_LOWER) then
+        curtable := T_MIXED
+      else
+        curtable := T_ALPHA;
+    end;
+  end;
+
+  i := 0;
+  while i < wnet do
+  begin
+    chainemc[mc_length] := (30 * chainet[i]) + chainet[i + 1];
+    Inc(mc_length);
+    Inc(i, 2);
+  end;
+end;
+
+procedure pdf_textprocess_stateful(var chainemc : TArrayOfInteger; var mc_length : Integer;
+  const chaine : TArrayOfByte; const start, _length, lastmode : Integer; const is_last_seg : Boolean;
+  var curtable : Integer; var tex_padded : Boolean);
+var
+  j, indexlistet, real_lastmode, newtable, local_curtable, wnet : Integer;
+  listet0, listet1 : array[0..PDF417_MAX_LEN - 1] of Integer;
+  chainet : array[0..PDF417_MAX_STREAM_LEN - 1] of Integer;
+begin
+  real_lastmode := pdf_real_mode(lastmode);
+  if real_lastmode = PDF_TEX_MODE then
+    local_curtable := curtable
+  else
+    local_curtable := T_ALPHA;
+
+  if real_lastmode <> PDF_TEX_MODE then
+  begin
+    chainemc[mc_length] := 900;
+    Inc(mc_length);
+  end;
+
+  for indexlistet := 0 to _length - 1 do
+  begin
+    listet0[indexlistet] := pdf_submode_mask(chaine[start + indexlistet]);
+    listet1[indexlistet] := pdf_submode_value(chaine[start + indexlistet]);
+  end;
+
+  wnet := 0;
+  for j := 0 to _length - 1 do
+  begin
+    if (listet0[j] and local_curtable) <> 0 then
+    begin
+      chainet[wnet] := listet1[j];
+      Inc(wnet);
+    end
+    else
+    begin
+      if (j = _length - 1) or ((listet0[j] and listet0[j + 1]) = 0) then
+      begin
+        if ((listet0[j] and T_ALPHA) <> 0) and (local_curtable = T_LOWER) then
+        begin
+          chainet[wnet] := 27;
+          Inc(wnet);
+          chainet[wnet] := listet1[j];
+          Inc(wnet);
+          Continue;
+        end;
+        if (listet0[j] and T_PUNCT) <> 0 then
+        begin
+          chainet[wnet] := 29;
+          Inc(wnet);
+          chainet[wnet] := listet1[j];
+          Inc(wnet);
+          Continue;
+        end;
+        newtable := listet0[j];
+      end
+      else
+        newtable := listet0[j] and listet0[j + 1];
+
+      if newtable = T_ALWMX then
+        newtable := T_ALPHA
+      else if newtable = T_MXPNC then
+        newtable := T_MIXED;
+
+      wnet := pdf_textprocess_switch(local_curtable, newtable, chainet, wnet);
+      local_curtable := newtable;
+      chainet[wnet] := listet1[j];
+      Inc(wnet);
+    end;
+  end;
+
+  curtable := local_curtable;
+  pdf_textprocess_end(chainemc, mc_length, is_last_seg, chainet, wnet, curtable, tex_padded);
+end;
+
+function pdf_table_length(const source : TArrayOfByte; const _length, position, t_table : Integer) : Integer;
+var
+  i : Integer;
+begin
+  i := position;
+  while (i < _length) and ((pdf_submode_mask(source[i]) and t_table) <> 0) do
+    Inc(i);
+  Result := i - position;
+end;
+
+function pdf_count_digits(const source : TArrayOfByte; const _length, position : Integer) : Integer;
+var
+  i : Integer;
+begin
+  i := position;
+  while (i < _length) and (source[i] >= Ord('0')) and (source[i] <= Ord('9')) do
+    Inc(i);
+  Result := i - position;
+end;
+
+function pdf_new_edge(const edges : array of TPDFEdge; const mode, from_pos, seg_len, t_table, lastmode,
+  previous_index : Integer; out edge : TPDFEdge) : Integer;
+var
+  real_mode, previousMode, real_previousMode, units, unit_size, dv, md : Integer;
+begin
+  real_mode := pdf_real_mode(mode);
+  edge.Mode := mode;
+  edge.FromPos := from_pos;
+  edge.SegLen := seg_len;
+
+  if previous_index > 0 then
+  begin
+    previousMode := edges[previous_index].Mode;
+    real_previousMode := pdf_real_mode(previousMode);
+    edge.Previous := previous_index;
+    if real_mode <> real_previousMode then
+    begin
+      edge.Size := edges[previous_index].Size + edges[previous_index].UnitSize + 1;
+      units := 0;
+    end
+    else
+    begin
+      edge.Size := edges[previous_index].Size;
+      units := edges[previous_index].Units;
+    end;
+  end
+  else
+  begin
+    previousMode := lastmode;
+    real_previousMode := pdf_real_mode(previousMode);
+    edge.Previous := 0;
+    if (real_mode <> real_previousMode) or (real_previousMode <> PDF_TEX_MODE) then
+      edge.Size := 1
+    else
+      edge.Size := 0;
+    units := 0;
+  end;
+
+  unit_size := 0;
+  case mode of
+    PDF_ALP_MODE:
+      begin
+        if t_table <> 0 then
+        begin
+          if (previousMode <> mode) and (real_previousMode = PDF_TEX_MODE) then
+            Inc(units, 1 + Ord(previousMode = PDF_LOW_MODE));
+          Inc(units, (1 + Ord((t_table and T_ALPHA) = 0)) * seg_len);
+        end
+        else
+        begin
+          if (units and 1) <> 0 then
+            Inc(units);
+          if (previousMode <> mode) and (real_previousMode = PDF_TEX_MODE) then
+            Inc(units, 1 + Ord(previousMode = PDF_LOW_MODE));
+          Inc(units, 4);
+        end;
+        unit_size := (units + 1) shr 1;
+      end;
+    PDF_LOW_MODE:
+      begin
+        if t_table <> 0 then
+        begin
+          if previousMode <> mode then
+            Inc(units, 1 + Ord(previousMode = PDF_PNC_MODE));
+          Inc(units, (1 + Ord((t_table and T_LOWER) = 0)) * seg_len);
+        end
+        else
+        begin
+          if (units and 1) <> 0 then
+            Inc(units);
+          if previousMode <> mode then
+            Inc(units, 1 + Ord(previousMode = PDF_PNC_MODE));
+          Inc(units, 4);
+        end;
+        unit_size := (units + 1) shr 1;
+      end;
+    PDF_MIX_MODE:
+      begin
+        if t_table <> 0 then
+        begin
+          if previousMode <> mode then
+            Inc(units, 1 + Ord(previousMode = PDF_PNC_MODE));
+          Inc(units, (1 + Ord((t_table and T_MIXED) = 0)) * seg_len);
+        end
+        else
+        begin
+          if (units and 1) <> 0 then
+            Inc(units);
+          if previousMode <> mode then
+            Inc(units, 1 + Ord(previousMode = PDF_PNC_MODE));
+          Inc(units, 4);
+        end;
+        unit_size := (units + 1) shr 1;
+      end;
+    PDF_PNC_MODE:
+      begin
+        if t_table <> 0 then
+        begin
+          if previousMode <> mode then
+            Inc(units, 1 + Ord(previousMode <> PDF_MIX_MODE));
+          Inc(units, seg_len);
+        end
+        else
+        begin
+          if (units and 1) <> 0 then
+            Inc(units, 3)
+          else if previousMode <> mode then
+            Inc(units, 1 + Ord(previousMode <> PDF_MIX_MODE));
+          Inc(units, 4);
+        end;
+        unit_size := (units + 1) shr 1;
+      end;
+    PDF_BYT_MODE:
+      begin
+        Inc(units, seg_len);
+        dv := units div 6;
+        unit_size := dv * 5 + (units - dv * 6);
+      end;
+    PDF_NUM_MODE:
+      begin
+        Inc(units, seg_len);
+        dv := units div 44;
+        md := units - dv * 44;
+        if md <> 0 then
+          unit_size := dv * 15 + (md div 3) + 1
+        else
+          unit_size := dv * 15;
+      end;
+  end;
+
+  edge.Units := units;
+  edge.UnitSize := unit_size;
+  Result := edge.Size + edge.UnitSize;
+end;
+
+function pdf_new_units_better(const mode, existing_units, new_units : Integer) : Boolean;
+var
+  existing_md : Integer;
+begin
+  if pdf_real_mode(mode) = PDF_TEX_MODE then
+  begin
+    if (new_units and 1) <> (existing_units and 1) then
+    begin
+      Result := (existing_units and 1) <> 0;
+      Exit;
+    end;
+  end
+  else if mode = PDF_BYT_MODE then
+  begin
+    existing_md := existing_units mod 6;
+    if (new_units mod 6) <> existing_md then
+    begin
+      Result := existing_md <> 0;
+      Exit;
+    end;
+  end;
+  Result := new_units < existing_units;
+end;
+
+procedure pdf_add_edge(const source : TArrayOfByte; const _length : Integer; var edges : array of TPDFEdge;
+  const mode, from_pos, seg_len, t_table, lastmode, previous_index : Integer);
+var
+  edge : TPDFEdge;
+  new_size, vertexIndex, v_ij, v_size : Integer;
+begin
+  new_size := pdf_new_edge(edges, mode, from_pos, seg_len, t_table, lastmode, previous_index, edge);
+  vertexIndex := from_pos + seg_len;
+  v_ij := vertexIndex * PDF_NUM_MODES + mode - 1;
+  v_size := edges[v_ij].Size + edges[v_ij].UnitSize;
+
+  if (edges[v_ij].Mode = 0) or (v_size > new_size)
+    or ((v_size = new_size) and pdf_new_units_better(mode, edge.Units, edges[v_ij].Units)) then
+    edges[v_ij] := edge;
+end;
+
+procedure pdf_add_edges(const source : TArrayOfByte; const _length, lastmode, from_pos, previous_index : Integer;
+  var edges : array of TPDFEdge);
+var
+  c : Byte;
+  t_table, seg_len : Integer;
+begin
+  c := source[from_pos];
+  t_table := pdf_submode_mask(c);
+
+  if (t_table and T_ALPHA) <> 0 then
+  begin
+    seg_len := pdf_table_length(source, _length, from_pos, T_ALPHA);
+    pdf_add_edge(source, _length, edges, PDF_ALP_MODE, from_pos, seg_len, T_ALPHA, lastmode, previous_index);
+  end;
+  if (t_table = 0) or ((t_table and T_PUNCT) <> 0) then
+    pdf_add_edge(source, _length, edges, PDF_ALP_MODE, from_pos, 1, t_table and not T_ALPHA, lastmode, previous_index);
+
+  if (t_table and T_LOWER) <> 0 then
+  begin
+    seg_len := pdf_table_length(source, _length, from_pos, T_LOWER);
+    pdf_add_edge(source, _length, edges, PDF_LOW_MODE, from_pos, seg_len, T_LOWER, lastmode, previous_index);
+  end;
+  if (t_table = 0) or ((t_table and (T_PUNCT or T_ALPHA)) <> 0) then
+    pdf_add_edge(source, _length, edges, PDF_LOW_MODE, from_pos, 1, t_table and not T_LOWER, lastmode, previous_index);
+
+  if (t_table and T_MIXED) <> 0 then
+  begin
+    seg_len := pdf_table_length(source, _length, from_pos, T_MIXED);
+    pdf_add_edge(source, _length, edges, PDF_MIX_MODE, from_pos, seg_len, T_MIXED, lastmode, previous_index);
+    if (seg_len > 1) and (from_pos + 1 < _length) and (source[from_pos + 1] >= Ord('0')) and (source[from_pos + 1] <= Ord('9')) then
+      pdf_add_edge(source, _length, edges, PDF_MIX_MODE, from_pos, 1, T_MIXED, lastmode, previous_index);
+  end;
+  if (t_table = 0) or ((t_table and T_PUNCT) <> 0) then
+    pdf_add_edge(source, _length, edges, PDF_MIX_MODE, from_pos, 1, t_table and not T_MIXED, lastmode, previous_index);
+
+  if (t_table and T_PUNCT) <> 0 then
+  begin
+    seg_len := pdf_table_length(source, _length, from_pos, T_PUNCT);
+    pdf_add_edge(source, _length, edges, PDF_PNC_MODE, from_pos, seg_len, T_PUNCT, lastmode, previous_index);
+  end;
+  if t_table = 0 then
+    pdf_add_edge(source, _length, edges, PDF_PNC_MODE, from_pos, 1, 0, lastmode, previous_index);
+
+  if (c >= Ord('0')) and (c <= Ord('9')) then
+  begin
+    seg_len := pdf_count_digits(source, _length, from_pos);
+    pdf_add_edge(source, _length, edges, PDF_NUM_MODE, from_pos, seg_len, 0, lastmode, previous_index);
+  end;
+
+  pdf_add_edge(source, _length, edges, PDF_BYT_MODE, from_pos, 1, 0, lastmode, previous_index);
+end;
+
+function pdf_define_modes(var liste : TPDFListe; var indexliste : Integer; const source : TArrayOfByte;
+  const _length, lastmode : Integer) : Boolean;
+var
+  edges : array of TPDFEdge;
+  i, j, v_i, minimalJ, minimalSize, edge_size, mode_start, mode_len, edgeIndex, current_mode, current_from : Integer;
+begin
+  SetLength(edges, (_length + 1) * PDF_NUM_MODES);
+  if Length(edges) = 0 then
+  begin
+    Result := False;
+    Exit;
+  end;
+  FillChar(edges[0], Length(edges) * SizeOf(TPDFEdge), 0);
+
+  pdf_add_edges(source, _length, lastmode, 0, 0, edges);
+  for i := 1 to _length - 1 do
+  begin
+    v_i := i * PDF_NUM_MODES;
+    for j := 0 to PDF_NUM_MODES - 1 do
+      if edges[v_i + j].Mode <> 0 then
+        pdf_add_edges(source, _length, lastmode, i, v_i + j, edges);
+  end;
+
+  v_i := _length * PDF_NUM_MODES;
+  minimalJ := -1;
+  minimalSize := MaxInt;
+  for j := 0 to PDF_NUM_MODES - 1 do
+  begin
+    if edges[v_i + j].Mode <> 0 then
+    begin
+      edge_size := edges[v_i + j].Size + edges[v_i + j].UnitSize;
+      if edge_size < minimalSize then
+      begin
+        minimalSize := edge_size;
+        minimalJ := j;
+      end;
+    end;
+  end;
+  if minimalJ < 0 then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  mode_len := 0;
+  mode_start := _length;
+  edgeIndex := v_i + minimalJ;
+  while edgeIndex > 0 do
+  begin
+    current_mode := edges[edgeIndex].Mode;
+    current_from := edges[edgeIndex].FromPos;
+    Inc(mode_len, edges[edgeIndex].SegLen);
+    if (edges[edgeIndex].Previous = 0) or (edges[edges[edgeIndex].Previous].Mode <> current_mode) then
+    begin
+      Dec(mode_start);
+      liste[0][mode_start] := mode_len;
+      liste[1][mode_start] := current_mode;
+      liste[2][mode_start] := current_from;
+      mode_len := 0;
+    end;
+    edgeIndex := edges[edgeIndex].Previous;
+  end;
+
+  indexliste := _length - mode_start;
+  if mode_start > 0 then
+    for i := 0 to indexliste - 1 do
+    begin
+      liste[0][i] := liste[0][i + mode_start];
+      liste[1][i] := liste[1][i + mode_start];
+      liste[2][i] := liste[2][i + mode_start];
+    end;
+
+  Result := True;
+end;
+
+procedure pdf_textprocess_minimal(var chainemc : TArrayOfInteger; var mc_length : Integer;
+  const chaine : TArrayOfByte; const liste : TPDFListe; const indexliste, lastmode : Integer;
+  const is_last_seg : Boolean; var curtable : Integer; var tex_padded : Boolean; var i : Integer);
+const
+  NewTables : array[0..4] of Integer = (0, T_ALPHA, T_LOWER, T_MIXED, T_PUNCT);
+var
+  j, k, from_pos, c, t_table, newtable, local_curtable, real_lastmode, wnet : Integer;
+  chainet : array[0..PDF417_MAX_STREAM_LEN - 1] of Integer;
+begin
+  real_lastmode := pdf_real_mode(lastmode);
+  if real_lastmode = PDF_TEX_MODE then
+    local_curtable := curtable
+  else
+    local_curtable := T_ALPHA;
+
+  if real_lastmode <> PDF_TEX_MODE then
+  begin
+    chainemc[mc_length] := 900;
+    Inc(mc_length);
+  end;
+
+  wnet := 0;
+  while (i < indexliste) and (pdf_real_mode(liste[1][i]) = PDF_TEX_MODE) do
+  begin
+    newtable := NewTables[liste[1][i]];
+    from_pos := liste[2][i];
+    for j := 0 to liste[0][i] - 1 do
+    begin
+      c := chaine[from_pos + j];
+      t_table := pdf_submode_mask(c);
+      if t_table = 0 then
+      begin
+        if (wnet and 1) <> 0 then
+        begin
+          chainet[wnet] := 29;
+          Inc(wnet);
+          if local_curtable = T_PUNCT then
+            local_curtable := T_ALPHA;
+        end;
+        k := 0;
+        while k < wnet do
+        begin
+          chainemc[mc_length] := (30 * chainet[k]) + chainet[k + 1];
+          Inc(mc_length);
+          Inc(k, 2);
+        end;
+        chainemc[mc_length] := 913;
+        Inc(mc_length);
+        chainemc[mc_length] := c;
+        Inc(mc_length);
+        wnet := 0;
+        Continue;
+      end;
+
+      if newtable <> local_curtable then
+        wnet := pdf_textprocess_switch(local_curtable, newtable, chainet, wnet);
+      local_curtable := newtable;
+
+      if (local_curtable = T_LOWER) and (t_table = T_ALPHA) then
+      begin
+        chainet[wnet] := 27;
+        Inc(wnet);
+      end
+      else if (local_curtable <> T_PUNCT) and ((t_table and T_PUNCT) <> 0)
+        and ((local_curtable <> T_MIXED) or ((t_table and T_MIXED) = 0)) then
+      begin
+        chainet[wnet] := 29;
+        Inc(wnet);
+      end;
+
+      chainet[wnet] := pdf_submode_value(c);
+      Inc(wnet);
+    end;
+    Inc(i);
+  end;
+  if i > 0 then
+    Dec(i);
+
+  curtable := local_curtable;
+  pdf_textprocess_end(chainemc, mc_length, is_last_seg, chainet, wnet, curtable, tex_padded);
+end;
+
+function pdf417_build_structapp(symbol : zint_symbol; var structapp_cws : array of Integer;
+  out structapp_cp : Integer) : Integer;
+var
+  ids : array[0..9] of Integer;
+  id_cnt, id_len, i, triplet_len, triplet_value : Integer;
+  triplet_text : String;
+begin
+  Result := 0;
+  structapp_cp := 0;
+  if symbol.structapp.count = 0 then
+    Exit;
+
+  if (symbol.structapp.count < 2) or (symbol.structapp.count > 99999) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 740: Structured Append count ''%d'' out of range (2 to 99999)',
+      [symbol.structapp.count]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+  if (symbol.structapp.index < 1) or (symbol.structapp.index > symbol.structapp.count) then
+  begin
+    strcpy(symbol.errtxt, Format('Error 741: Structured Append index ''%d'' out of range (1 to count %d)',
+      [symbol.structapp.index, symbol.structapp.count]));
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+
+  id_cnt := 0;
+  id_len := Length(symbol.structapp.id);
+  if id_len > 0 then
+  begin
+    if id_len > 30 then
+    begin
+      strcpy(symbol.errtxt, Format('Error 742: Structured Append ID length %d too long (30 digit maximum)',
+        [id_len]));
+      Result := ZERROR_INVALID_OPTION;
+      Exit;
+    end;
+    for i := 1 to id_len do
+    begin
+      if not (symbol.structapp.id[i] in ['0'..'9']) then
+      begin
+        strcpy(symbol.errtxt, 'Error 743: Invalid Structured Append ID (digits only)');
+        Result := ZERROR_INVALID_OPTION;
+        Exit;
       end;
     end;
 
-    { Mode analysis for this segment's (already ECI-converted) bytes }
-    indexliste := 0;
-    indexchaine := 0;
-    mode := quelmode(Chr(seg_data[0]));
-    for i := 0 to 999 do
-      liste[0][i] := 0;
+    i := 1;
+    while i <= id_len do
+    begin
+      if i + 2 <= id_len then
+        triplet_len := 3
+      else
+        triplet_len := id_len - i + 1;
+      triplet_text := Copy(symbol.structapp.id, i, triplet_len);
+      triplet_value := StrToInt(triplet_text);
+      if triplet_value > 899 then
+      begin
+        strcpy(symbol.errtxt, Format('Error 744: Structured Append ID triplet %d value ''%.3d'' out of range (000 to 899)',
+          [id_cnt + 1, triplet_value]));
+        Result := ZERROR_INVALID_OPTION;
+        Exit;
+      end;
+      ids[id_cnt] := triplet_value;
+      Inc(id_cnt);
+      Inc(i, 3);
+    end;
+  end;
+
+  structapp_cws[structapp_cp] := 928; Inc(structapp_cp);
+  structapp_cws[structapp_cp] := (100000 + symbol.structapp.index - 1) div 900; Inc(structapp_cp);
+  structapp_cws[structapp_cp] := (100000 + symbol.structapp.index - 1) mod 900; Inc(structapp_cp);
+  for i := 0 to id_cnt - 1 do
+  begin
+    structapp_cws[structapp_cp] := ids[i];
+    Inc(structapp_cp);
+  end;
+  structapp_cws[structapp_cp] := 923; Inc(structapp_cp);
+  structapp_cws[structapp_cp] := 1; Inc(structapp_cp);
+  structapp_cws[structapp_cp] := (100000 + symbol.structapp.count) div 900; Inc(structapp_cp);
+  structapp_cws[structapp_cp] := (100000 + symbol.structapp.count) mod 900; Inc(structapp_cp);
+  if symbol.structapp.index = symbol.structapp.count then
+  begin
+    structapp_cws[structapp_cp] := 922;
+    Inc(structapp_cp);
+  end;
+end;
+
+procedure pdf417_append_eci(var chainemc : TArrayOfInteger; var mc_length : Integer; const eci : Integer);
+begin
+  if eci <= 0 then
+    Exit;
+
+  if eci <= 899 then
+  begin
+    chainemc[mc_length] := 927; Inc(mc_length);
+    chainemc[mc_length] := eci; Inc(mc_length);
+  end
+  else if eci <= 810899 then
+  begin
+    chainemc[mc_length] := 926; Inc(mc_length);
+    chainemc[mc_length] := eci div 900 - 1; Inc(mc_length);
+    chainemc[mc_length] := eci mod 900; Inc(mc_length);
+  end
+  else
+  begin
+    chainemc[mc_length] := 925; Inc(mc_length);
+    chainemc[mc_length] := eci - 810900; Inc(mc_length);
+  end;
+end;
+
+procedure pdf_byteprocess_stateful(var chainemc : TArrayOfInteger; var mc_length : Integer;
+  const chaine : TArrayOfByte; start, _length, lastmode : Integer);
+var
+  len : Integer;
+  chunkLen, mantisa, total : UInt64;
+begin
+  len := 0;
+
+  if _length = 1 then
+  begin
+    if pdf_real_mode(lastmode) = PDF_TEX_MODE then
+      chainemc[mc_length] := 913
+    else
+      chainemc[mc_length] := 901;
+    Inc(mc_length);
+    chainemc[mc_length] := chaine[start];
+    Inc(mc_length);
+  end
+  else
+  begin
+    if (_length mod 6) = 0 then
+    begin
+      chainemc[mc_length] := 924;
+      Inc(mc_length);
+    end
+    else
+    begin
+      chainemc[mc_length] := 901;
+      Inc(mc_length);
+    end;
+
+    while len < _length do
+    begin
+      chunkLen := _length - len;
+      if 6 <= chunkLen then
+      begin
+        chunkLen := 6;
+        Inc(len, chunkLen);
+        total := 0;
+
+        while chunkLen > 0 do
+        begin
+          Dec(chunkLen);
+          mantisa := chaine[start];
+          Inc(start);
+          total := total or (mantisa shl UInt64(chunkLen * 8));
+        end;
+
+        chunkLen := 5;
+        while chunkLen > 0 do
+        begin
+          Dec(chunkLen);
+          chainemc[mc_length + Int64(chunkLen)] := Integer(total mod 900);
+          total := total div 900;
+        end;
+        Inc(mc_length, 5);
+      end
+      else
+      begin
+        Inc(len, chunkLen);
+        while chunkLen > 0 do
+        begin
+          Dec(chunkLen);
+          chainemc[mc_length] := chaine[start];
+          Inc(mc_length);
+          Inc(start);
+        end;
+      end;
+    end;
+  end;
+end;
+
+function pdf417_encode_segment(var chainemc : TArrayOfInteger; var mc_length : Integer;
+  const seg_data : TArrayOfByte; const seg_len : Integer; const fast_encode, is_last_seg : Boolean;
+  var lastmode : Integer; var curtable : Integer; var tex_padded : Boolean) : Integer;
+var
+  i, indexchaine, indexliste, mode, real_mode : Integer;
+  liste : TPDFListe;
+begin
+  Result := 0;
+  indexliste := 0;
+  indexchaine := 0;
+  mode := pdf_quelmode_byte(seg_data[0]);
+  FillChar(liste, SizeOf(liste), 0);
+
+  if fast_encode then
+  begin
     repeat
       liste[1][indexliste] := mode;
+      liste[2][indexliste] := indexchaine;
       while (liste[1][indexliste] = mode) and (indexchaine < seg_len) do
       begin
         Inc(liste[0][indexliste]);
         Inc(indexchaine);
         if indexchaine < seg_len then
-          mode := quelmode(Chr(seg_data[indexchaine]))
+          mode := pdf_quelmode_byte(seg_data[indexchaine])
         else
-          mode := BYT; { sentinel – won't be reached }
+          mode := PDF_BYT_MODE;
       end;
       Inc(indexliste);
     until not (indexchaine < seg_len);
 
-    pdfsmooth(indexliste, liste);
-
-    { Encode mode blocks, tracking block_counter across all segments }
-    indexchaine := 0;
-    for i := 0 to indexliste - 1 do
-    begin
-      case liste[1][i] of
-        TEX:
-        begin
-          if current_mode = TEX then
-            textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], 0)
-          else
-            textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], 1);
-          current_mode := TEX;
-        end;
-        BYT:
-        begin
-          byteprocess_stateful(chainemc, mc_length, seg_data, indexchaine, liste[0][i], current_mode);
-          if not ((current_mode = TEX) and (liste[0][i] = 1)) then
-            current_mode := BYT;
-        end;
-        NUM:
-        begin
-          numbprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], block_counter);
-          current_mode := NUM;
-        end;
-      end;
-      Inc(indexchaine, liste[0][i]);
-      Inc(block_counter);
-    end;
+    pdf_appendix_d_encode(seg_data, liste, indexliste);
+  end
+  else if not pdf_define_modes(liste, indexliste, seg_data, seg_len, lastmode) then
+  begin
+    Result := ZERROR_MEMORY;
+    Exit;
   end;
 
-  { 752 - Now take care of the number of CWs per row (same as pdf417) }
-  data_cws := mc_length;
-  if (symbol.option_1 < 0) then
+  indexchaine := 0;
+  i := 0;
+  while i < indexliste do
+  begin
+    real_mode := pdf_real_mode(liste[1][i]);
+    case real_mode of
+      PDF_TEX_MODE:
+        begin
+          if fast_encode then
+          begin
+            pdf_textprocess_stateful(chainemc, mc_length, seg_data, indexchaine, liste[0][i], lastmode,
+              is_last_seg, curtable, tex_padded);
+            Inc(indexchaine, liste[0][i]);
+            lastmode := PDF_ALP_MODE;
+          end
+          else
+          begin
+            pdf_textprocess_minimal(chainemc, mc_length, seg_data, liste, indexliste, lastmode,
+              is_last_seg, curtable, tex_padded, i);
+            if i + 1 < indexliste then
+              indexchaine := liste[2][i + 1]
+            else
+              indexchaine := seg_len;
+            lastmode := pdf_table_to_mode(curtable);
+          end;
+        end;
+      PDF_BYT_MODE:
+        begin
+          pdf_byteprocess_stateful(chainemc, mc_length, seg_data, indexchaine, liste[0][i], lastmode);
+          if (pdf_real_mode(lastmode) <> PDF_TEX_MODE) or (liste[0][i] <> 1) then
+            lastmode := PDF_BYT_MODE
+          else if (curtable = T_PUNCT) and tex_padded then
+            curtable := T_ALPHA;
+          Inc(indexchaine, liste[0][i]);
+        end;
+      PDF_NUM_MODE:
+        begin
+          numbprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], 0);
+          lastmode := PDF_NUM_MODE;
+          Inc(indexchaine, liste[0][i]);
+        end;
+    end;
+    Inc(i);
+  end;
+end;
+
+function pdf417_finalize_full(symbol : zint_symbol; var chainemc : TArrayOfInteger; var mc_length : Integer;
+  const structapp_cws : array of Integer; const structapp_cp : Integer) : Integer;
+var
+  i, j, k, loop, offset, total, rows, cols, c1, c2, c3, ecc_cws, longueur, padding : Integer;
+  mccorrection : array[0..519] of Integer;
+  dummy : array[0..34] of Integer;
+  codebarre, pattern : TArrayOfChar;
+  codeerr, bp, data_cws : Integer;
+begin
+  SetLength(codebarre, 140);
+  SetLength(pattern, 580);
+  codeerr := 0;
+
+  data_cws := mc_length - 1 + structapp_cp;
+  if symbol.option_1 < 0 then
   begin
     symbol.option_1 := 6;
-    if (data_cws <= 863) then symbol.option_1 := 5;
-    if (data_cws <= 320) then symbol.option_1 := 4;
-    if (data_cws <= 160) then symbol.option_1 := 3;
-    if (data_cws <= 40)  then symbol.option_1 := 2;
+    if data_cws <= 863 then symbol.option_1 := 5;
+    if data_cws <= 320 then symbol.option_1 := 4;
+    if data_cws <= 160 then symbol.option_1 := 3;
+    if data_cws <= 40 then symbol.option_1 := 2;
   end;
-  k := 1;
-  for loop := 1 to symbol.option_1 + 1 do
-    k := k * 2;
+  ecc_cws := 2 shl symbol.option_1;
+  longueur := mc_length + structapp_cp + ecc_cws;
 
-  longueur := mc_length + 1 + k;
-
-  if (longueur > 928) then
+  if longueur > 928 then
   begin
     strcpy(symbol.errtxt, 'Error 464: Input too long, requires too many codewords (maximum 928)');
-    Result := 2; Exit;
+    Result := ZERROR_TOO_LONG;
+    Exit;
   end;
 
   cols := symbol.option_2;
@@ -1485,7 +2540,8 @@ begin
         if (rows * cols) > 928 then
         begin
           strcpy(symbol.errtxt, 'Error 465: Input too long, requires too many codewords (maximum 928)');
-          Result := 2; Exit;
+          Result := ZERROR_TOO_LONG;
+          Exit;
         end;
       end;
     end
@@ -1496,14 +2552,15 @@ begin
       if (rows > 90) or ((rows * cols) > 928) then
       begin
         strcpy(symbol.errtxt, Format('Error 745: Input too long for number of columns ''%d''', [cols]));
-        Result := 4; Exit;
+        Result := ZERROR_TOO_LONG;
+        Exit;
       end;
     end;
 
     if rows <> symbol.option_3 then
     begin
       strcpy(symbol.errtxt, Format('Warning 746: Number of rows increased from %d to %d', [symbol.option_3, rows]));
-      codeerr := 3;
+      codeerr := ZWARN_INVALID_OPTION;
     end;
   end
   else
@@ -1529,12 +2586,13 @@ begin
       if (rows * cols) > 928 then
       begin
         strcpy(symbol.errtxt, 'Error 747: Input too long, requires too many codewords (maximum 928)');
-        Result := 2; Exit;
+        Result := ZERROR_TOO_LONG;
+        Exit;
       end;
       if (symbol.option_2 > 0) and (cols <> symbol.option_2) then
       begin
         strcpy(symbol.errtxt, Format('Warning 748: Number of columns increased from %d to %d', [symbol.option_2, cols]));
-        codeerr := 3;
+        codeerr := ZWARN_INVALID_OPTION;
       end;
     end;
   end;
@@ -1542,26 +2600,20 @@ begin
   symbol.option_2 := cols;
   symbol.option_3 := rows;
 
-  { 781 - Padding calculation }
-  i := 0;
-  if ((longueur / symbol.option_2) < 3) then
-    i := (symbol.option_2 * 3) - longueur
-  else
-    if ((longueur mod symbol.option_2) > 0) then i := symbol.option_2 - (longueur mod symbol.option_2);
-
-  while (i > 0) do
+  padding := rows * cols - longueur;
+  while padding > 0 do
   begin
     chainemc[mc_length] := 900;
     Inc(mc_length);
-    Dec(i);
+    Dec(padding);
   end;
-  { length descriptor }
-  for i := mc_length downto 1 do
-    chainemc[i] := chainemc[i - 1];
-  chainemc[0] := mc_length + 1;
-  Inc(mc_length);
+  for i := 0 to structapp_cp - 1 do
+  begin
+    chainemc[mc_length] := structapp_cws[i];
+    Inc(mc_length);
+  end;
+  chainemc[0] := mc_length;
 
-  { 796 - Reed Solomon }
   case symbol.option_1 of
     1: offset := 2;
     2: offset := 6;
@@ -1571,23 +2623,20 @@ begin
     6: offset := 126;
     7: offset := 254;
     8: offset := 510;
-    else offset := 0;
+  else
+    offset := 0;
   end;
 
-  longueur := mc_length;
   for loop := 0 to 519 do
     mccorrection[loop] := 0;
-
-  for i := 0 to longueur - 1 do
+  for i := 0 to mc_length - 1 do
   begin
-    total := (chainemc[i] + mccorrection[k - 1]) mod 929;
-    for j := k - 1 downto 1 do
+    total := (chainemc[i] + mccorrection[ecc_cws - 1]) mod 929;
+    for j := ecc_cws - 1 downto 1 do
       mccorrection[j] := (mccorrection[j - 1] + 929 - (total * coefrs[offset + j]) mod 929) mod 929;
-    j := 0;
-    mccorrection[0] := (929 - (total * coefrs[offset + j]) mod 929) mod 929;
+    mccorrection[0] := (929 - (total * coefrs[offset]) mod 929) mod 929;
   end;
-
-  for i := k - 1 downto 0 do
+  for i := ecc_cws - 1 downto 0 do
   begin
     if mccorrection[i] <> 0 then
       chainemc[mc_length] := 929 - mccorrection[i]
@@ -1596,57 +2645,50 @@ begin
     Inc(mc_length);
   end;
 
-  { 818 - The CW string is finished }
-  c1 := (mc_length div symbol.option_2 - 1) div 3;
-  c2 := symbol.option_1 * 3 + (mc_length div symbol.option_2 - 1) mod 3;
-  c3 := symbol.option_2 - 1;
-
-  for i := 0 to (mc_length div symbol.option_2) - 1 do
+  c1 := (rows - 1) div 3;
+  c2 := symbol.option_1 * 3 + (rows - 1) mod 3;
+  c3 := cols - 1;
+  bp := 0;
+  for i := 0 to rows - 1 do
   begin
-    for j := 0 to symbol.option_2 - 1 do
-      dummy[j + 1] := chainemc[i * symbol.option_2 + j];
+    for j := 0 to cols - 1 do
+      dummy[j + 1] := chainemc[i * cols + j];
 
     k := (i div 3) * 30;
     case i mod 3 of
       0:
-      begin
-        dummy[0] := k + c1;
-        dummy[symbol.option_2 + 1] := k + c3;
-      end;
+        begin
+          dummy[0] := k + c1;
+          dummy[cols + 1] := k + c3;
+          offset := 0;
+        end;
       1:
-      begin
-        dummy[0] := k + c2;
-        dummy[symbol.option_2 + 1] := k + c1;
-      end;
-      2:
+        begin
+          dummy[0] := k + c2;
+          dummy[cols + 1] := k + c1;
+          offset := 929;
+        end;
+    else
       begin
         dummy[0] := k + c3;
-        dummy[symbol.option_2 + 1] := k + c2;
+        dummy[cols + 1] := k + c2;
+        offset := 1858;
       end;
     end;
+
     strcpy(codebarre, '+*');
-    if (symbol.symbology = BARCODE_PDF417TRUNC) then
+    if symbol.symbology = BARCODE_PDF417TRUNC then
     begin
-      for j := 0 to symbol.option_2 do
+      for j := 0 to cols do
       begin
-        case i mod 3 of
-          1: offset := 929;
-          2: offset := 1858;
-          else offset := 0;
-        end;
         concat(codebarre, codagemc[offset + dummy[j]]);
         concat(codebarre, '*');
       end;
     end
     else
     begin
-      for j := 0 to symbol.option_2 + 1 do
+      for j := 0 to cols + 1 do
       begin
-        case i mod 3 of
-          1: offset := 929;
-          2: offset := 1858;
-          else offset := 0;
-        end;
         concat(codebarre, codagemc[offset + dummy[j]]);
         concat(codebarre, '*');
       end;
@@ -1656,16 +2698,346 @@ begin
     strcpy(pattern, '');
     for loop := 0 to strlen(codebarre) - 1 do
       lookup(BRSET, PDFttf, codebarre[loop], pattern);
-
-    for loop := 0 to strlen(pattern) - 1 do
-      if (pattern[loop] = '1') then set_module(symbol, i, loop);
-
+    bp := strlen(pattern);
+    for loop := 0 to bp - 1 do
+      if pattern[loop] = '1' then
+        set_module(symbol, i, loop);
     symbol.row_height[i] := 3;
   end;
+
   symbol.rows := rows;
-  symbol.width := strlen(pattern);
+  symbol.width := bp;
+  Result := codeerr;
+end;
+
+function pdf417_finalize_micro(symbol : zint_symbol; var chainemc : TArrayOfInteger; var mc_length : Integer;
+  const structapp_cws : array of Integer; const structapp_cp : Integer) : Integer;
+const
+  ColMaxCodewords : array[1..4] of Integer = (20, 37, 82, 126);
+var
+  i, j, k, loop, offset, total, longueur, variant, ecc_cwds, writer, flip : Integer;
+  mccorrection : array[0..49] of Integer;
+  dummy : array[0..5] of Integer;
+  codebarre, pattern : TArrayOfChar;
+  LeftRAPStart, CentreRAPStart, RightRAPStart, StartCluster : Integer;
+  LeftRAP, CentreRAP, RightRAP, Cluster : Integer;
+  total_cws, codeerr : Integer;
+begin
+  SetLength(codebarre, 100);
+  SetLength(pattern, 580);
+  codeerr := 0;
+  total_cws := mc_length + structapp_cp;
+
+  if total_cws > 126 then
+  begin
+    strcpy(symbol.errtxt, Format('Error 467: Input too long, requires %d codewords (maximum 126)', [total_cws]));
+    Result := ZERROR_TOO_LONG;
+    Exit;
+  end;
+  if symbol.option_3 <> 0 then
+  begin
+    strcpy(symbol.errtxt, 'Error 476: Cannot specify rows for MicroPDF417');
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+  if symbol.option_2 > 4 then
+  begin
+    strcpy(symbol.errtxt, Format('Warning 468: Number of columns ''%d'' out of range (1 to 4), ignoring', [symbol.option_2]));
+    symbol.option_2 := 0;
+    codeerr := ZWARN_INVALID_OPTION;
+  end;
+  if (symbol.option_2 >= 1) and (symbol.option_2 <= 4) and (total_cws > ColMaxCodewords[symbol.option_2]) then
+  begin
+    strcpy(symbol.errtxt, Format('Warning 470: Input too long for number of columns ''%d'', ignoring', [symbol.option_2]));
+    symbol.option_2 := 0;
+    codeerr := ZWARN_INVALID_OPTION;
+  end;
+
+  variant := 0;
+  if symbol.option_2 = 1 then
+  begin
+    variant := 6;
+    if total_cws <= 16 then variant := 5;
+    if total_cws <= 12 then variant := 4;
+    if total_cws <= 10 then variant := 3;
+    if total_cws <= 7 then variant := 2;
+    if total_cws <= 4 then variant := 1;
+  end
+  else if symbol.option_2 = 2 then
+  begin
+    variant := 13;
+    if total_cws <= 33 then variant := 12;
+    if total_cws <= 29 then variant := 11;
+    if total_cws <= 24 then variant := 10;
+    if total_cws <= 19 then variant := 9;
+    if total_cws <= 13 then variant := 8;
+    if total_cws <= 8 then variant := 7;
+  end
+  else if symbol.option_2 = 3 then
+  begin
+    variant := 23;
+    if total_cws <= 70 then variant := 22;
+    if total_cws <= 58 then variant := 21;
+    if total_cws <= 46 then variant := 20;
+    if total_cws <= 34 then variant := 19;
+    if total_cws <= 24 then variant := 18;
+    if total_cws <= 18 then variant := 17;
+    if total_cws <= 14 then variant := 16;
+    if total_cws <= 10 then variant := 15;
+    if total_cws <= 6 then variant := 14;
+  end
+  else if symbol.option_2 = 4 then
+  begin
+    variant := 34;
+    if total_cws <= 108 then variant := 33;
+    if total_cws <= 90 then variant := 32;
+    if total_cws <= 72 then variant := 31;
+    if total_cws <= 54 then variant := 30;
+    if total_cws <= 39 then variant := 29;
+    if total_cws <= 30 then variant := 28;
+    if total_cws <= 24 then variant := 27;
+    if total_cws <= 18 then variant := 26;
+    if total_cws <= 12 then variant := 25;
+    if total_cws <= 8 then variant := 24;
+  end
+  else
+  begin
+    for i := 27 downto 0 do
+    begin
+      if MicroAutosize[i] >= total_cws then
+        variant := MicroAutosize[i + 28]
+      else
+        Break;
+    end;
+  end;
+
+  Dec(variant);
+  symbol.option_2 := MicroVariants[variant];
+  symbol.rows := MicroVariants[variant + 34];
+  ecc_cwds := MicroVariants[variant + 68];
+  longueur := (symbol.option_2 * symbol.rows) - ecc_cwds;
+  i := longueur - total_cws;
+  offset := MicroVariants[variant + 102];
+  symbol.option_1 := Round((ecc_cwds * 100.0) / (longueur + ecc_cwds)) shl 8;
+
+  while i > 0 do
+  begin
+    chainemc[mc_length] := 900;
+    Inc(mc_length);
+    Dec(i);
+  end;
+  for i := 0 to structapp_cp - 1 do
+  begin
+    chainemc[mc_length] := structapp_cws[i];
+    Inc(mc_length);
+  end;
+
+  for loop := 0 to 49 do
+    mccorrection[loop] := 0;
+  for i := 0 to mc_length - 1 do
+  begin
+    total := (chainemc[i] + mccorrection[ecc_cwds - 1]) mod 929;
+    for j := ecc_cwds - 1 downto 0 do
+    begin
+      if j = 0 then
+        mccorrection[j] := (929 - (total * Microcoeffs[offset + j]) mod 929) mod 929
+      else
+        mccorrection[j] := (mccorrection[j - 1] + 929 - (total * Microcoeffs[offset + j]) mod 929) mod 929;
+    end;
+  end;
+  for j := 0 to ecc_cwds - 1 do
+    if mccorrection[j] <> 0 then
+      mccorrection[j] := 929 - mccorrection[j];
+  for i := ecc_cwds - 1 downto 0 do
+  begin
+    chainemc[mc_length] := mccorrection[i];
+    Inc(mc_length);
+  end;
+
+  LeftRAPStart := RAPTable[variant];
+  CentreRAPStart := RAPTable[variant + 34];
+  RightRAPStart := RAPTable[variant + 68];
+  StartCluster := RAPTable[variant + 102] div 3;
+  LeftRAP := LeftRAPStart;
+  CentreRAP := CentreRAPStart;
+  RightRAP := RightRAPStart;
+  Cluster := StartCluster;
+
+  for i := 0 to symbol.rows - 1 do
+  begin
+    strcpy(codebarre, '');
+    offset := 929 * Cluster;
+    for j := 0 to 4 do
+      dummy[j] := 0;
+    for j := 0 to symbol.option_2 - 1 do
+      dummy[j + 1] := chainemc[i * symbol.option_2 + j];
+
+    concat(codebarre, RAPLR[LeftRAP]);
+    concat(codebarre, '1');
+    concat(codebarre, codagemc[offset + dummy[1]]);
+    concat(codebarre, '1');
+    if symbol.option_2 = 3 then
+      concat(codebarre, RAPC[CentreRAP]);
+    if symbol.option_2 >= 2 then
+    begin
+      concat(codebarre, '1');
+      concat(codebarre, codagemc[offset + dummy[2]]);
+      concat(codebarre, '1');
+    end;
+    if symbol.option_2 = 4 then
+      concat(codebarre, RAPC[CentreRAP]);
+    if symbol.option_2 >= 3 then
+    begin
+      concat(codebarre, '1');
+      concat(codebarre, codagemc[offset + dummy[3]]);
+      concat(codebarre, '1');
+    end;
+    if symbol.option_2 = 4 then
+    begin
+      concat(codebarre, '1');
+      concat(codebarre, codagemc[offset + dummy[4]]);
+      concat(codebarre, '1');
+    end;
+    concat(codebarre, RAPLR[RightRAP]);
+    concat(codebarre, '1');
+
+    writer := 0;
+    flip := 1;
+    strcpy(pattern, '');
+    for loop := 0 to strlen(codebarre) - 1 do
+    begin
+      if (codebarre[loop] >= '0') and (codebarre[loop] <= '9') then
+      begin
+        for k := 0 to ctoi(codebarre[loop]) - 1 do
+        begin
+          if flip = 0 then
+            pattern[writer] := '0'
+          else
+            pattern[writer] := '1';
+          Inc(writer);
+        end;
+        pattern[writer] := #0;
+        if flip = 0 then
+          flip := 1
+        else
+          flip := 0;
+      end
+      else
+      begin
+        lookup(BRSET, PDFttf, codebarre[loop], pattern);
+        Inc(writer, 5);
+      end;
+    end;
+    symbol.width := writer;
+    for loop := 0 to strlen(pattern) - 1 do
+      if pattern[loop] = '1' then
+        set_module(symbol, i, loop);
+    symbol.row_height[i] := 2;
+
+    Inc(LeftRAP);
+    Inc(CentreRAP);
+    Inc(RightRAP);
+    Inc(Cluster);
+    if LeftRAP = 53 then LeftRAP := 1;
+    if CentreRAP = 53 then CentreRAP := 1;
+    if RightRAP = 53 then RightRAP := 1;
+    if Cluster = 3 then Cluster := 0;
+  end;
 
   Result := codeerr;
+end;
+
+{ Per-segment encoding for PDF417 family – follows C's pdf_initial_segs() sizing/finalization. }
+function pdf417_segs_encode(symbol : zint_symbol; const segs : TZintSegments) : Integer;
+var
+  chainemc : TArrayOfInteger;
+  structapp_cws : array[0..17] of Integer;
+  seg_idx, seg_len, total_len, structapp_cp, mc_length, lastmode, curtable, mc_before : Integer;
+  fast_encode, is_micro, tex_padded : Boolean;
+begin
+  SetLength(chainemc, 2700);
+  FillChar(structapp_cws, SizeOf(structapp_cws), 0);
+
+  total_len := pdf417_total_seg_length(segs);
+  is_micro := symbol.symbology in [BARCODE_MICROPDF417, BARCODE_HIBC_MICPDF];
+  if is_micro then
+  begin
+    if total_len > 366 then
+    begin
+      strcpy(symbol.errtxt, Format('Error 474: Input length %d too long (maximum 366)', [total_len]));
+      Result := ZERROR_TOO_LONG;
+      Exit;
+    end;
+  end
+  else
+  begin
+    if total_len > 2710 then
+    begin
+      strcpy(symbol.errtxt, Format('Error 463: Input length %d too long (maximum 2710)', [total_len]));
+      Result := ZERROR_TOO_LONG;
+      Exit;
+    end;
+  end;
+
+  Result := pdf417_build_structapp(symbol, structapp_cws, structapp_cp);
+  if Result <> 0 then
+    Exit;
+
+  if symbol.symbology in [BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF] then
+  begin
+    Result := ZERROR_INVALID_OPTION;
+    Exit;
+  end;
+
+  if is_micro then
+    mc_length := 0
+  else
+    mc_length := 1;
+
+  if (symbol.output_options and READER_INIT) <> 0 then
+  begin
+    chainemc[mc_length] := 921;
+    Inc(mc_length);
+  end;
+
+  fast_encode := (symbol.input_mode and FAST_MODE) <> 0;
+  if is_micro then
+    lastmode := PDF_BYT_MODE
+  else
+    lastmode := PDF_ALP_MODE;
+  curtable := T_ALPHA;
+  tex_padded := False;
+
+  for seg_idx := 0 to High(segs) do
+  begin
+    mc_before := mc_length;
+    seg_len := segs[seg_idx].Length;
+    if (seg_len <= 0) and (Length(segs[seg_idx].Source) > 0) then
+      seg_len := Length(segs[seg_idx].Source);
+    if seg_len <= 0 then
+      Continue;
+
+    if (segs[seg_idx].ECI > 811799) then
+    begin
+      strcpy(symbol.errtxt, Format('Error 472: ECI code ''%d'' out of range (0 to 811799)', [segs[seg_idx].ECI]));
+      Result := ZERROR_INVALID_OPTION;
+      Exit;
+    end;
+
+    pdf417_append_eci(chainemc, mc_length, segs[seg_idx].ECI);
+    Result := pdf417_encode_segment(chainemc, mc_length, segs[seg_idx].Source, seg_len, fast_encode,
+      seg_idx = High(segs), lastmode, curtable, tex_padded);
+    if Result <> 0 then
+    begin
+      strcpy(symbol.errtxt, 'Error 749: Insufficient memory for mode buffers');
+      Exit;
+    end;
+  end;
+
+  if is_micro then
+    Result := pdf417_finalize_micro(symbol, chainemc, mc_length, structapp_cws, structapp_cp)
+  else
+    Result := pdf417_finalize_full(symbol, chainemc, mc_length, structapp_cws, structapp_cp);
 end;
 
 function pdf417enc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
