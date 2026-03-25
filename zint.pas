@@ -2798,7 +2798,9 @@ begin
     begin
       { Preserve GS1_MODE for encoders that interrogate input_mode internally }
       if not (((symbol.input_mode and $07) = GS1_MODE) and
-              (symbol.symbology in [BARCODE_CODEONE, BARCODE_DATAMATRIX])) then
+          (symbol.symbology in [BARCODE_CODEONE, BARCODE_DATAMATRIX,
+                BARCODE_QRCODE, BARCODE_MICROQR,
+                BARCODE_UPNQR, BARCODE_RMQR])) then
         symbol.input_mode := DATA_MODE;
     end;
   end;
@@ -3157,14 +3159,7 @@ begin
         first_eci := resolved_eci
       else if first_eci <> resolved_eci then
       begin
-        if ((first_mode >= 0) and (first_mode <> DATA_MODE)) or
-           ((first_mode < 0) and (original_input_mode <> DATA_MODE) and
-            ((segs[i].SourceMode < 0) or (segs[i].SourceMode <> DATA_MODE))) then
-        begin
-          strcpy(symbol.errtxt, 'Error 799: Mixed segment ECI with Unicode not yet supported');
-          Result := ZERROR_INVALID_OPTION;
-          Exit;
-        end;
+        { QR segment ECIs are handled in qr_code_segs()/qr_code_with_seg_ends() }
       end;
 
       if segs[i].SourceMode >= 0 then
@@ -3172,11 +3167,7 @@ begin
         if first_mode < 0 then
           first_mode := segs[i].SourceMode
         else if first_mode <> segs[i].SourceMode then
-        begin
-          strcpy(symbol.errtxt, 'Error 799: Mixed segment input modes not yet supported');
-          Result := ZERROR_INVALID_OPTION;
-          Exit;
-        end;
+          first_mode := -1;
       end;
     end;
 

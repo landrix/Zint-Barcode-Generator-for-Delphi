@@ -380,25 +380,30 @@ type
     Option2: Integer;
     Option3: Integer;
     Seg1: string;
+    Seg1Hex: string;
     Seg1ECI: Integer;
     Seg2: string;
+    Seg2Hex: string;
     Seg2ECI: Integer;
+    Seg3: string;
+    Seg3Hex: string;
+    Seg3ECI: Integer;
     ExpectedRet: Integer;
     ExpectedRows: Integer;
     ExpectedWidth: Integer;
   end;
 const
-  // Segment-vector subset aligned to C test_qr_encode_segs behavior.
+  // Exact C test_qr_encode_segs C#0..5.
   CItems: array[0..5] of TQREncodeSegsItem = (
-    (Index: 0; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$00B6; Seg1ECI: -1; Seg2: #$0416; Seg2ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI;    ExpectedRows: 21; ExpectedWidth: 21),
-    (Index: 1; InputMode: UNICODE_MODE; ECI: 26; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$00B6; Seg1ECI: -1; Seg2: #$0416; Seg2ECI: -1; ExpectedRet: 0;                     ExpectedRows: 21; ExpectedWidth: 21),
-    (Index: 2; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$0416; Seg1ECI: -1; Seg2: #$00B6; Seg2ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI;    ExpectedRows: 21; ExpectedWidth: 21),
-    (Index: 3; InputMode: UNICODE_MODE; ECI: 26; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$0416; Seg1ECI: -1; Seg2: #$00B6; Seg2ECI: -1; ExpectedRet: 0;                     ExpectedRows: 21; ExpectedWidth: 21),
-    (Index: 4; InputMode: DATA_MODE;    ECI: 3; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$00B6; Seg1ECI: -1; Seg2: #$0416; Seg2ECI: 20; ExpectedRet: 0;                     ExpectedRows: 21; ExpectedWidth: 21),
-    (Index: 5; InputMode: UNICODE_MODE; ECI: 3; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$00B6; Seg1ECI: -1; Seg2: #$0416; Seg2ECI: 20; ExpectedRet: ZERROR_INVALID_OPTION; ExpectedRows: -1; ExpectedWidth: -1)
+    (Index: 0; InputMode: UNICODE_MODE; ECI: -1; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$00B6; Seg1Hex: '';   Seg1ECI: 0; Seg2: #$0416; Seg2Hex: '';   Seg2ECI: 7; Seg3: ''; Seg3Hex: ''; Seg3ECI: -1; ExpectedRet: 0;                  ExpectedRows: 21; ExpectedWidth: 21),
+    (Index: 1; InputMode: UNICODE_MODE; ECI: -1; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$00B6; Seg1Hex: '';   Seg1ECI: 0; Seg2: #$0416; Seg2Hex: '';   Seg2ECI: 0; Seg3: ''; Seg3Hex: ''; Seg3ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21),
+    (Index: 2; InputMode: UNICODE_MODE; ECI: -1; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$0416; Seg1Hex: '';   Seg1ECI: 7; Seg2: #$00B6; Seg2Hex: '';   Seg2ECI: 0; Seg3: ''; Seg3Hex: ''; Seg3ECI: -1; ExpectedRet: 0;                  ExpectedRows: 21; ExpectedWidth: 21),
+    (Index: 3; InputMode: UNICODE_MODE; ECI: -1; Option1: 4; Option2: -1; Option3: 8 shl 8; Seg1: #$0416; Seg1Hex: '';   Seg1ECI: 0; Seg2: #$00B6; Seg2Hex: '';   Seg2ECI: 0; Seg3: ''; Seg3Hex: ''; Seg3ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21),
+    (Index: 4; InputMode: UNICODE_MODE; ECI: -1; Option1: -1; Option2: -1; Option3: -1;     Seg1: 'product:Google Pixel 4a - 128 GB of Storage - Black;price:$439.97'; Seg1Hex: ''; Seg1ECI: 3; Seg2: '品名:Google 谷歌 Pixel 4a -128 GB的存储空间-黑色;零售价:￥3149.79'; Seg2Hex: ''; Seg2ECI: 29; Seg3: 'Produkt:Google Pixel 4a - 128 GB Speicher - Schwarz;Preis:444,90 €'; Seg3Hex: ''; Seg3ECI: 17; ExpectedRet: 0; ExpectedRows: 53; ExpectedWidth: 53),
+    (Index: 5; InputMode: DATA_MODE;    ECI: -1; Option1: 2;  Option2: -1; Option3: 3 shl 8; Seg1: '';     Seg1Hex: 'B6'; Seg1ECI: 0; Seg2: '';     Seg2Hex: 'B6'; Seg2ECI: 7; Seg3: ''; Seg3Hex: 'B6'; Seg3ECI: 0; ExpectedRet: 0; ExpectedRows: 21; ExpectedWidth: 21)
   );
 var
-  i, ret: Integer;
+  i, ret, segCount: Integer;
   sym: TZintSymbol;
   segs: TZintSegments;
 begin
@@ -416,17 +421,37 @@ begin
       if CItems[i].Option3 >= 0 then
         sym.option_3 := CItems[i].Option3;
 
-      SetLength(segs, 2);
+      segCount := 2;
+      if (CItems[i].Seg3 <> '') or (CItems[i].Seg3Hex <> '') then
+        segCount := 3;
+      SetLength(segs, segCount);
 
-      segs[0].Source := TEncoding.UTF8.GetBytes(CItems[i].Seg1);
+      if CItems[i].Seg1Hex <> '' then
+        segs[0].Source := HexToByteArray(CItems[i].Seg1Hex)
+      else
+        segs[0].Source := TEncoding.UTF8.GetBytes(CItems[i].Seg1);
       segs[0].Length := Length(segs[0].Source);
       segs[0].ECI := CItems[i].Seg1ECI;
       segs[0].SourceMode := -1;
 
-      segs[1].Source := TEncoding.UTF8.GetBytes(CItems[i].Seg2);
+      if CItems[i].Seg2Hex <> '' then
+        segs[1].Source := HexToByteArray(CItems[i].Seg2Hex)
+      else
+        segs[1].Source := TEncoding.UTF8.GetBytes(CItems[i].Seg2);
       segs[1].Length := Length(segs[1].Source);
       segs[1].ECI := CItems[i].Seg2ECI;
       segs[1].SourceMode := -1;
+
+      if segCount = 3 then
+      begin
+        if CItems[i].Seg3Hex <> '' then
+          segs[2].Source := HexToByteArray(CItems[i].Seg3Hex)
+        else
+          segs[2].Source := TEncoding.UTF8.GetBytes(CItems[i].Seg3);
+        segs[2].Length := Length(segs[2].Source);
+        segs[2].ECI := CItems[i].Seg3ECI;
+        segs[2].SourceMode := -1;
+      end;
 
       ret := ZBarcode_Encode_Segs(sym, segs);
 
@@ -476,8 +501,8 @@ type
 const
   // Additional upstream parity cases from C test_qr_encode_segs (items 6..7).
   CItems: array[0..1] of TQREncodeSegsAdvItem = (
-    (Index: 6; InputMode: UNICODE_MODE; Option1: 2; Option2: -1; Option3: 3 shl 8; StructAppIndex: 0; StructAppCount: 0; StructAppID: '';    Seg1: 'éé'; Seg1ECI: -1; Seg2: 'กขฯ'; Seg2ECI: -1; Seg3: 'βββ'; Seg3ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 29; ExpectedWidth: 29), // TODO: C returns rows=21 via per-segment ECI auto-detection (not yet ported)
-    (Index: 7; InputMode: UNICODE_MODE; Option1: -1; Option2: -1; Option3: -1;     StructAppIndex: 2; StructAppCount: 3; StructAppID: '123'; Seg1: 'éé'; Seg1ECI: 23; Seg2: 'กขฯ'; Seg2ECI: 13; Seg3: 'βββ'; Seg3ECI: 9;  ExpectedRet: ZERROR_INVALID_OPTION; ExpectedRows: -1; ExpectedWidth: -1) // TODO: C supports mixed ECIs per segment
+    (Index: 6; InputMode: UNICODE_MODE; Option1: 2; Option2: -1; Option3: 3 shl 8; StructAppIndex: 0; StructAppCount: 0; StructAppID: '';    Seg1: 'éé'; Seg1ECI: -1; Seg2: 'กขฯ'; Seg2ECI: -1; Seg3: 'βββ'; Seg3ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21),
+    (Index: 7; InputMode: UNICODE_MODE; Option1: -1; Option2: -1; Option3: -1;     StructAppIndex: 2; StructAppCount: 3; StructAppID: '123'; Seg1: 'éé'; Seg1ECI: 23; Seg2: 'กขฯ'; Seg2ECI: 13; Seg3: 'βββ'; Seg3ECI: 9;  ExpectedRet: 0; ExpectedRows: 25; ExpectedWidth: 25)
   );
 var
   i, ret: Integer;
@@ -728,7 +753,7 @@ const
     (Index: 42; InputMode: UNICODE_MODE; ECI: -1; Option1: 4; Data: '12345678901'; StructAppIndex: 1; StructAppCount: 2;  StructAppID: '12A';  ExpectedRet: ZERROR_INVALID_OPTION; ExpectedErrTxt: 'Error 753: Invalid Structured Append ID (digits only)';                         ExpectedSize: -1),
     (Index: 43; InputMode: UNICODE_MODE; ECI: -1; Option1: 4; Data: '12345678901'; StructAppIndex: 1; StructAppCount: 2;  StructAppID: '256';  ExpectedRet: ZERROR_INVALID_OPTION; ExpectedErrTxt: 'Error 754: Structured Append ID value ''256'' out of range (0 to 255)';        ExpectedSize: -1),
     (Index: 44; InputMode: GS1_MODE;     ECI: 3;  Option1: 4; Data: '[20]12';      StructAppIndex: 0; StructAppCount: 0;  StructAppID: '';     ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards';             ExpectedSize: 21),
-    (Index: 45; InputMode: GS1_MODE;     ECI: -1; Option1: 4; Data: '[20]12';      StructAppIndex: 1; StructAppCount: 2;  StructAppID: '';     ExpectedRet: 0;                     ExpectedErrTxt: '';                                                                                              ExpectedSize: 21),
+    (Index: 45; InputMode: GS1_MODE;     ECI: -1; Option1: 4; Data: '[20]12';      StructAppIndex: 1; StructAppCount: 2;  StructAppID: '';     ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 756: Using Structured Append in GS1 mode not supported by GS1 standards';      ExpectedSize: 21),
     (Index: 46; InputMode: GS1_MODE;     ECI: 3;  Option1: 4; Data: '[20]12';      StructAppIndex: 1; StructAppCount: 2;  StructAppID: '';     ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards';             ExpectedSize: 21)
   );
 var
@@ -790,7 +815,7 @@ type
 const
   CItems: array[0..3] of TQRSegGS1WarnItem = (
     (Index: 0; ECI: -1; Seg1: '[20]12'; Seg1ECI: 20; Seg2: ''; Seg2ECI: -1; StructAppIndex: 0; StructAppCount: 0; StructAppID: ''; ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards'),
-    (Index: 1; ECI: -1; Seg1: '[20]';   Seg1ECI: 20; Seg2: '12'; Seg2ECI: -1; StructAppIndex: 1; StructAppCount: 2; StructAppID: ''; ExpectedRet: ZERROR_INVALID_OPTION; ExpectedErrTxt: 'Error 799: Mixed segment ECI with Unicode not yet supported'),
+    (Index: 1; ECI: -1; Seg1: '[20]';   Seg1ECI: 20; Seg2: '12'; Seg2ECI: -1; StructAppIndex: 1; StructAppCount: 2; StructAppID: ''; ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards'),
     (Index: 2; ECI: -1; Seg1: '[20]12'; Seg1ECI: -1; Seg2: ''; Seg2ECI: -1; StructAppIndex: 1; StructAppCount: 2; StructAppID: ''; ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 756: Using Structured Append in GS1 mode not supported by GS1 standards'),
     (Index: 3; ECI: 3;  Seg1: '[20]12'; Seg1ECI: -1; Seg2: ''; Seg2ECI: -1; StructAppIndex: 1; StructAppCount: 2; StructAppID: ''; ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedErrTxt: 'Warning 755: Using ECI in GS1 mode not supported by GS1 standards')
   );
@@ -861,7 +886,7 @@ const
     (Index: 9; InputMode: UNICODE_MODE; ECI: 26; Option1: 4; Option3: 5 shl 8; Data: #$03B2; ExpectedRet: 0; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 10; InputMode: DATA_MODE; ECI: 0; Option1: 4; Option3: 4 shl 8; Data: #$03B2; ExpectedRet: 0; ExpectedECI: 0; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 11; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 5 shl 8; Data: #$0E01; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
-    (Index: 12; InputMode: UNICODE_MODE; ECI: 13; Option1: 4; Option3: 5 shl 8; Data: #$0E01; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
+    (Index: 12; InputMode: UNICODE_MODE; ECI: 13; Option1: 4; Option3: 5 shl 8; Data: #$0E01; ExpectedRet: 0; ExpectedECI: 13; ExpectedSize: -1; ExpectedErrTxt: ''),
     (Index: 13; InputMode: UNICODE_MODE; ECI: 20; Option1: -1; Option3: 0; Data: #$0E01; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
     (Index: 14; InputMode: UNICODE_MODE; ECI: 26; Option1: 4; Option3: 8 shl 8; Data: #$0E01; ExpectedRet: 0; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 15; InputMode: DATA_MODE; ECI: 0; Option1: 4; Option3: 3 shl 8; Data: #$0E01; ExpectedRet: 0; ExpectedECI: 0; ExpectedSize: 21; ExpectedErrTxt: ''),
@@ -933,18 +958,18 @@ const
     (Index: 99; InputMode: UNICODE_MODE; ECI: 20; Option1: 4; Option3: 2 shl 8; Data: #$30C6; ExpectedRet: 0; ExpectedECI: 20; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 100; InputMode: UNICODE_MODE; ECI: 20; Option1: 4; Option3: 4 shl 8; Data: #$30C6#$30C6; ExpectedRet: 0; ExpectedECI: 20; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 90; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 7 shl 8; Data: #$02D8; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
-    (Index: 91; InputMode: UNICODE_MODE; ECI: 4; Option1: 4; Option3: 7 shl 8; Data: #$02D8; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
+    (Index: 91; InputMode: UNICODE_MODE; ECI: 4; Option1: 4; Option3: 7 shl 8; Data: #$02D8; ExpectedRet: 0; ExpectedECI: 4; ExpectedSize: -1; ExpectedErrTxt: ''),
     (Index: 92; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 7 shl 8; Data: #$0126; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
-    (Index: 93; InputMode: UNICODE_MODE; ECI: 5; Option1: 4; Option3: 7 shl 8; Data: #$0126; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
+    (Index: 93; InputMode: UNICODE_MODE; ECI: 5; Option1: 4; Option3: 7 shl 8; Data: #$0126; ExpectedRet: 0; ExpectedECI: 5; ExpectedSize: -1; ExpectedErrTxt: ''),
     (Index: 94; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 0; Data: #$0138; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
-    (Index: 95; InputMode: UNICODE_MODE; ECI: 6; Option1: 4; Option3: 0; Data: #$0138; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
+    (Index: 95; InputMode: UNICODE_MODE; ECI: 6; Option1: 4; Option3: 0; Data: #$0138; ExpectedRet: 0; ExpectedECI: 6; ExpectedSize: -1; ExpectedErrTxt: ''),
     (Index: 96; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 8 shl 8; Data: #$0218; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 97; InputMode: UNICODE_MODE; ECI: 18; Option1: 4; Option3: 8 shl 8; Data: #$0218; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
     (Index: 104; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 7 shl 8; Data: #$0490; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
-    (Index: 105; InputMode: UNICODE_MODE; ECI: 22; Option1: 4; Option3: 7 shl 8; Data: #$0490; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
+    (Index: 105; InputMode: UNICODE_MODE; ECI: 22; Option1: 4; Option3: 7 shl 8; Data: #$0490; ExpectedRet: 0; ExpectedECI: 22; ExpectedSize: -1; ExpectedErrTxt: ''),
     (Index: 106; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 6 shl 8; Data: #$02DC; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
-    (Index: 107; InputMode: UNICODE_MODE; ECI: 23; Option1: 4; Option3: 6 shl 8; Data: #$02DC; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
-    (Index: 108; InputMode: UNICODE_MODE; ECI: 24; Option1: 4; Option3: 5 shl 8; Data: #$067E; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
+    (Index: 107; InputMode: UNICODE_MODE; ECI: 23; Option1: 4; Option3: 6 shl 8; Data: #$02DC; ExpectedRet: 0; ExpectedECI: 23; ExpectedSize: -1; ExpectedErrTxt: ''),
+    (Index: 108; InputMode: UNICODE_MODE; ECI: 24; Option1: 4; Option3: 5 shl 8; Data: #$067E; ExpectedRet: 0; ExpectedECI: 24; ExpectedSize: -1; ExpectedErrTxt: ''),
     (Index: 109; InputMode: UNICODE_MODE; ECI: 0; Option1: 4; Option3: 7 shl 8; Data: #$1000; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26; ExpectedSize: 21; ExpectedErrTxt: ''),
     (Index: 110; InputMode: UNICODE_MODE; ECI: 25; Option1: 4; Option3: 0; Data: #$1000; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
     (Index: 111; InputMode: UNICODE_MODE; ECI: 25; Option1: 4; Option3: 4 shl 8; Data: #$1000#$1000; ExpectedRet: ZERROR_INVALID_DATA; ExpectedECI: -1; ExpectedSize: -1; ExpectedErrTxt: 'Error 800: Invalid character in input'),
@@ -1115,7 +1140,7 @@ const
     (Index: 14; InputMode: UNICODE_MODE; Option1: 1; Option3: -1;      Data: 'こんにちwa、世界！ αβγδ';                                                                                                              ExpectedRet: ZINT_WARN_USES_ECI),
     (Index: 15; InputMode: UNICODE_MODE; Option1: 1; Option3: 2 shl 8; Data: 'こんにちテwa、世界！ αβγδ';                                                                                                             ExpectedRet: ZINT_WARN_USES_ECI),
     (Index: 16; InputMode: UNICODE_MODE; Option1: 1; Option3: 8 shl 8; Data: '67128177921547861663com.acme35584af52fa3-88d0-093b-6c14-b37ddafb59c528908608sg.com.dash.www0530329356521790265903SG.COM.NETS46968696003522G33250183309051017567088693441243693268766948304B2AE13344004SG.SGQR209710339366720B439682.63667470805057501195235502733744600368027857918629797829126902859SG8236HELLO FOO2517Singapore3272B815'; ExpectedRet: 0),
-    (Index: 17; InputMode: UNICODE_MODE; Option1: 4; Option3: 1 shl 8; Data: '纪';                                                                                                                                   ExpectedRet: ZINT_WARN_USES_ECI),
+    (Index: 17; InputMode: UNICODE_MODE; Option1: 4; Option3: 1 shl 8; Data: '纪';                                                                                                                                   ExpectedRet: 0),
     (Index: 18; InputMode: DATA_MODE;    Option1: 4; Option3: 1 shl 8; Data: '纪';                                                                                                                                   ExpectedRet: 0),
     (Index: 19; InputMode: UNICODE_MODE; Option1: 4; Option3: 1 shl 8; Data: '郤ｪ';                                                                                                                                  ExpectedRet: ZINT_WARN_USES_ECI),
     (Index: 20; InputMode: UNICODE_MODE; Option1: 1; Option3: -1;      Data: '2004年大西洋颶風季是有纪录以来造成人员伤亡和财产损失最为惨重的大西洋飓风季之一，于2004年6月1日正式开始，同年11月30日结束，传统上这样的日期界定了一年中绝大多数热带气旋在大西洋形成的时间段lll ku'; ExpectedRet: ZINT_WARN_USES_ECI),
@@ -1277,12 +1302,12 @@ type
 const
   // Full C test_qr_rt matrix C#0..20, including BARCODE_CONTENT_SEGS behavior.
   CItems: array[0..20] of TQRRTItem = (
-    (Index:  0; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
-    (Index:  1; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: 'C3 A9'), // Delta: ret/symbol.eci still differ from C, but RT content now round-trips as UTF-8/ECI 3
-    (Index:  2; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$0E01;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''), // Delta: C resolves symbol.eci=13, Delphi still falls back to 26
-    (Index:  3; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0E01;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 26;  ExpectedContentSegCount: 1; ExpectedContentECI: 13;  ExpectedContentHex: 'E0 B8 81'),
-    (Index:  4; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$70B9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''), // Delta: C returns ZINT_WARN_NONCOMPLIANT, Delphi still succeeds cleanly with ECI 20
-    (Index:  5; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$70B9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 20;  ExpectedContentSegCount: 1; ExpectedContentECI: 20;  ExpectedContentHex: 'E7 82 B9'), // Delta: warning class still differs from C
+    (Index:  0; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index:  1; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: 'C3 A9'),
+    (Index:  2; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$0E01;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 13;  ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index:  3; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$0E01;                                          DataHex: '';          ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 13;  ExpectedContentSegCount: 1; ExpectedContentECI: 13;  ExpectedContentHex: 'E0 B8 81'),
+    (Index:  4; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: #$70B9;                                          DataHex: '';          ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
+    (Index:  5; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$70B9;                                          DataHex: '';          ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 20;  ExpectedContentHex: 'E7 82 B9'),
     (Index:  6; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: '';                                              DataHex: 'C3 A9';     ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
     (Index:  7; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '';                                              DataHex: 'C3 A9';     ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: 'C3 A9'),
     (Index:  8; Symbology: BARCODE_QRCODE;   InputMode: DATA_MODE;    ECI: -1;  Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Data: '';                                              DataHex: 'C2 93 5F';  ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
@@ -1295,7 +1320,7 @@ const
     (Index: 15; Symbology: BARCODE_QRCODE;   InputMode: UNICODE_MODE; ECI: 899; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9;                                          DataHex: '';          ExpectedRet: 0;                   ExpectedECI: 899; ExpectedContentSegCount: 1; ExpectedContentECI: 899; ExpectedContentHex: 'C3 A9'),
     (Index: 16; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
     (Index: 17; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: '30 31 30 34 39 31 32 33 34 35 31 32 33 34 35 39 31 35 39 37 30 33 33 31 33 30 31 32 38 1D 31 30 41 42 43 31 32 33'),
-    (Index: 18; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: 170; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: 0;                   ExpectedECI: 170; ExpectedContentSegCount: 1; ExpectedContentECI: 170; ExpectedContentHex: '30 31 30 34 39 31 32 33 34 35 31 32 33 34 35 39 31 35 39 37 30 33 33 31 33 30 31 32 38 1D 31 30 41 42 43 31 32 33'), // Delta: C returns ZINT_WARN_NONCOMPLIANT here
+    (Index: 18; Symbology: BARCODE_QRCODE;   InputMode: GS1_MODE;     ECI: 170; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: '[01]04912345123459[15]970331[30]128[10]ABC123'; ExpectedRet: ZINT_WARN_NONCOMPLIANT; ExpectedECI: 170; ExpectedContentSegCount: 1; ExpectedContentECI: 170; ExpectedContentHex: '30 31 30 34 39 31 32 33 34 35 31 32 33 34 35 39 31 35 39 37 30 33 33 31 33 30 31 32 38 1D 31 30 41 42 43 31 32 33'),
     (Index: 19; Symbology: BARCODE_HIBC_QR;  InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: -1;                   Data: 'H123ABC01234567890';                            ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 0; ExpectedContentECI: 0;   ExpectedContentHex: ''),
     (Index: 20; Symbology: BARCODE_HIBC_QR;  InputMode: UNICODE_MODE; ECI: -1;  Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: 'H123ABC01234567890';                            ExpectedRet: 0;                   ExpectedECI: 0;   ExpectedContentSegCount: 1; ExpectedContentECI: 3;   ExpectedContentHex: '2B 48 31 32 33 41 42 43 30 31 32 33 34 35 36 37 38 39 30 44')
   );
@@ -1399,18 +1424,16 @@ type
 const
   // C test_qr_rt_segs full C#0..9 matrix with/without BARCODE_CONTENT_SEGS, including expected source bytes and ECI.
   CItems: array[0..9] of TQRRTSegsItem = (
-    // C#0..3: mixed ECI (0+7) → ZERROR_INVALID_OPTION in Delphi QR segs path (TODO: C supports mixed ECIs)
-    (Index: 0; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: #$00B6; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: ZERROR_INVALID_OPTION; ExpectedRows: -1; ExpectedWidth: -1; ExpectedContentSegCount: 0),
-    (Index: 1; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Seg1: #$00B6; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: 'C2 B6';   ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: ZERROR_INVALID_OPTION; ExpectedRows: -1; ExpectedWidth: -1; ExpectedContentSegCount: 0),
-    (Index: 2; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: #$70B9; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: ZERROR_INVALID_OPTION; ExpectedRows: -1; ExpectedWidth: -1; ExpectedContentSegCount: 0),
-    (Index: 3; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Seg1: #$70B9; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: 'E7 82 B9'; ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: ZERROR_INVALID_OPTION; ExpectedRows: -1; ExpectedWidth: -1; ExpectedContentSegCount: 0),
-    (Index: 4; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: 'éé';    Seg1Hex: '';      Seg1ECI: 0;  Seg2: 'กขฯ';   Seg2Hex: '';      Seg2ECI: 0;  Seg3: 'βββ'; Seg3Hex: '';     Seg3ECI: 0;  ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 13; ExpectedSeg3ECI: 9;  ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 29; ExpectedWidth: 29; ExpectedContentSegCount: 0),
-    (Index: 5; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: 'éé';    Seg1Hex: '';      Seg1ECI: 0;  Seg2: 'กขฯ';   Seg2Hex: '';      Seg2ECI: 0;  Seg3: 'βββ'; Seg3Hex: '';     Seg3ECI: 0;  ExpectedSeg1Hex: 'C3 A9 C3 A9'; ExpectedSeg2Hex: 'E0 B8 81 E0 B8 82 E0 B8 AF'; ExpectedSeg3Hex: 'CE B2 CE B2 CE B2'; ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 13; ExpectedSeg3ECI: 9;  ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 29; ExpectedWidth: 29; ExpectedContentSegCount: 0), // TODO: content byte-shape differs from C for this surrogate path
-    // C#6..9: DATA_MODE allows mixed segment ECIs in current Delphi path
+    (Index: 0; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: #$00B6; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: 0;                  ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0),
+    (Index: 1; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Seg1: #$00B6; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: 'C2 B6';   ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: 0;                  ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 2),
+    (Index: 2; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: #$70B9; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0),
+    (Index: 3; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Seg1: #$70B9; Seg1Hex: '';      Seg1ECI: 0;  Seg2: #$0416; Seg2Hex: '';      Seg2ECI: 7;  Seg3: ''; Seg3Hex: '';      Seg3ECI: -1; ExpectedSeg1Hex: 'E7 82 B9'; ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 7;  ExpectedSeg3ECI: -1; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 2),
+    (Index: 4; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Seg1: 'éé';    Seg1Hex: '';      Seg1ECI: 0;  Seg2: 'กขฯ';   Seg2Hex: '';      Seg2ECI: 0;  Seg3: 'βββ'; Seg3Hex: '';     Seg3ECI: 0;  ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 13; ExpectedSeg3ECI: 9;  ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0),
+    (Index: 5; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Seg1: 'éé';    Seg1Hex: '';      Seg1ECI: 0;  Seg2: 'กขฯ';   Seg2Hex: '';      Seg2ECI: 0;  Seg3: 'βββ'; Seg3Hex: '';     Seg3ECI: 0;  ExpectedSeg1Hex: 'C3 A9 C3 A9'; ExpectedSeg2Hex: 'E0 B8 81 E0 B8 82 E0 B8 AF'; ExpectedSeg3Hex: 'CE B2 CE B2 CE B2'; ExpectedSeg1ECI: 3;  ExpectedSeg2ECI: 13; ExpectedSeg3ECI: 9;  ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 3),
     (Index: 6; InputMode: DATA_MODE;    Option3: -1;                  OutputOptions: -1;                   Seg1: '¶';     Seg1Hex: '';      Seg1ECI: 26; Seg2: 'Ж';     Seg2Hex: '';      Seg2ECI: 0;  Seg3: ''; Seg3Hex: '93 5F'; Seg3ECI: 20; ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 3;  ExpectedSeg3ECI: 20; ExpectedRet: 0;                   ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0),
-    (Index: 7; InputMode: DATA_MODE;    Option3: -1;                  OutputOptions: -1;                   Seg1: '¶';     Seg1Hex: '';      Seg1ECI: 26; Seg2: 'Ж';     Seg2Hex: '';      Seg2ECI: 0;  Seg3: ''; Seg3Hex: '93 5F'; Seg3ECI: 20; ExpectedSeg1Hex: 'C2 B6';   ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '93 5F'; ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 3;  ExpectedSeg3ECI: 20; ExpectedRet: 0;                   ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0), // TODO: content source bytes differ in Delphi surrogate path
+    (Index: 7; InputMode: DATA_MODE;    Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Seg1: '¶';     Seg1Hex: '';      Seg1ECI: 26; Seg2: 'Ж';     Seg2Hex: '';      Seg2ECI: 0;  Seg3: ''; Seg3Hex: '93 5F'; Seg3ECI: 20; ExpectedSeg1Hex: 'C2 B6';   ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '93 5F'; ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 3;  ExpectedSeg3ECI: 20; ExpectedRet: 0;                   ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 3),
     (Index: 8; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Seg1: '¶';     Seg1Hex: '';      Seg1ECI: 26; Seg2: 'Ж';     Seg2Hex: '';      Seg2ECI: 0;  Seg3: ''; Seg3Hex: '93 5F'; Seg3ECI: 20; ExpectedSeg1Hex: '';        ExpectedSeg2Hex: '';      ExpectedSeg3Hex: '';      ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 3;  ExpectedSeg3ECI: 20; ExpectedRet: 0;                   ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0),
-    (Index: 9; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; OutputOptions: -1;                   Seg1: '¶';     Seg1Hex: '';      Seg1ECI: 26; Seg2: 'Ж';     Seg2Hex: '';      Seg2ECI: 0;  Seg3: ''; Seg3Hex: '93 5F'; Seg3ECI: 20; ExpectedSeg1Hex: 'C2 B6';   ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '93 5F'; ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 3;  ExpectedSeg3ECI: 20; ExpectedRet: 0;                   ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 0) // TODO: content source bytes differ in Delphi surrogate path
+    (Index: 9; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; OutputOptions: BARCODE_CONTENT_SEGS; Seg1: '¶';     Seg1Hex: '';      Seg1ECI: 26; Seg2: 'Ж';     Seg2Hex: '';      Seg2ECI: 0;  Seg3: ''; Seg3Hex: '93 5F'; Seg3ECI: 20; ExpectedSeg1Hex: 'C2 B6';   ExpectedSeg2Hex: 'D0 96'; ExpectedSeg3Hex: '93 5F'; ExpectedSeg1ECI: 26; ExpectedSeg2ECI: 3;  ExpectedSeg3ECI: 20; ExpectedRet: 0;                   ExpectedRows: 21; ExpectedWidth: 21; ExpectedContentSegCount: 3)
   );
 var
   i, j, ret, segCount, expectedSegECI: Integer;
@@ -2011,8 +2034,8 @@ const
   // Conservative subset from C test_upnqr_input.
   CItems: array[0..12] of TUPNQRInputItem = (
     (Index: 0; InputMode: UNICODE_MODE; Option3: -1; Data: #$0104#$0154;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ExpectedRet: ZINT_WARN_USES_ECI;      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 1; InputMode: UNICODE_MODE; Option3: -1; Data: #$00E9;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: ZINT_WARN_USES_ECI;      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 2; InputMode: UNICODE_MODE; Option3: -1; Data: #$03B2;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 1; InputMode: UNICODE_MODE; Option3: -1; Data: #$00E9;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: 0;                      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 2; InputMode: UNICODE_MODE; Option3: -1; Data: #$03B2;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: ZINT_WARN_USES_ECI;      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
     (Index: 10; InputMode: DATA_MODE; Option3: -1; Data: 'UPNQR';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
     (Index: 11; InputMode: DATA_MODE; Option3: -1; Data: 'SI56051008010486080';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
     (Index: 12; InputMode: DATA_MODE; Option3: -1; Data: 'RF45SBO2010';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
@@ -2083,7 +2106,7 @@ type
 const
   // Temporary surrogate from C test_upnqr_rt without content_segs checks.
   CItems: array[0..4] of TUPNQRRTItem = (
-    (Index: 0; InputMode: UNICODE_MODE; Data: #$00E9; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 0; InputMode: UNICODE_MODE; Data: #$00E9; ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77),
     (Index: 2; InputMode: UNICODE_MODE; Data: #$0154; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedRows: 77; ExpectedWidth: 77),
     (Index: 4; InputMode: DATA_MODE;    Data: #$00C0; ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77),
     (Index: 5; InputMode: DATA_MODE;    Data: #$00A1; ExpectedRet: 0;                   ExpectedRows: 77; ExpectedWidth: 77),

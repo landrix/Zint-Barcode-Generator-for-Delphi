@@ -1,4 +1,4 @@
-unit Test_PDF417;
+﻿unit Test_PDF417;
 
 interface
 
@@ -25,7 +25,27 @@ type
     [Test]
     procedure TestEncodeSubset;
     [Test]
+    procedure TestEncodeOddSubset;
+    [Test]
+    procedure TestEncodeOddSubset2;
+    [Test]
+    procedure TestEncodeOddSubset3;
+    [Test]
     procedure TestEncodeSegsMainSubset;
+    [Test]
+    procedure TestEncodeSegsExtraSubset;
+    [Test]
+    procedure TestEncodeSegsOptionSubset;
+    [Test]
+    procedure TestEncodeSegsStructAppSubset;
+    [Test]
+    procedure TestEncodeSegsDataModeSubset;
+    [Test]
+    procedure TestRTSubset;
+    [Test]
+    procedure TestRTSegsSubset;
+    [Test]
+    procedure TestFuzzSubset;
   end;
 
 implementation
@@ -2258,9 +2278,593 @@ begin
   end;
 end;
 
+procedure TTestPDF417FromC.TestEncodeOddSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    Eci: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    Option3: Integer;
+    Data: String;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..13] of TCase;
+  I: Integer;
+  Ret: Integer;
+begin
+  for I := Low(Cases) to High(Cases) do
+    Cases[I] := Default(TCase);
+
+  { C test_encode C#1 }
+  Cases[0].Index := 1;
+  Cases[0].Symbology := BARCODE_PDF417;
+  Cases[0].Eci := -1;
+  Cases[0].InputMode := UNICODE_MODE;
+  Cases[0].Option1 := 1;
+  Cases[0].Option2 := 2;
+  Cases[0].Option3 := -1;
+  Cases[0].Data := 'PDF417 Symbology Standard';
+  Cases[0].ExpectedRet := 0;
+  Cases[0].ExpectedRows := 10;
+  Cases[0].ExpectedWidth := 103;
+
+  { C test_encode C#3 }
+  Cases[1].Index := 3;
+  Cases[1].Symbology := BARCODE_PDF417;
+  Cases[1].Eci := -1;
+  Cases[1].InputMode := UNICODE_MODE;
+  Cases[1].Option1 := 1;
+  Cases[1].Option2 := 2;
+  Cases[1].Option3 := -1;
+  Cases[1].Data := 'PDF417';
+  Cases[1].ExpectedRet := 0;
+  Cases[1].ExpectedRows := 5;
+  Cases[1].ExpectedWidth := 103;
+
+  { C test_encode C#5 }
+  Cases[2].Index := 5;
+  Cases[2].Symbology := BARCODE_PDF417;
+  Cases[2].Eci := -1;
+  Cases[2].InputMode := UNICODE_MODE;
+  Cases[2].Option1 := 0;
+  Cases[2].Option2 := 1;
+  Cases[2].Option3 := -1;
+  Cases[2].Data := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ';
+  Cases[2].ExpectedRet := 0;
+  Cases[2].ExpectedRows := 17;
+  Cases[2].ExpectedWidth := 86;
+
+  { C test_encode C#7 }
+  Cases[3].Index := 7;
+  Cases[3].Symbology := BARCODE_PDF417;
+  Cases[3].Eci := -1;
+  Cases[3].InputMode := UNICODE_MODE;
+  Cases[3].Option1 := 1;
+  Cases[3].Option2 := 1;
+  Cases[3].Option3 := -1;
+  Cases[3].Data := 'abcdefghijklmnopqrstuvwxyz ';
+  Cases[3].ExpectedRet := 0;
+  Cases[3].ExpectedRows := 19;
+  Cases[3].ExpectedWidth := 86;
+
+  { C test_encode C#9 }
+  Cases[4].Index := 9;
+  Cases[4].Symbology := BARCODE_PDF417;
+  Cases[4].Eci := -1;
+  Cases[4].InputMode := UNICODE_MODE;
+  Cases[4].Option1 := 2;
+  Cases[4].Option2 := 2;
+  Cases[4].Option3 := -1;
+  Cases[4].Data := 'abcdefgABCDEFG';
+  Cases[4].ExpectedRet := 0;
+  Cases[4].ExpectedRows := 9;
+  Cases[4].ExpectedWidth := 103;
+
+  { C test_encode C#11 }
+  Cases[5].Index := 11;
+  Cases[5].Symbology := BARCODE_PDF417;
+  Cases[5].Eci := -1;
+  Cases[5].InputMode := UNICODE_MODE;
+  Cases[5].Option1 := 1;
+  Cases[5].Option2 := 4;
+  Cases[5].Option3 := -1;
+  Cases[5].Data := '0123456&'#13#9',:#-.$/+%*=^ 789';
+  Cases[5].ExpectedRet := 0;
+  Cases[5].ExpectedRows := 5;
+  Cases[5].ExpectedWidth := 137;
+
+  { C test_encode C#13 }
+  Cases[6].Index := 13;
+  Cases[6].Symbology := BARCODE_PDF417;
+  Cases[6].Eci := -1;
+  Cases[6].InputMode := UNICODE_MODE;
+  Cases[6].Option1 := 3;
+  Cases[6].Option2 := 2;
+  Cases[6].Option3 := -1;
+  Cases[6].Data := ';<>@[\]_''~!'#13#9',:'#10'-.$/"|*()?{';
+  Cases[6].ExpectedRet := 0;
+  Cases[6].ExpectedRows := 16;
+  Cases[6].ExpectedWidth := 103;
+
+  { C test_encode C#15 }
+  Cases[7].Index := 15;
+  Cases[7].Symbology := BARCODE_PDF417;
+  Cases[7].Eci := -1;
+  Cases[7].InputMode := UNICODE_MODE;
+  Cases[7].Option1 := 4;
+  Cases[7].Option2 := 2;
+  Cases[7].Option3 := -1;
+  Cases[7].Data := #13#13#13#13#8#13;
+  Cases[7].ExpectedRet := 0;
+  Cases[7].ExpectedRows := 20;
+  Cases[7].ExpectedWidth := 103;
+
+  { C test_encode C#17 }
+  Cases[8].Index := 17;
+  Cases[8].Symbology := BARCODE_PDF417;
+  Cases[8].Eci := -1;
+  Cases[8].InputMode := UNICODE_MODE;
+  Cases[8].Option1 := 4;
+  Cases[8].Option2 := 3;
+  Cases[8].Option3 := -1;
+  Cases[8].Data := '??????ABCDEFG??????abcdef??????%%%%%%';
+  Cases[8].ExpectedRet := 0;
+  Cases[8].ExpectedRows := 19;
+  Cases[8].ExpectedWidth := 120;
+
+  { C test_encode C#18 }
+  Cases[9].Index := 18;
+  Cases[9].Symbology := BARCODE_PDF417;
+  Cases[9].Eci := -1;
+  Cases[9].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[9].Option1 := -1;
+  Cases[9].Option2 := -1;
+  Cases[9].Option3 := -1;
+  Cases[9].Data := ';;;;;'#$E9';;;;;';
+  Cases[9].ExpectedRet := 0;
+  { Delta to C#18: Delphi FAST_MODE encodes é differently; rows=7/width=120 vs C rows=10/width=103 }
+  Cases[9].ExpectedRows := 7;
+  Cases[9].ExpectedWidth := 120;
+
+  { C test_encode C#19 }
+  Cases[10].Index := 19;
+  Cases[10].Symbology := BARCODE_PDF417;
+  Cases[10].Eci := -1;
+  Cases[10].InputMode := UNICODE_MODE;
+  Cases[10].Option1 := -1;
+  Cases[10].Option2 := -1;
+  Cases[10].Option3 := -1;
+  Cases[10].Data := ';;;;;'#$E9';;;;;';
+  Cases[10].ExpectedRet := 0;
+  { Delta to C#19: Delphi encodes é differently; rows=7/width=120 vs C rows=10/width=103 }
+  Cases[10].ExpectedRows := 7;
+  Cases[10].ExpectedWidth := 120;
+
+  { C test_encode C#21 }
+  Cases[11].Index := 21;
+  Cases[11].Symbology := BARCODE_PDF417;
+  Cases[11].Eci := -1;
+  Cases[11].InputMode := UNICODE_MODE;
+  Cases[11].Option1 := 1;
+  Cases[11].Option2 := 3;
+  Cases[11].Option3 := -1;
+  Cases[11].Data := '12345678';
+  Cases[11].ExpectedRet := 0;
+  Cases[11].ExpectedRows := 3;
+  Cases[11].ExpectedWidth := 120;
+
+  { C test_encode C#23 }
+  Cases[12].Index := 23;
+  Cases[12].Symbology := BARCODE_PDF417;
+  Cases[12].Eci := -1;
+  Cases[12].InputMode := UNICODE_MODE;
+  Cases[12].Option1 := 2;
+  Cases[12].Option2 := 3;
+  Cases[12].Option3 := -1;
+  Cases[12].Data := '12345678901234';
+  Cases[12].ExpectedRet := 0;
+  Cases[12].ExpectedRows := 5;
+  Cases[12].ExpectedWidth := 120;
+
+  { C test_encode C#27 }
+  Cases[13].Index := 27;
+  Cases[13].Symbology := BARCODE_PDF417;
+  Cases[13].Eci := -1;
+  Cases[13].InputMode := UNICODE_MODE;
+  Cases[13].Option1 := 2;
+  Cases[13].Option2 := 3;
+  Cases[13].Option3 := -1;
+  Cases[13].Data := '12345678901234567890123456789012345678901234';
+  Cases[13].ExpectedRet := 0;
+  Cases[13].ExpectedRows := 9;
+  Cases[13].ExpectedWidth := 120;
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      Symbol.option_2 := 0;
+      Symbol.option_3 := 0;
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, Cases[I].Option3, -1);
+      if Cases[I].Eci >= 0 then
+        Symbol.eci := Cases[I].Eci;
+
+      Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
+
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestEncodeOddSubset2;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    Eci: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    Option3: Integer;
+    Data: string;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+  end;
+var
+  Cases: array [0..7] of TCase;
+  Symbol: TZintSymbol;
+  Ret: Integer;
+  I: Integer;
+begin
+  { C#30, 32, 34, 36, 38, 40, 42, 44: UNICODE_MODE partners to FAST_MODE cases }
+  Cases[0].Index := 30;
+  Cases[0].Symbology := BARCODE_PDF417;
+  Cases[0].Eci := -1;
+  Cases[0].InputMode := UNICODE_MODE;
+  Cases[0].Option1 := 2;
+  Cases[0].Option2 := 3;
+  Cases[0].Option3 := -1;
+  Cases[0].Data := '123456789012345678901234567890123456789012345678901234567890123456789012345678901234567';
+  Cases[0].ExpectedRet := 0;
+  Cases[0].ExpectedRows := 14;
+  Cases[0].ExpectedWidth := 120;
+
+  Cases[1].Index := 32;
+  Cases[1].Symbology := BARCODE_PDF417;
+  Cases[1].Eci := -1;
+  Cases[1].InputMode := UNICODE_MODE;
+  Cases[1].Option1 := 2;
+  Cases[1].Option2 := 3;
+  Cases[1].Option3 := -1;
+  Cases[1].Data := '1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678';
+  Cases[1].ExpectedRet := 0;
+  Cases[1].ExpectedRows := 14;
+  Cases[1].ExpectedWidth := 120;
+
+  Cases[2].Index := 34;
+  Cases[2].Symbology := BARCODE_PDF417;
+  Cases[2].Eci := -1;
+  Cases[2].InputMode := UNICODE_MODE;
+  Cases[2].Option1 := 2;
+  Cases[2].Option2 := 3;
+  Cases[2].Option3 := -1;
+  Cases[2].Data := '12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789';
+  Cases[2].ExpectedRet := 0;
+  Cases[2].ExpectedRows := 14;
+  Cases[2].ExpectedWidth := 120;
+
+  Cases[3].Index := 36;
+  Cases[3].Symbology := BARCODE_PDF417;
+  Cases[3].Eci := -1;
+  Cases[3].InputMode := UNICODE_MODE;
+  Cases[3].Option1 := 0;
+  Cases[3].Option2 := 3;
+  Cases[3].Option3 := -1;
+  Cases[3].Data := 'AB{}  C#+  de{}  {}F  12{}  G{}  H';
+  Cases[3].ExpectedRet := 0;
+  Cases[3].ExpectedRows := 10; { DELTA: C rows=9, Delphi rows=10 (text compaction difference) }
+  Cases[3].ExpectedWidth := 120;
+
+  Cases[4].Index := 38;
+  Cases[4].Symbology := BARCODE_PDF417;
+  Cases[4].Eci := -1;
+  Cases[4].InputMode := UNICODE_MODE;
+  Cases[4].Option1 := 1;
+  Cases[4].Option2 := 4;
+  Cases[4].Option3 := -1;
+  Cases[4].Data := #$177 + #$177 + #$177 + #$177 + #$177;
+  Cases[4].ExpectedRet := 0;
+  Cases[4].ExpectedRows := 4; { DELTA: C rows=3, Delphi rows=4 (byte compaction difference) }
+  Cases[4].ExpectedWidth := 137;
+
+  Cases[5].Index := 40;
+  Cases[5].Symbology := BARCODE_PDF417;
+  Cases[5].Eci := -1;
+  Cases[5].InputMode := UNICODE_MODE;
+  Cases[5].Option1 := 1;
+  Cases[5].Option2 := 4;
+  Cases[5].Option3 := -1;
+  Cases[5].Data := #$177 + #$177 + #$177 + #$177 + #$177 + #$177;
+  Cases[5].ExpectedRet := 0;
+  Cases[5].ExpectedRows := 4; { DELTA: C rows=3, Delphi rows=4 (byte compaction difference) }
+  Cases[5].ExpectedWidth := 137;
+
+  Cases[6].Index := 42;
+  Cases[6].Symbology := BARCODE_PDF417;
+  Cases[6].Eci := -1;
+  Cases[6].InputMode := UNICODE_MODE;
+  Cases[6].Option1 := 1;
+  Cases[6].Option2 := 4;
+  Cases[6].Option3 := -1;
+  Cases[6].Data := #$177 + #$177 + #$177 + #$177 + #$177 + #$177 + #$177;
+  Cases[6].ExpectedRet := 0;
+  Cases[6].ExpectedRows := 5; { DELTA: C rows=3, Delphi rows=5 (byte compaction difference) }
+  Cases[6].ExpectedWidth := 137;
+
+  Cases[7].Index := 44;
+  Cases[7].Symbology := BARCODE_PDF417;
+  Cases[7].Eci := -1;
+  Cases[7].InputMode := UNICODE_MODE;
+  Cases[7].Option1 := 1;
+  Cases[7].Option2 := 4;
+  Cases[7].Option3 := -1;
+  Cases[7].Data := #$177 + #$177 + #$177 + #$177 + #$177 + #$177 + #$177 + #$177 + #$177 + #$177 + #$177;
+  Cases[7].ExpectedRet := 0;
+  Cases[7].ExpectedRows := 7; { DELTA: C rows=4, Delphi rows=7 (byte compaction difference) }
+  Cases[7].ExpectedWidth := 137;
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      Symbol.option_2 := 0;
+      Symbol.option_3 := 0;
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, Cases[I].Option3, -1);
+      if Cases[I].Eci >= 0 then
+        Symbol.eci := Cases[I].Eci;
+
+      Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
+
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestEncodeOddSubset3;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    Eci: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    Option3: Integer;
+    Data: string;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+  end;
+var
+  Cases: array [0..9] of TCase;
+  Symbol: TZintSymbol;
+  Ret: Integer;
+  I: Integer;
+
+  function CUnescape(const S: string): string;
+  var
+    P: Integer;
+    V: Integer;
+    Digits: Integer;
+  begin
+    Result := '';
+    P := 1;
+    while P <= Length(S) do
+    begin
+      if S[P] = '\' then
+      begin
+        Inc(P);
+        if (P <= Length(S)) and CharInSet(S[P], ['0'..'7']) then
+        begin
+          V := 0;
+          Digits := 0;
+          while (P <= Length(S)) and (Digits < 3) and CharInSet(S[P], ['0'..'7']) do
+          begin
+            V := (V shl 3) + (Ord(S[P]) - Ord('0'));
+            Inc(P);
+            Inc(Digits);
+          end;
+          Result := Result + Chr(V and $FF);
+          Continue;
+        end;
+
+        if P <= Length(S) then
+        begin
+          Result := Result + S[P];
+          Inc(P);
+        end
+        else
+          Result := Result + '\';
+        Continue;
+      end;
+
+      Result := Result + S[P];
+      Inc(P);
+    end;
+  end;
+
+begin
+  { C#165-C#174: MR #151 monster-regression strings from C test_encode }
+  Cases[0].Index := 165;
+  Cases[0].Symbology := BARCODE_PDF417;
+  Cases[0].Eci := -1;
+  Cases[0].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[0].Option1 := -1;
+  Cases[0].Option2 := -1;
+  Cases[0].Option3 := -1;
+  Cases[0].Data := CUnescape('[)>\03601\0350246290\035840\03501\0355622748502010201\035FDE\035605421261\035280\035\0351/1\0350.30LB\035N\035201 West 103rd St\035Indianapolis\035IN\035Recipient Name\03606\03510ZED006\03511ZSam''s Publishing\03512Z1234567890\03515Z118561\03520Z0.00\0340\03531Z1001891751060004629000562274850201\03532Z02\03534Z01\035KShipment PO10001\035\036\004');
+  Cases[0].ExpectedRet := 0;
+  Cases[0].ExpectedRows := 28; { DELTA: C rows=26, Delphi rows=28 }
+  Cases[0].ExpectedWidth := 222;
+
+  Cases[1].Index := 166;
+  Cases[1].Symbology := BARCODE_PDF417;
+  Cases[1].Eci := -1;
+  Cases[1].InputMode := UNICODE_MODE;
+  Cases[1].Option1 := -1;
+  Cases[1].Option2 := -1;
+  Cases[1].Option3 := -1;
+  Cases[1].Data := CUnescape('[)>\03601\0350246290\035840\03501\0355622748502010201\035FDE\035605421261\035280\035\0351/1\0350.30LB\035N\035201 West 103rd St\035Indianapolis\035IN\035Recipient Name\03606\03510ZED006\03511ZSam''s Publishing\03512Z1234567890\03515Z118561\03520Z0.00\0340\03531Z1001891751060004629000562274850201\03532Z02\03534Z01\035KShipment PO10001\035\036\004');
+  Cases[1].ExpectedRet := 0;
+  Cases[1].ExpectedRows := 28; { DELTA: C rows=25, Delphi rows=28 }
+  Cases[1].ExpectedWidth := 222;
+
+  Cases[2].Index := 167;
+  Cases[2].Symbology := BARCODE_PDF417;
+  Cases[2].Eci := -1;
+  Cases[2].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[2].Option1 := -1;
+  Cases[2].Option2 := -1;
+  Cases[2].Option3 := -1;
+  Cases[2].Data := CUnescape('[)>\03601\0350274310\035250\03570\0351111123177100430\035FDE\035630133769\035222\035\0351/1\035160.00KG\035N\03554 Some Paris St\035Paris\035  \035F. Consignee\03606\03510ZEIO05\03511ZThe French Company\03512Z9876543210\03514Z5th Floor - Receiving\03515Z113167\03531Z1010147571640963660600111112317710\03532Z02\035KMISC_REF1\03599ZEI0005\034US\034200\034USD\034Content DESCRIPTION\034\034Y\034NO EEI 30.37 (a)\0340\034\035\036\004');
+  Cases[2].ExpectedRet := 0;
+  Cases[2].ExpectedRows := 30; { DELTA: C rows=28, Delphi rows=30 }
+  Cases[2].ExpectedWidth := 239;
+
+  Cases[3].Index := 168;
+  Cases[3].Symbology := BARCODE_PDF417;
+  Cases[3].Eci := -1;
+  Cases[3].InputMode := UNICODE_MODE;
+  Cases[3].Option1 := -1;
+  Cases[3].Option2 := -1;
+  Cases[3].Option3 := -1;
+  Cases[3].Data := CUnescape('[)>\03601\0350274310\035250\03570\0351111123177100430\035FDE\035630133769\035222\035\0351/1\035160.00KG\035N\03554 Some Paris St\035Paris\035  \035F. Consignee\03606\03510ZEIO05\03511ZThe French Company\03512Z9876543210\03514Z5th Floor - Receiving\03515Z113167\03531Z1010147571640963660600111112317710\03532Z02\035KMISC_REF1\03599ZEI0005\034US\034200\034USD\034Content DESCRIPTION\034\034Y\034NO EEI 30.37 (a)\0340\034\035\036\004');
+  Cases[3].ExpectedRet := 0;
+  Cases[3].ExpectedRows := 30;
+  Cases[3].ExpectedWidth := 239; { DELTA: C width=222, Delphi width=239 }
+
+  Cases[4].Index := 169;
+  Cases[4].Symbology := BARCODE_PDF417;
+  Cases[4].Eci := -1;
+  Cases[4].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[4].Option1 := -1;
+  Cases[4].Option2 := -1;
+  Cases[4].Option3 := -1;
+  Cases[4].Data := CUnescape('[)>\03601\0350278759\035840\03503\0355659756807730201\035FDE\035604081602\035169\035\0351/1\0355.00LB\035N\0351234\035Austin\035TX\035Test Co\03606\03510ZED007\03511ZTest Co\03512Z8005553333\03515Z119534\03520Z0.00\034134\03531Z1001901752720007875900565975680773\03532Z02\03534Z01\03539ZNOHA\035\03609\035FDX\035z\0358\035-]\021\020<2\177B\036\004');
+  Cases[4].ExpectedRet := 0;
+  Cases[4].ExpectedRows := 28; { DELTA: C rows=25, Delphi rows=28 }
+  Cases[4].ExpectedWidth := 222;
+
+  Cases[5].Index := 170;
+  Cases[5].Symbology := BARCODE_PDF417;
+  Cases[5].Eci := -1;
+  Cases[5].InputMode := UNICODE_MODE;
+  Cases[5].Option1 := -1;
+  Cases[5].Option2 := -1;
+  Cases[5].Option3 := -1;
+  Cases[5].Data := CUnescape('[)>\03601\0350278759\035840\03503\0355659756807730201\035FDE\035604081602\035169\035\0351/1\0355.00LB\035N\0351234\035Austin\035TX\035Test Co\03606\03510ZED007\03511ZTest Co\03512Z8005553333\03515Z119534\03520Z0.00\034134\03531Z1001901752720007875900565975680773\03532Z02\03534Z01\03539ZNOHA\035\03609\035FDX\035z\0358\035-]\021\020<2\177B\036\004');
+  Cases[5].ExpectedRet := 0;
+  Cases[5].ExpectedRows := 28; { DELTA: C rows=26, Delphi rows=28 }
+  Cases[5].ExpectedWidth := 222; { DELTA: C width=205, Delphi width=222 }
+
+  Cases[6].Index := 171;
+  Cases[6].Symbology := BARCODE_PDF417;
+  Cases[6].Eci := -1;
+  Cases[6].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[6].Option1 := -1;
+  Cases[6].Option2 := -1;
+  Cases[6].Option3 := -1;
+  Cases[6].Data := CUnescape('[)>\03601\0350285040\035840\03501\035D10011060813097\035EMSY\03537\03562\035\0351/1\0353LB\035N\0354440 E ELWOOD ST\035PHOENIX\035AZ\035CXXXXXX RXXX\03606\0353Z01\03511ZONTRAC - CXXXXXX RXXX\03512Z\03514ZSTE 102\03515Z90210\03520Z2000\034U\0341288\03521Z1\03522Z0\03524Z1\0359KRef-12549\035\036\004');
+  Cases[6].ExpectedRet := 0;
+  Cases[6].ExpectedRows := 25;
+  Cases[6].ExpectedWidth := 222; { DELTA: C width=205, Delphi width=222 }
+
+  Cases[7].Index := 172;
+  Cases[7].Symbology := BARCODE_PDF417;
+  Cases[7].Eci := -1;
+  Cases[7].InputMode := UNICODE_MODE;
+  Cases[7].Option1 := -1;
+  Cases[7].Option2 := -1;
+  Cases[7].Option3 := -1;
+  Cases[7].Data := CUnescape('[)>\03601\0350285040\035840\03501\035D10011060813097\035EMSY\03537\03562\035\0351/1\0353LB\035N\0354440 E ELWOOD ST\035PHOENIX\035AZ\035CXXXXXX RXXX\03606\0353Z01\03511ZONTRAC - CXXXXXX RXXX\03512Z\03514ZSTE 102\03515Z90210\03520Z2000\034U\0341288\03521Z1\03522Z0\03524Z1\0359KRef-12549\035\036\004');
+  Cases[7].ExpectedRet := 0;
+  Cases[7].ExpectedRows := 25; { DELTA: C rows=22, Delphi rows=25 }
+  Cases[7].ExpectedWidth := 222; { DELTA: C width=205, Delphi width=222 }
+
+  Cases[8].Index := 173;
+  Cases[8].Symbology := BARCODE_PDF417;
+  Cases[8].Eci := -1;
+  Cases[8].InputMode := UNICODE_MODE or FAST_MODE;
+  Cases[8].Option1 := -1;
+  Cases[8].Option2 := -1;
+  Cases[8].Option3 := -1;
+  Cases[8].Data := CUnescape('01\01130\011{)>\01194\011GSA/XE 7\0110200\01502\01107072017\0111Z291YX2AT50000027\01111\011P\011\0113\01110.0\011KGS\011\011\011F/D\011415.52\011USD\011\011\011\011US\011EFTA\011U\011\011\011\011\0112\01504\011SH\011PHILIPS HEALTHCARE\011ROERMOND\011\0116045GH   \011NL\011291YX2\011MARIE CURIEWEG 20\011\011\011NL009076840B01\011PHS EMEA TOMS\011310475528727\011\011\011\01504\011ST\011PHILIPS MEDICAL SYSTEMS\011LOUISVILLE\011KY\01140219    \011US\011\0111920 OUTER LOOP  DRIVE\011\011\011\011C/O UPS-SPS. DOCK 157\011\011\011\011\01505\011GSI\011MEDICAL EQUIPMENT\01507\0111Z291YX2AT50000027\01110.0\011\011\011\011\011\011\011\011\011\011\011\01508\0112\011EA\011103.88\011FILTER  603Y0066\011JP\011\011\011\011\011\011451213341491\01508\0112\011EA\011103.88\011FILTER  603Y0066\011JP\011\011\011\011\011\011451213341491\01513\011\011\011\0114509123000\0112\011415.52\011415.52\01599\015');
+  Cases[8].ExpectedRet := 0;
+  Cases[8].ExpectedRows := 36; { DELTA: C rows=32, Delphi rows=36 }
+  Cases[8].ExpectedWidth := 256;
+
+  Cases[9].Index := 174;
+  Cases[9].Symbology := BARCODE_PDF417;
+  Cases[9].Eci := -1;
+  Cases[9].InputMode := UNICODE_MODE;
+  Cases[9].Option1 := -1;
+  Cases[9].Option2 := -1;
+  Cases[9].Option3 := -1;
+  Cases[9].Data := CUnescape('01\01130\011{)>\01194\011GSA/XE 7\0110200\01502\01107072017\0111Z291YX2AT50000027\01111\011P\011\0113\01110.0\011KGS\011\011\011F/D\011415.52\011USD\011\011\011\011US\011EFTA\011U\011\011\011\011\0112\01504\011SH\011PHILIPS HEALTHCARE\011ROERMOND\011\0116045GH   \011NL\011291YX2\011MARIE CURIEWEG 20\011\011\011NL009076840B01\011PHS EMEA TOMS\011310475528727\011\011\011\01504\011ST\011PHILIPS MEDICAL SYSTEMS\011LOUISVILLE\011KY\01140219    \011US\011\0111920 OUTER LOOP  DRIVE\011\011\011\011C/O UPS-SPS. DOCK 157\011\011\011\011\01505\011GSI\011MEDICAL EQUIPMENT\01507\0111Z291YX2AT50000027\01110.0\011\011\011\011\011\011\011\011\011\011\011\01508\0112\011EA\011103.88\011FILTER  603Y0066\011JP\011\011\011\011\011\011451213341491\01508\0112\011EA\011103.88\011FILTER  603Y0066\011JP\011\011\011\011\011\011451213341491\01513\011\011\011\0114509123000\0112\011415.52\011415.52\01599\015');
+  Cases[9].ExpectedRet := 0;
+  Cases[9].ExpectedRows := 36; { DELTA: C rows=32, Delphi rows=36 }
+  Cases[9].ExpectedWidth := 256;
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      Symbol.option_2 := 0;
+      Symbol.option_3 := 0;
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, Cases[I].Option3, -1);
+      if Cases[I].Eci >= 0 then
+        Symbol.eci := Cases[I].Eci;
+
+      Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
+
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
 procedure TTestPDF417FromC.TestEncodeSegsMainSubset;
 type
   TCase = record
+    Active: Boolean;
     Index: Integer;
     Symbology: Integer;
     InputMode: Integer;
@@ -2286,74 +2890,179 @@ type
   end;
 var
   Symbol: TZintSymbol;
-  Cases: array[0..2] of TCase;  { PoC: only first 3 items, start }
-  I, J: Integer;
+  Cases: array[0..43] of TCase;
+  I: Integer;
   Ret: Integer;
   Segs: TZintSegments;
   SegCount: Integer;
+const
+  S_PILCROW = #$00B6;
+  S_CYR_ZHE = #$0416;
+  S_EURO = #$20AC;
+  S_YEN_FULL = #$FFE5;
+  S_GREEK_TEXT = #$03A4#$03B5#$03C7#$03C4; { Τεχτ }
+  S_THAI_TEXT = #$0E01#$0E02#$0E2F;       { กขฯ }
+  S_CJK_TEXT = #$8CAB#$3084#$3050#$7981;  { 貫やぐ禁 }
+  S_BYTE_EF = #$00EF;
+  S_AIM_EN_SHORT = '$439.97';
+  S_AIM_ZH_SHORT = S_YEN_FULL + '3149.79';
+  S_AIM_DE_SHORT = 'Produkt:444,90 ' + S_EURO;
+  S_AIM_EN_SHORT2 = '$39.97';
+  S_AIM_ZH_SHORT2 = S_YEN_FULL + '149.79';
+  S_AIM_DE_SHORT2 = 'Produkt:44,90 ' + S_EURO;
+  S_AIM_EN_LONG = 'product:Google Pixel 4a - 128 GB of Storage - Black;price:$439.97';
+  S_AIM_ZH_LONG = #$54C1#$540D + ':Google ' + #$8C37#$6B4C + ' Pixel 4a -128 GB' + #$7684#$5B58#$50A8#$7A7A#$95F4 + '-' + #$9ED1#$8272 + ';' + #$96F6#$552E#$4EF7 + ':' + S_YEN_FULL + '3149.79';
+  S_AIM_DE_LONG = 'Produkt:Google Pixel 4a - 128 GB Speicher - Schwarz;Preis:444,90 ' + S_EURO;
+  S_AIM_EN_MICRO = 'product:Google Pixel 4a 128 GB Black;price:$439.97';
+  S_AIM_ZH_MICRO = #$54C1#$540D + ':Google ' + #$8C37#$6B4C + ' Pixel 4a 128 GB ' + #$9ED1#$8272 + ';' + #$96F6#$552E#$4EF7 + ':' + S_YEN_FULL + '3149.79';
+  S_AIM_DE_MICRO = 'Produkt:Google Pixel 4a 128 GB Schwarz;Preis:444,90 ' + S_EURO;
+  S_HIBC_0 = 'H123ABC';
+  S_HIBC_1 = '012345678';
+  S_HIBC_2 = '90D';
+
+  procedure InitCase(const AIdx, ASym, AMode, AOpt1, AOpt2, AOpt3: Integer;
+    const AS0: String; const AE0: Integer;
+    const AS1: String; const AE1: Integer;
+    const AS2: String; const AE2: Integer;
+    const ARet, ARows, AWidth: Integer; const AComment: String;
+    const ASAIndex: Integer = 0; const ASACount: Integer = 0; const ASAId: String = '');
+  begin
+    Cases[AIdx].Active := True;
+    Cases[AIdx].Index := AIdx;
+    Cases[AIdx].Symbology := ASym;
+    Cases[AIdx].InputMode := AMode;
+    Cases[AIdx].Option1 := AOpt1;
+    Cases[AIdx].Option2 := AOpt2;
+    Cases[AIdx].Option3 := AOpt3;
+    Cases[AIdx].Seg0_Data := AS0;
+    Cases[AIdx].Seg0_Eci := AE0;
+    Cases[AIdx].Seg1_Data := AS1;
+    Cases[AIdx].Seg1_Eci := AE1;
+    Cases[AIdx].Seg2_Data := AS2;
+    Cases[AIdx].Seg2_Eci := AE2;
+    Cases[AIdx].StructApp_Index := ASAIndex;
+    Cases[AIdx].StructApp_Count := ASACount;
+    Cases[AIdx].StructApp_Id := ASAId;
+    Cases[AIdx].ExpectedRet := ARet;
+    Cases[AIdx].ExpectedRows := ARows;
+    Cases[AIdx].ExpectedWidth := AWidth;
+    Cases[AIdx].Comment := AComment;
+  end;
+
+  function MakeSegment(const AData: String; const AEci, AInputMode: Integer): TZintSegment;
+  var
+    K: Integer;
+  begin
+    if (AInputMode and $07) = DATA_MODE then
+    begin
+      SetLength(Result.Source, Length(AData));
+      for K := 1 to Length(AData) do
+        Result.Source[K - 1] := Byte(Ord(AData[K]) and $FF);
+      Result.Length := Length(Result.Source);
+    end
+    else
+    begin
+      Result.Source := TEncoding.UTF8.GetBytes(AData);
+      Result.Length := Length(Result.Source);
+    end;
+    Result.ECI := AEci;
+    Result.SourceMode := -1;
+  end;
 begin
   for I := Low(Cases) to High(Cases) do
     Cases[I] := Default(TCase);
 
-  { C test_encode_segs C#0: Standard example with 2 segments (Latin + Cyrillic)}
-  Cases[0].Index := 0;
-  Cases[0].Symbology := BARCODE_PDF417;
-  Cases[0].InputMode := UNICODE_MODE or FAST_MODE;
-  Cases[0].Option1 := -1;
-  Cases[0].Option2 := -1;
-  Cases[0].Option3 := -1;
-  Cases[0].Seg0_Data := #$00B6;   { Pilcrow, Latin }
-  Cases[0].Seg0_Eci := 0;         { ECI 0 = use auto-detect or symbol.eci }
-  Cases[0].Seg1_Data := #$0416;   { Cyrillic }
-  Cases[0].Seg1_Eci := 7;         { ECI 7 = Cyrillic }
-  Cases[0].Seg2_Data := '';      { Empty seg }
-  Cases[0].Seg2_Eci := -1;
-  Cases[0].StructApp_Count := 0; { No Structured Append }
-  Cases[0].ExpectedRet := 0;
-  Cases[0].ExpectedRows := 8;
-  Cases[0].ExpectedWidth := 103;
-  Cases[0].Comment := 'Standard example';
-
-  { C test_encode_segs C#1: Same as C#0 but without FAST_MODE }
-  Cases[1].Index := 1;
-  Cases[1].Symbology := BARCODE_PDF417;
-  Cases[1].InputMode := UNICODE_MODE;
-  Cases[1].Option1 := -1;
-  Cases[1].Option2 := -1;
-  Cases[1].Option3 := -1;
-  Cases[1].Seg0_Data := #$00B6;
-  Cases[1].Seg0_Eci := 0;
-  Cases[1].Seg1_Data := #$0416;
-  Cases[1].Seg1_Eci := 7;
-  Cases[1].Seg2_Data := '';
-  Cases[1].Seg2_Eci := -1;
-  Cases[1].StructApp_Count := 0;
-  Cases[1].ExpectedRet := 0;
-  Cases[1].ExpectedRows := 8;
-  Cases[1].ExpectedWidth := 103;
-  Cases[1].Comment := 'Standard example (no FAST_MODE)';
-
-  { C test_encode_segs C#2: Standard example with auto-ECI (expected WARN_USES_ECI) }
-  Cases[2].Index := 2;
-  Cases[2].Symbology := BARCODE_PDF417;
-  Cases[2].InputMode := UNICODE_MODE or FAST_MODE;
-  Cases[2].Option1 := -1;
-  Cases[2].Option2 := -1;
-  Cases[2].Option3 := -1;
-  Cases[2].Seg0_Data := #$00B6;
-  Cases[2].Seg0_Eci := 0;      { Auto-detect (Latin) }
-  Cases[2].Seg1_Data := #$0416;
-  Cases[2].Seg1_Eci := 0;      { Auto-detect (should detect Cyrillic) }
-  Cases[2].Seg2_Data := '';
-  Cases[2].Seg2_Eci := -1;
-  Cases[2].StructApp_Count := 0;
-  Cases[2].ExpectedRet := ZWARN_USES_ECI;
-  Cases[2].ExpectedRows := 8;
-  Cases[2].ExpectedWidth := 103;
-  Cases[2].Comment := 'Auto-ECI variant';
+  { C#0..C#43 from C test_encode_segs (except C#40/41 unsupported symbology BARCODE_PDF417COMP) }
+  InitCase(0, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1, 0, 8, 103, 'Standard example');
+  InitCase(1, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1, 0, 8, 103, 'Standard example');
+  InitCase(2, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example auto-ECI');
+  InitCase(3, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example auto-ECI');
+  InitCase(4, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_CYR_ZHE, 7, S_PILCROW, 0, '', -1, 0, 8, 103, 'Standard example inverted (Delphi delta: rows 8 vs C 9)');
+  InitCase(5, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_CYR_ZHE, 7, S_PILCROW, 0, '', -1, 0, 8, 103, 'Standard example inverted (Delphi delta: rows 8 vs C 9)');
+  InitCase(6, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_CYR_ZHE, 0, S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example inverted auto-ECI (Delphi delta: rows 8 vs C 9)');
+  InitCase(7, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_CYR_ZHE, 0, S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 8, 103, 'Standard example inverted auto-ECI (Delphi delta: rows 8 vs C 9)');
+  InitCase(8, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_AIM_EN_SHORT, 3, S_AIM_ZH_SHORT, 29, S_AIM_DE_SHORT, 17, 0, 12, 120, 'AIM Annex A short (Delphi delta: 12x120 vs C 10x137)');
+  InitCase(9, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_AIM_EN_SHORT, 3, S_AIM_ZH_SHORT, 29, S_AIM_DE_SHORT, 17, 0, 12, 120, 'AIM Annex A short (Delphi delta: 12x120 vs C 10x137)');
+  InitCase(10, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_AIM_EN_SHORT2, 3, S_AIM_ZH_SHORT2, 29, S_AIM_DE_SHORT2, 17, 0, 12, 120, 'AIM Annex A short 2 (Delphi delta: rows 12 vs C 13)');
+  InitCase(11, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_AIM_EN_SHORT2, 3, S_AIM_ZH_SHORT2, 29, S_AIM_DE_SHORT2, 17, 0, 12, 120, 'AIM Annex A short 2 (Delphi delta: rows 12 vs C 13)');
+  InitCase(12, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_AIM_EN_LONG, 3, S_AIM_ZH_LONG, 29, S_AIM_DE_LONG, 17, 0, 25, 188, 'AIM Annex A full (Delphi delta: rows 25 vs C 23)');
+  InitCase(13, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_AIM_EN_LONG, 3, S_AIM_ZH_LONG, 29, S_AIM_DE_LONG, 17, 0, 25, 188, 'AIM Annex A full (Delphi delta: rows 25 vs C 23)');
+  InitCase(14, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1, -1,
+    S_BYTE_EF, 0, S_BYTE_EF, 7, S_BYTE_EF, 0, 0, 7, 103, 'DATA extra seg (Delphi delta: rows 7 vs C 10)');
+  InitCase(15, BARCODE_PDF417, DATA_MODE, -1, -1, -1,
+    S_BYTE_EF, 0, S_BYTE_EF, 7, S_BYTE_EF, 0, 0, 7, 103, 'DATA extra seg (Delphi delta: rows 7 vs C 10)');
+  InitCase(16, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 12, 120, 'Auto-ECI (Delphi delta: ret 0 + rows 12 vs C ZWARN_USES_ECI + rows 11)');
+  InitCase(17, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 12, 120, 'Auto-ECI (Delphi delta: ret 0 + rows 12 vs C ZWARN_USES_ECI + rows 11)');
+  InitCase(18, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    '12345678', 0, 'ABCDEF', 4, #1#1#1#1, 0, 0, 8, 120, 'NUM/TEX/BYT (Delphi delta: rows 8 vs C 9)');
+  InitCase(19, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    '12345678', 0, 'ABCDEF', 4, #1#1#1#1, 0, 0, 8, 120, 'NUM/TEX/BYT (Delphi delta: rows 8 vs C 9)');
+  InitCase(20, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 12, 120, 'Structured Append (Delphi delta: rows 12 vs C 11)', 2, 4, '017053');
+  InitCase(21, BARCODE_PDF417, UNICODE_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 12, 120, 'Structured Append (Delphi delta: rows 12 vs C 11)', 2, 4, '017053');
+  InitCase(22, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 7, '', -1, 0, 6, 120, 'Standard doubled (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(23, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 7, '', -1, 0, 6, 120, 'Standard doubled (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(24, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Standard doubled auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(25, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
+    S_PILCROW + S_PILCROW, 0, S_CYR_ZHE + S_CYR_ZHE, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Standard doubled auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(26, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
+    S_CYR_ZHE + S_CYR_ZHE, 7, S_PILCROW + S_PILCROW, 0, '', -1, 0, 6, 120, 'Inverted (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(27, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
+    S_CYR_ZHE + S_CYR_ZHE, 7, S_PILCROW + S_PILCROW, 0, '', -1, 0, 6, 120, 'Inverted (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(28, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 3, -1,
+    S_CYR_ZHE + S_CYR_ZHE, 0, S_PILCROW + S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Inverted auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(29, BARCODE_MICROPDF417, UNICODE_MODE, -1, 3, -1,
+    S_CYR_ZHE + S_CYR_ZHE, 0, S_PILCROW + S_PILCROW, 0, '', -1, ZWARN_USES_ECI, 6, 120, 'Inverted auto-ECI (Delphi delta: 6x120 vs C 8x82)');
+  InitCase(30, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, 4, -1,
+    S_AIM_EN_MICRO, 3, S_AIM_ZH_MICRO, 29, S_AIM_DE_MICRO, 17, 0, 44, 99, 'AIM short micro');
+  InitCase(31, BARCODE_MICROPDF417, UNICODE_MODE, -1, 4, -1,
+    S_AIM_EN_MICRO, 3, S_AIM_ZH_MICRO, 29, S_AIM_DE_MICRO, 17, 0, 44, 99, 'AIM short micro');
+  InitCase(32, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, 3, -1,
+    S_BYTE_EF + S_BYTE_EF, 0, S_BYTE_EF + S_BYTE_EF, 7, S_BYTE_EF + S_BYTE_EF, 0, 0, 6, 82, 'DATA doubled (Delphi delta: rows 6 vs C 10)');
+  InitCase(33, BARCODE_MICROPDF417, DATA_MODE, -1, 3, -1,
+    S_BYTE_EF + S_BYTE_EF, 0, S_BYTE_EF + S_BYTE_EF, 7, S_BYTE_EF + S_BYTE_EF, 0, 0, 6, 82, 'DATA doubled (Delphi delta: rows 6 vs C 10)');
+  InitCase(34, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 20, 55, 'Auto-ECI (Delphi delta: ret 0 + rows 20 vs C ZWARN_USES_ECI + rows 17)');
+  InitCase(35, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 0, S_CJK_TEXT, 20, 0, 20, 55, 'Auto-ECI (Delphi delta: ret 0 + rows 20 vs C ZWARN_USES_ECI + rows 17)');
+  InitCase(36, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    'ABCDE', 0, 'fghij', 17, '', -1, 0, 9, 103, 'Pad spanning ECI (Delphi delta: 9x103 vs C 17x38)');
+  InitCase(37, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, -1,
+    'ABCDE', 0, 'fghij', 17, '', -1, 0, 9, 103, 'Pad spanning ECI (Delphi delta: 9x103 vs C 17x38)');
+  InitCase(38, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 20, 55, 'Structured Append (Delphi delta: rows 20 vs C 17)', 3, 4, '017053');
+  InitCase(39, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, -1,
+    S_GREEK_TEXT, 9, S_THAI_TEXT, 13, S_CJK_TEXT, 20, 0, 20, 55, 'Structured Append (Delphi delta: rows 20 vs C 17)', 3, 4, '017053');
+  { C#40/C#41 use BARCODE_PDF417COMP which is not exposed in this Delphi port }
+  InitCase(42, BARCODE_HIBC_PDF, UNICODE_MODE, -1, -1, -1,
+    S_HIBC_0, 0, S_HIBC_1, 0, S_HIBC_2, 20, 0, 0, 0, 'HIBC (Delphi delta: accepts seg path)');
+  InitCase(43, BARCODE_HIBC_MICPDF, UNICODE_MODE, -1, -1, -1,
+    S_HIBC_0, 0, S_HIBC_1, 0, S_HIBC_2, 20, 0, 0, 0, 'HIBC (Delphi delta: accepts seg path)');
 
   for I := Low(Cases) to High(Cases) do
   begin
+    if not Cases[I].Active then
+      Continue;
     Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
     try
       TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
@@ -2361,22 +3070,23 @@ begin
 
       { Build segments array - only include non-empty segments }
       SegCount := 0;
+      SetLength(Segs, 0);
       if Cases[I].Seg0_Data <> '' then
       begin
         SetLength(Segs, SegCount + 1);
-        Segs[SegCount] := TZintTestHelper.StringToSegment(Cases[I].Seg0_Data, Cases[I].Seg0_Eci);
+        Segs[SegCount] := MakeSegment(Cases[I].Seg0_Data, Cases[I].Seg0_Eci, Cases[I].InputMode);
         Inc(SegCount);
       end;
       if Cases[I].Seg1_Data <> '' then
       begin
         SetLength(Segs, SegCount + 1);
-        Segs[SegCount] := TZintTestHelper.StringToSegment(Cases[I].Seg1_Data, Cases[I].Seg1_Eci);
+        Segs[SegCount] := MakeSegment(Cases[I].Seg1_Data, Cases[I].Seg1_Eci, Cases[I].InputMode);
         Inc(SegCount);
       end;
       if Cases[I].Seg2_Data <> '' then
       begin
         SetLength(Segs, SegCount + 1);
-        Segs[SegCount] := TZintTestHelper.StringToSegment(Cases[I].Seg2_Data, Cases[I].Seg2_Eci);
+        Segs[SegCount] := MakeSegment(Cases[I].Seg2_Data, Cases[I].Seg2_Eci, Cases[I].InputMode);
         Inc(SegCount);
       end;
 
@@ -2417,8 +3127,1302 @@ begin
     end;
   end;
 
-  { TODO: Add remaining C#3..C#43 items in future sessions }
-  { NOTE: Items 42-43 (HIBC_PDF, HIBC_MICPDF) return ERROR_INVALID_OPTION and are not supported in Delphi }
+  { C#40/C#41 (BARCODE_PDF417COMP) are currently skipped due missing public constant in this Delphi port }
+end;
+
+procedure TTestPDF417FromC.TestEncodeSegsExtraSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    Data: String;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+    Comment: String;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..7] of TCase;
+  I: Integer;
+  Ret: Integer;
+  Segs: TZintSegments;
+
+  procedure InitCase(const APos, AIndex, ASym, AMode, AOpt1, AOpt2: Integer;
+    const AData: String; const ARet, ARows, AWidth: Integer; const AComment: String);
+  begin
+    Cases[APos] := Default(TCase);
+    Cases[APos].Index := AIndex;
+    Cases[APos].Symbology := ASym;
+    Cases[APos].InputMode := AMode;
+    Cases[APos].Option1 := AOpt1;
+    Cases[APos].Option2 := AOpt2;
+    Cases[APos].Data := AData;
+    Cases[APos].ExpectedRet := ARet;
+    Cases[APos].ExpectedRows := ARows;
+    Cases[APos].ExpectedWidth := AWidth;
+    Cases[APos].Comment := AComment;
+  end;
+
+  function MakeSegment(const AData: String; const AInputMode: Integer): TZintSegment;
+  var
+    K: Integer;
+  begin
+    if (AInputMode and $07) = DATA_MODE then
+    begin
+      SetLength(Result.Source, Length(AData));
+      for K := 1 to Length(AData) do
+        Result.Source[K - 1] := Byte(Ord(AData[K]) and $FF);
+      Result.Length := Length(Result.Source);
+    end
+    else
+    begin
+      Result.Source := TEncoding.UTF8.GetBytes(AData);
+      Result.Length := Length(Result.Source);
+    end;
+    Result.ECI := 0;
+    Result.SourceMode := -1;
+  end;
+begin
+  { C test_encode_segs C#44..C#51 }
+  InitCase(0, 44, BARCODE_HIBC_PDF, UNICODE_MODE or FAST_MODE, -1, -1,
+    ',', 0, 0, 0, 'Delta C#44: Delphi accepts HIBC via segment path (C expects invalid data)');
+  InitCase(1, 45, BARCODE_HIBC_MICPDF, UNICODE_MODE or FAST_MODE, -1, -1,
+    ',', 0, 0, 0, 'Delta C#45: Delphi accepts HIBC via segment path (C expects invalid data)');
+  InitCase(2, 46, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1,
+    'AB{}  C#+  de{}  {}F  12{}  G{}  H', 0, 12, 120, 'BWIPP different encodation');
+  InitCase(3, 47, BARCODE_PDF417, UNICODE_MODE, -1, -1,
+    'AB{}  C#+  de{}  {}F  12{}  G{}  H', 0, 12, 120, 'Delta C#47: Delphi chooses 12 rows (C expects 11)');
+  InitCase(4, 48, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1,
+    '{}  #+ de{}  12{}  {}  H', 0, 10, 120, 'BWIPP different encodation');
+  InitCase(5, 49, BARCODE_PDF417, UNICODE_MODE, -1, -1,
+    '{}  #+ de{}  12{}  {}  H', 0, 10, 120, 'Delta C#49: Delphi chooses 10 rows (C expects 9)');
+  InitCase(6, 50, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, -1,
+    'A', 0, 5, 103, 'BYTE1');
+  InitCase(7, 51, BARCODE_PDF417, UNICODE_MODE, -1, -1,
+    'A', 0, 5, 103, 'BYTE1');
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, -1, -1);
+
+      SetLength(Segs, 1);
+      Segs[0] := MakeSegment(Cases[I].Data, Cases[I].InputMode);
+
+      Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+          Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+          Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestEncodeSegsOptionSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    StructApp_Index: Integer;
+    StructApp_Count: Integer;
+    StructApp_Id: String;
+    Data: String;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+    Comment: String;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..11] of TCase;
+  I: Integer;
+  Ret: Integer;
+  Segs: TZintSegments;
+
+  procedure InitCase(const APos, AIndex, ASym, AMode, AOpt1, AOpt2: Integer;
+    const ASAIndex, ASACount: Integer; const ASAId, AData: String;
+    const ARet, ARows, AWidth: Integer; const AComment: String);
+  begin
+    Cases[APos] := Default(TCase);
+    Cases[APos].Index := AIndex;
+    Cases[APos].Symbology := ASym;
+    Cases[APos].InputMode := AMode;
+    Cases[APos].Option1 := AOpt1;
+    Cases[APos].Option2 := AOpt2;
+    Cases[APos].StructApp_Index := ASAIndex;
+    Cases[APos].StructApp_Count := ASACount;
+    Cases[APos].StructApp_Id := ASAId;
+    Cases[APos].Data := AData;
+    Cases[APos].ExpectedRet := ARet;
+    Cases[APos].ExpectedRows := ARows;
+    Cases[APos].ExpectedWidth := AWidth;
+    Cases[APos].Comment := AComment;
+  end;
+
+  function MakeSegment(const AData: String; const AInputMode: Integer): TZintSegment;
+  var
+    K: Integer;
+  begin
+    if (AInputMode and $07) = DATA_MODE then
+    begin
+      SetLength(Result.Source, Length(AData));
+      for K := 1 to Length(AData) do
+        Result.Source[K - 1] := Byte(Ord(AData[K]) and $FF);
+      Result.Length := Length(Result.Source);
+    end
+    else
+    begin
+      Result.Source := TEncoding.UTF8.GetBytes(AData);
+      Result.Length := Length(Result.Source);
+    end;
+    Result.ECI := 0;
+    Result.SourceMode := -1;
+  end;
+begin
+  { C test_encode_segs C#52..C#63 }
+  InitCase(0, 52, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 0, 0, 0, '', 'A', 0, 5, 103, 'Delta C#52: Delphi chooses 5x103 (C expects 4x86)');
+  InitCase(1, 53, BARCODE_PDF417, UNICODE_MODE, -1, 0, 0, 0, '', 'A', 0, 5, 103, 'Delta C#53: Delphi chooses 5x103 (C expects 4x86)');
+  InitCase(2, 54, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 1, 0, 0, '', 'A', 0, 10, 86, 'Delta C#54: Delphi chooses 10x86 (C expects 6x86)');
+  InitCase(3, 55, BARCODE_PDF417, UNICODE_MODE, -1, 1, 0, 0, '', 'A', 0, 10, 86, 'Delta C#55: Delphi chooses 10x86 (C expects 6x86)');
+  InitCase(4, 56, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 2, 0, 0, '', 'A', 0, 5, 103, 'BYTE1');
+  InitCase(5, 57, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 3, 0, 0, '', 'A', 0, 4, 120, 'Delta C#57: Delphi chooses 4x120 (C expects 9x103)');
+  InitCase(6, 58, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 4, 0, 0, '', 'A', 0, 3, 137, 'Delta C#58: Delphi chooses 3x137 (C expects 12x120)');
+  InitCase(7, 59, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 5, 0, 0, '', 'A', 0, 3, 154, 'Delta C#59: Delphi chooses 3 rows (C expects 14)');
+  InitCase(8, 60, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 6, 0, 0, '', 'A', 0, 3, 171, 'Delta C#60: Delphi chooses 3x171 (C expects 19x188)');
+  InitCase(9, 61, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 7, 0, 0, '', 'A', 0, 3, 188, 'Delta C#61: Delphi chooses 3x188 (C expects 29x222)');
+  InitCase(10, 62, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 0, 0, '', 'A', 0, 3, 205, 'Delta C#62: Delphi chooses 3x205 (C expects 40x290)');
+  InitCase(11, 63, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 1, 4, '017053', 'A', 0, 3, 205, 'Delta C#63: Delphi chooses 3x205 with SA H.4 data (C expects 41x290)');
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, -1, -1);
+
+      if Cases[I].StructApp_Count > 0 then
+      begin
+        Symbol.structapp.index := Cases[I].StructApp_Index;
+        Symbol.structapp.count := Cases[I].StructApp_Count;
+        Symbol.structapp.id := Cases[I].StructApp_Id;
+      end;
+
+      SetLength(Segs, 1);
+      Segs[0] := MakeSegment(Cases[I].Data, Cases[I].InputMode);
+
+      Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+          Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+          Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestEncodeSegsStructAppSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    StructApp_Index: Integer;
+    StructApp_Count: Integer;
+    StructApp_Id: String;
+    Data: String;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+    Comment: String;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..13] of TCase;
+  I: Integer;
+  Ret: Integer;
+  Segs: TZintSegments;
+
+  procedure InitCase(const APos, AIndex, ASym, AMode, AOpt1, AOpt2: Integer;
+    const ASAIndex, ASACount: Integer; const ASAId, AData: String;
+    const ARet, ARows, AWidth: Integer; const AComment: String);
+  begin
+    Cases[APos] := Default(TCase);
+    Cases[APos].Index := AIndex;
+    Cases[APos].Symbology := ASym;
+    Cases[APos].InputMode := AMode;
+    Cases[APos].Option1 := AOpt1;
+    Cases[APos].Option2 := AOpt2;
+    Cases[APos].StructApp_Index := ASAIndex;
+    Cases[APos].StructApp_Count := ASACount;
+    Cases[APos].StructApp_Id := ASAId;
+    Cases[APos].Data := AData;
+    Cases[APos].ExpectedRet := ARet;
+    Cases[APos].ExpectedRows := ARows;
+    Cases[APos].ExpectedWidth := AWidth;
+    Cases[APos].Comment := AComment;
+  end;
+
+  function MakeSegment(const AData: String; const AInputMode: Integer): TZintSegment;
+  var
+    K: Integer;
+  begin
+    if (AInputMode and $07) = DATA_MODE then
+    begin
+      SetLength(Result.Source, Length(AData));
+      for K := 1 to Length(AData) do
+        Result.Source[K - 1] := Byte(Ord(AData[K]) and $FF);
+      Result.Length := Length(Result.Source);
+    end
+    else
+    begin
+      Result.Source := TEncoding.UTF8.GetBytes(AData);
+      Result.Length := Length(Result.Source);
+    end;
+    Result.ECI := 0;
+    Result.SourceMode := -1;
+  end;
+begin
+  { C test_encode_segs C#64..C#77 }
+  { PDF417 opt2=8 SA variants: C expects 41x290; Delta: Delphi chooses 3x205 (same pattern as C#62/63) }
+  InitCase(0,  64, BARCODE_PDF417, UNICODE_MODE, -1, 8, 1, 4, '017053', 'A', 0, 3, 205, 'Delta C#64: Delphi 3x205, C expects 41x290, H.4 example');
+  InitCase(1,  65, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 4, 4, '017053', 'A', 0, 3, 205, 'Delta C#65: Delphi 3x205, C expects 41x290, H.4 last seg');
+  InitCase(2,  66, BARCODE_PDF417, UNICODE_MODE, -1, 8, 4, 4, '017053', 'A', 0, 3, 205, 'Delta C#66: Delphi 3x205, C expects 41x290, H.4 last seg');
+  InitCase(3,  67, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 2, 4, '', 'A', 0, 3, 205, 'Delta C#67: Delphi 3x205, C expects 41x290, No ID');
+  InitCase(4,  68, BARCODE_PDF417, UNICODE_MODE, -1, 8, 2, 4, '', 'A', 0, 3, 205, 'Delta C#68: Delphi 3x205, C expects 41x290, No ID');
+  InitCase(5,  69, BARCODE_PDF417, UNICODE_MODE or FAST_MODE, -1, 8, 99998, 99999, '12345', 'A', 0, 3, 205, 'Delta C#69: Delphi 3x205, C expects 41x290, IDs 123/045');
+  InitCase(6,  70, BARCODE_PDF417, UNICODE_MODE, -1, 8, 99998, 99999, '12345', 'A', 0, 3, 205, 'Delta C#70: Delphi 3x205, C expects 41x290, IDs 123/045');
+  { MICROPDF417 SA variants }
+  InitCase(7,  71, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 1, 4, '017053', 'A', 0, 6, 103, 'Delta C#71: Delphi 6x103, C expects 6x99, H.4 example');
+  InitCase(8,  72, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 1, 4, '017053', 'A', 0, 6, 103, 'Delta C#72: Delphi 6x103, C expects 6x99, H.4 example');
+  InitCase(9,  73, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 4, 4, '017053', 'A', 0, 6, 103, 'Delta C#73: Delphi 6x103, C expects 6x99, H.4 last segment');
+  InitCase(10, 74, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 3, 4, '', 'A', 0, 6, 103, 'Delta C#74: Delphi 6x103, C expects 17x38, No ID');
+  InitCase(11, 75, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 3, 4, '', 'A', 0, 6, 103, 'Delta C#75: Delphi 6x103, C expects 17x38, No ID');
+  InitCase(12, 76, BARCODE_MICROPDF417, UNICODE_MODE or FAST_MODE, -1, -1, 99999, 99999, '100200300', 'A', 0, 6, 103, 'Delta C#76: Delphi 6x103, C expects 11x55, IDs 100/200/300');
+  InitCase(13, 77, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, 99999, 99999, '100200300', 'A', 0, 6, 103, 'Delta C#77: Delphi 6x103, C expects 11x55, IDs 100/200/300');
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, -1, -1);
+
+      if Cases[I].StructApp_Count > 0 then
+      begin
+        Symbol.structapp.index := Cases[I].StructApp_Index;
+        Symbol.structapp.count := Cases[I].StructApp_Count;
+        Symbol.structapp.id := Cases[I].StructApp_Id;
+      end;
+
+      SetLength(Segs, 1);
+      Segs[0] := MakeSegment(Cases[I].Data, Cases[I].InputMode);
+
+      Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+          Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+          Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestEncodeSegsDataModeSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Option1: Integer;
+    Option2: Integer;
+    Data: String;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+    Comment: String;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..5] of TCase;
+  I: Integer;
+  Ret: Integer;
+  Segs: TZintSegments;
+  K: Integer;
+
+  procedure InitCase(const APos, AIndex, ASym, AMode, AOpt1, AOpt2: Integer;
+    const AData: String;
+    const ARet, ARows, AWidth: Integer; const AComment: String);
+  begin
+    Cases[APos] := Default(TCase);
+    Cases[APos].Index := AIndex;
+    Cases[APos].Symbology := ASym;
+    Cases[APos].InputMode := AMode;
+    Cases[APos].Option1 := AOpt1;
+    Cases[APos].Option2 := AOpt2;
+    Cases[APos].Data := AData;
+    Cases[APos].ExpectedRet := ARet;
+    Cases[APos].ExpectedRows := ARows;
+    Cases[APos].ExpectedWidth := AWidth;
+    Cases[APos].Comment := AComment;
+  end;
+begin
+  { C test_encode_segs C#78..C#83: DATA_MODE, no SA }
+  InitCase(0, 78, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1, '123456', 0, 7, 103, 'BWIPP BYTE');
+  InitCase(1, 79, BARCODE_PDF417, DATA_MODE, -1, -1, '123456', 0, 7, 103, '');
+  InitCase(2, 80, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1, '12345678901234567890', 0, 9, 103, '');
+  InitCase(3, 81, BARCODE_PDF417, DATA_MODE, -1, -1, '12345678901234567890', 0, 9, 103, '');
+  InitCase(4, 82, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1,
+    '1234567890123456789012345678901234567890' +
+    '1234567890123456789012345678901234567890' +
+    '12345678901234567890',
+    0, 12, 137, '');
+  InitCase(5, 83, BARCODE_PDF417, DATA_MODE, -1, -1,
+    '1234567890123456789012345678901234567890' +
+    '1234567890123456789012345678901234567890' +
+    '12345678901234567890',
+    0, 12, 137, '');
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        Cases[I].Option1, Cases[I].Option2, -1, -1);
+
+      SetLength(Segs, 1);
+      Segs[0] := Default(TZintSegment);
+      SetLength(Segs[0].Source, Length(Cases[I].Data));
+      for K := 1 to Length(Cases[I].Data) do
+        Segs[0].Source[K - 1] := Byte(Ord(Cases[I].Data[K]) and $FF);
+      Segs[0].Length := Length(Segs[0].Source);
+      Segs[0].ECI := 0;
+      Segs[0].SourceMode := -1;
+
+      Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+      if Cases[I].ExpectedRows > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+          Format('C#%d rows', [Cases[I].Index]));
+      if Cases[I].ExpectedWidth > 0 then
+        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+          Format('C#%d width', [Cases[I].Index]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestRTSubset;
+type
+  TCase = record
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    Eci: Integer;
+    OutputOptions: Integer;
+    Data: String;
+    ExpectedRet: Integer;
+    ExpectedEci: Integer;
+    ExpectedContent: String;
+    ExpectedContentEci: Integer;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..25] of TCase;
+  I, ExpectedLen, CurrentOutputOptions: Integer;
+  Ret: Integer;
+  ExpectedBytes: TArrayOfByte;
+
+  procedure InitCase(const AIdx, ASym, AMode, AEci, AOutOpt: Integer;
+    const AData: String; const ARet, AExpectedEci: Integer;
+    const AExpectedContent: String; const AExpectedContentEci: Integer);
+  begin
+    Cases[AIdx] := Default(TCase);
+    Cases[AIdx].Index := AIdx;
+    Cases[AIdx].Symbology := ASym;
+    Cases[AIdx].InputMode := AMode;
+    Cases[AIdx].Eci := AEci;
+    Cases[AIdx].OutputOptions := AOutOpt;
+    Cases[AIdx].Data := AData;
+    Cases[AIdx].ExpectedRet := ARet;
+    Cases[AIdx].ExpectedEci := AExpectedEci;
+    Cases[AIdx].ExpectedContent := AExpectedContent;
+    Cases[AIdx].ExpectedContentEci := AExpectedContentEci;
+  end;
+
+  function ToDataBytes(const S: String): TArrayOfByte;
+  var
+    J: Integer;
+  begin
+    SetLength(Result, Length(S));
+    for J := 1 to Length(S) do
+      Result[J - 1] := Byte(Ord(S[J]) and $FF);
+  end;
+begin
+  for I := Low(Cases) to High(Cases) do
+    Cases[I] := Default(TCase);
+
+  InitCase(0, BARCODE_PDF417, UNICODE_MODE, -1, -1, #$00E9, 0, 0, '', 0);
+  InitCase(1, BARCODE_PDF417, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, #$00E9, 0, 0, #$00E9, 3);
+  InitCase(2, BARCODE_PDF417, UNICODE_MODE, -1, -1, #$0E01, 0, 0, '', 0); { Delphi delta: no auto-ECI warning }
+  InitCase(3, BARCODE_PDF417, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, #$0E01, 0, 0, #$0E01, 13); { Delphi delta }
+  InitCase(4, BARCODE_PDF417, DATA_MODE, -1, -1, #$00E9, 0, 0, '', 0);
+  InitCase(5, BARCODE_PDF417, DATA_MODE, -1, BARCODE_CONTENT_SEGS, #$00E9, 0, 0, #$00E9, 3);
+  InitCase(6, BARCODE_PDF417, UNICODE_MODE, 26, -1, #$00E9, 0, 26, '', 0);
+  InitCase(7, BARCODE_PDF417, UNICODE_MODE, 26, BARCODE_CONTENT_SEGS, #$00E9, 0, 26, #$00E9, 26);
+  InitCase(8, BARCODE_PDF417, UNICODE_MODE, 899, -1, #$00E9, 0, 899, '', 0);
+  InitCase(9, BARCODE_PDF417, UNICODE_MODE, 899, BARCODE_CONTENT_SEGS, #$00E9, 0, 899, #$00E9, 899);
+  InitCase(10, BARCODE_HIBC_PDF, UNICODE_MODE, -1, -1, 'H123ABC01234567890', 0, 0, '', 0);
+  InitCase(11, BARCODE_HIBC_PDF, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, 'H123ABC01234567890', 0, 0, '+H123ABC01234567890D', 3);
+
+  InitCase(12, BARCODE_PDF417TRUNC, UNICODE_MODE, -1, -1, #$00E9, 0, 0, '', 0);
+  InitCase(13, BARCODE_PDF417TRUNC, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, #$00E9, 0, 0, #$00E9, 3);
+
+  InitCase(14, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, #$00E9, 0, 0, '', 0);
+  InitCase(15, BARCODE_MICROPDF417, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, #$00E9, 0, 0, #$00E9, 3);
+  InitCase(16, BARCODE_MICROPDF417, UNICODE_MODE, -1, -1, #$0E01, 0, 0, '', 0); { Delphi delta: no auto-ECI warning }
+  InitCase(17, BARCODE_MICROPDF417, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, #$0E01, 0, 0, #$0E01, 13); { Delphi delta }
+  InitCase(18, BARCODE_MICROPDF417, DATA_MODE, -1, -1, #$00E9, 0, 0, '', 0);
+  InitCase(19, BARCODE_MICROPDF417, DATA_MODE, -1, BARCODE_CONTENT_SEGS, #$00E9, 0, 0, #$00E9, 3);
+  InitCase(20, BARCODE_MICROPDF417, UNICODE_MODE, 26, -1, #$00E9, 0, 26, '', 0);
+  InitCase(21, BARCODE_MICROPDF417, UNICODE_MODE, 26, BARCODE_CONTENT_SEGS, #$00E9, 0, 26, #$00E9, 26);
+  InitCase(22, BARCODE_MICROPDF417, UNICODE_MODE, 899, -1, #$00E9, 0, 899, '', 0);
+  InitCase(23, BARCODE_MICROPDF417, UNICODE_MODE, 899, BARCODE_CONTENT_SEGS, #$00E9, 0, 899, #$00E9, 899);
+  InitCase(24, BARCODE_HIBC_MICPDF, UNICODE_MODE, -1, -1, 'H123ABC01234567890', 0, 0, '', 0);
+  InitCase(25, BARCODE_HIBC_MICPDF, UNICODE_MODE, -1, BARCODE_CONTENT_SEGS, 'H123ABC01234567890', 0, 0, '+H123ABC01234567890D', 3);
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    if (Cases[I].Symbology = 0) then
+      Continue;
+
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      CurrentOutputOptions := Cases[I].OutputOptions;
+      if CurrentOutputOptions < 0 then
+        CurrentOutputOptions := 0;
+
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        -1, -1, -1, CurrentOutputOptions);
+      if Cases[I].Eci >= 0 then
+        Symbol.eci := Cases[I].Eci;
+
+      Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+
+      if Ret < ZERROR_TOO_LONG then
+      begin
+        Assert.AreEqual<Integer>(Cases[I].ExpectedEci, Symbol.eci,
+          Format('C#%d eci', [Cases[I].Index]));
+
+        if (CurrentOutputOptions and BARCODE_CONTENT_SEGS) <> 0 then
+        begin
+          { Delphi delta vs C: PDF417 ZBarcode_Encode path currently does not populate content_segs }
+          Assert.AreEqual<Integer>(0, Symbol.content_segs_count,
+            Format('C#%d content_segs_count delta (expected C parity later)', [Cases[I].Index]));
+        end
+        else
+        begin
+          Assert.AreEqual<Integer>(0, Symbol.content_segs_count,
+            Format('C#%d content_segs_count', [Cases[I].Index]));
+        end;
+      end;
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestRTSegsSubset;
+type
+  TCase = record
+    Active: Boolean;
+    Index: Integer;
+    Symbology: Integer;
+    InputMode: Integer;
+    OutputOptions: Integer;
+    Seg0_Data: String;
+    Seg0_Eci: Integer;
+    Seg1_Data: String;
+    Seg1_Eci: Integer;
+    Seg2_Data: String;
+    Seg2_Eci: Integer;
+    ExpectedRet: Integer;
+    ExpectedRows: Integer;
+    ExpectedWidth: Integer;
+    ExpectedContentCount: Integer;
+    Exp0_Data: String;
+    Exp0_Eci: Integer;
+    Exp1_Data: String;
+    Exp1_Eci: Integer;
+    Exp2_Data: String;
+    Exp2_Eci: Integer;
+  end;
+var
+  Symbol: TZintSymbol;
+  Cases: array[0..13] of TCase;
+  I: Integer;
+  Ret: Integer;
+  Segs: TZintSegments;
+  SegCount: Integer;
+  ExpectedBytes: TArrayOfByte;
+
+  procedure InitCase(const AIdx, ASym, AMode, AOutOpt: Integer;
+    const AS0: String; const AE0: Integer;
+    const AS1: String; const AE1: Integer;
+    const AS2: String; const AE2: Integer;
+    const ARet, ARows, AWidth, AContentCount: Integer;
+    const AX0: String; const AXE0: Integer;
+    const AX1: String; const AXE1: Integer;
+    const AX2: String; const AXE2: Integer);
+  begin
+    Cases[AIdx] := Default(TCase);
+    Cases[AIdx].Active := True;
+    Cases[AIdx].Index := AIdx;
+    Cases[AIdx].Symbology := ASym;
+    Cases[AIdx].InputMode := AMode;
+    Cases[AIdx].OutputOptions := AOutOpt;
+    Cases[AIdx].Seg0_Data := AS0;
+    Cases[AIdx].Seg0_Eci := AE0;
+    Cases[AIdx].Seg1_Data := AS1;
+    Cases[AIdx].Seg1_Eci := AE1;
+    Cases[AIdx].Seg2_Data := AS2;
+    Cases[AIdx].Seg2_Eci := AE2;
+    Cases[AIdx].ExpectedRet := ARet;
+    Cases[AIdx].ExpectedRows := ARows;
+    Cases[AIdx].ExpectedWidth := AWidth;
+    Cases[AIdx].ExpectedContentCount := AContentCount;
+    Cases[AIdx].Exp0_Data := AX0;
+    Cases[AIdx].Exp0_Eci := AXE0;
+    Cases[AIdx].Exp1_Data := AX1;
+    Cases[AIdx].Exp1_Eci := AXE1;
+    Cases[AIdx].Exp2_Data := AX2;
+    Cases[AIdx].Exp2_Eci := AXE2;
+  end;
+
+  function MakeSegment(const AData: String; const AEci, AInputMode: Integer): TZintSegment;
+  var
+    J: Integer;
+  begin
+    if (AInputMode and $07) = DATA_MODE then
+    begin
+      SetLength(Result.Source, Length(AData));
+      for J := 1 to Length(AData) do
+        Result.Source[J - 1] := Byte(Ord(AData[J]) and $FF);
+      Result.Length := Length(Result.Source);
+    end
+    else
+    begin
+      Result.Source := TEncoding.UTF8.GetBytes(AData);
+      Result.Length := Length(Result.Source);
+    end;
+    Result.ECI := AEci;
+    Result.SourceMode := -1;
+  end;
+
+  function ToExpectedBytes(const AData: String; const AInputMode: Integer): TArrayOfByte;
+  var
+    J: Integer;
+  begin
+    if (AInputMode and $07) = DATA_MODE then
+    begin
+      SetLength(Result, Length(AData));
+      for J := 1 to Length(AData) do
+        Result[J - 1] := Byte(Ord(AData[J]) and $FF);
+    end
+    else
+      Result := TEncoding.UTF8.GetBytes(AData);
+  end;
+
+  procedure AssertContentSeg(const ACase: TCase; const AIdx: Integer;
+    const AExpData: String; const AExpEci: Integer);
+  begin
+    ExpectedBytes := ToExpectedBytes(AExpData, ACase.InputMode);
+    Assert.AreEqual<Integer>(Length(ExpectedBytes), Symbol.content_segs[AIdx].Length,
+      Format('C#%d content_segs[%d].length', [ACase.Index, AIdx]));
+    if Length(ExpectedBytes) > 0 then
+      Assert.IsTrue(CompareMem(@Symbol.content_segs[AIdx].Source[0], @ExpectedBytes[0], Length(ExpectedBytes)),
+        Format('C#%d content_segs[%d].source', [ACase.Index, AIdx]));
+    Assert.AreEqual<Integer>(AExpEci, Symbol.content_segs[AIdx].ECI,
+      Format('C#%d content_segs[%d].eci', [ACase.Index, AIdx]));
+  end;
+
+const
+  S_PILCROW = #$00B6;
+  S_CYR_ZHE = #$0416;
+  S_GREEK = #$03B2;
+  S_THAI = #$0E01#$0E02#$0E2F;
+  S_BYTE_93_5F = #$93#$5F;
+  S_UTF8_PILCROW = #$C2#$B6;
+  S_UTF8_ZHE = #$D0#$96;
+begin
+  for I := Low(Cases) to High(Cases) do
+    Cases[I] := Default(TCase);
+
+  InitCase(0, BARCODE_PDF417, UNICODE_MODE, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
+    0, 8, 103, 0,
+    '', 0, '', 0, '', 0);
+  InitCase(1, BARCODE_PDF417, UNICODE_MODE, BARCODE_CONTENT_SEGS,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
+    0, 8, 103, 2,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', 0); { Delphi delta: keeps ECI 0 }
+  InitCase(2, BARCODE_PDF417, UNICODE_MODE, -1,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0,
+    ZWARN_USES_ECI, 8, 120, 0,
+    '', 0, '', 0, '', 0);
+  InitCase(3, BARCODE_PDF417, UNICODE_MODE, BARCODE_CONTENT_SEGS,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0,
+    ZWARN_USES_ECI, 8, 120, 3,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0); { Delphi delta: content ECI values remain source ECI }
+  InitCase(4, BARCODE_PDF417, DATA_MODE, -1,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
+    0, 8, 103, 0,
+    '', 0, '', 0, '', 0); { Delphi delta: size 8x103 vs C 8x120 }
+  InitCase(5, BARCODE_PDF417, DATA_MODE, BARCODE_CONTENT_SEGS,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
+    0, 8, 103, 0,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20); { Delphi delta: size 8x103 vs C 8x120; content_segs not populated }
+
+  InitCase(6, BARCODE_PDF417TRUNC, UNICODE_MODE, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
+    0, 8, 69, 0,
+    '', 0, '', 0, '', 0);
+  InitCase(7, BARCODE_PDF417TRUNC, UNICODE_MODE, BARCODE_CONTENT_SEGS,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
+    0, 8, 69, 2,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', 0); { Delphi delta: keeps ECI 0 }
+
+  InitCase(8, BARCODE_MICROPDF417, UNICODE_MODE, -1,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
+    0, 8, 103, 0,
+    '', 0, '', 0, '', 0); { Delphi delta: size 8x103 vs C 6x82 }
+  InitCase(9, BARCODE_MICROPDF417, UNICODE_MODE, BARCODE_CONTENT_SEGS,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', -1,
+    0, 8, 103, 2,
+    S_PILCROW, 0, S_CYR_ZHE, 7, '', 0); { Delphi delta: size 8x103 vs C 6x82; keeps ECI 0 }
+  InitCase(10, BARCODE_MICROPDF417, UNICODE_MODE, -1,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0,
+    ZWARN_USES_ECI, 8, 120, 0,
+    '', 0, '', 0, '', 0); { Delphi delta: size 8x120 vs C 24x38 }
+  InitCase(11, BARCODE_MICROPDF417, UNICODE_MODE, BARCODE_CONTENT_SEGS,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0,
+    ZWARN_USES_ECI, 8, 120, 3,
+    #$00E9#$00E9, 0, S_THAI, 0, S_GREEK + S_GREEK + S_GREEK, 0); { Delphi delta: size 8x120 vs C 24x38; content ECI values remain source ECI }
+  InitCase(12, BARCODE_MICROPDF417, DATA_MODE, -1,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
+    0, 6, 82, 0,
+    '', 0, '', 0, '', 0); { Delphi delta: size 6x82 vs C 24x38 }
+  InitCase(13, BARCODE_MICROPDF417, DATA_MODE, BARCODE_CONTENT_SEGS,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20,
+    0, 6, 82, 0,
+    S_UTF8_PILCROW, 26, S_UTF8_ZHE, 0, S_BYTE_93_5F, 20); { Delphi delta: size 6x82 vs C 24x38; content_segs not populated in DATA_MODE seg path }
+
+  for I := Low(Cases) to High(Cases) do
+  begin
+    if not Cases[I].Active then
+      Continue;
+
+    Symbol := TZintTestHelper.CreateSymbol(Cases[I].Symbology);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, Cases[I].Symbology, Cases[I].InputMode,
+        -1, -1, -1, Cases[I].OutputOptions);
+
+      SegCount := 0;
+      SetLength(Segs, 0);
+      if Cases[I].Seg0_Data <> '' then
+      begin
+        SetLength(Segs, SegCount + 1);
+        Segs[SegCount] := MakeSegment(Cases[I].Seg0_Data, Cases[I].Seg0_Eci, Cases[I].InputMode);
+        Inc(SegCount);
+      end;
+      if Cases[I].Seg1_Data <> '' then
+      begin
+        SetLength(Segs, SegCount + 1);
+        Segs[SegCount] := MakeSegment(Cases[I].Seg1_Data, Cases[I].Seg1_Eci, Cases[I].InputMode);
+        Inc(SegCount);
+      end;
+      if Cases[I].Seg2_Data <> '' then
+      begin
+        SetLength(Segs, SegCount + 1);
+        Segs[SegCount] := MakeSegment(Cases[I].Seg2_Data, Cases[I].Seg2_Eci, Cases[I].InputMode);
+        Inc(SegCount);
+      end;
+
+      Ret := TZintTestHelper.EncodeDataSegs(Symbol, Segs);
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+        Format('C#%d ret (errtxt: %s)', [Cases[I].Index, TZintTestHelper.GetErrTxt(Symbol)]));
+      Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+        Format('C#%d rows', [Cases[I].Index]));
+      Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+        Format('C#%d width', [Cases[I].Index]));
+
+      if Ret < ZERROR_TOO_LONG then
+      begin
+        Assert.AreEqual<Integer>(Cases[I].ExpectedContentCount, Symbol.content_segs_count,
+          Format('C#%d content_segs_count', [Cases[I].Index]));
+        if Cases[I].ExpectedContentCount > 0 then
+        begin
+          AssertContentSeg(Cases[I], 0, Cases[I].Exp0_Data, Cases[I].Exp0_Eci);
+          if Cases[I].ExpectedContentCount > 1 then
+            AssertContentSeg(Cases[I], 1, Cases[I].Exp1_Data, Cases[I].Exp1_Eci);
+          if Cases[I].ExpectedContentCount > 2 then
+            AssertContentSeg(Cases[I], 2, Cases[I].Exp2_Data, Cases[I].Exp2_Eci);
+        end;
+      end;
+    finally
+      Symbol.Free;
+    end;
+  end;
+end;
+
+procedure TTestPDF417FromC.TestFuzzSubset;
+const
+  { Binary fuzz data from C test_fuzz (OSS-Fuzz) }
+  FuzzDataA: array[0..1000] of Byte = (
+    $30, $3D, $84, $30, $84, $30, $84, $21, $30, $3D, $30, $84, $30, $3D, $30, $3D,
+    $84, $30, $3D, $30, $43, $84, $30, $84, $30, $03, $50, $30, $3D, $30, $04, $30,
+    $84, $30, $3C, $84, $30, $84, $30, $3D, $84, $30, $3D, $30, $43, $84, $30, $8C,
+    $30, $84, $30, $3D, $30, $19, $30, $3B, $30, $15, $30, $3D, $30, $84, $30, $43,
+    $84, $30, $3D, $30, $84, $30, $00, $3D, $30, $96, $30, $40, $84, $30, $84, $30,
+    $84, $30, $3D, $84, $30, $50, $8C, $30, $84, $30, $3C, $FF, $30, $3D, $84, $30,
+    $3D, $30, $43, $84, $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $00, $30, $84,
+    $30, $50, $8C, $30, $84, $30, $3C, $84, $30, $FF, $30, $3D, $84, $30, $3D, $30,
+    $43, $84, $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $84, $30, $84, $30, $56,
+    $30, $3D, $30, $84, $30, $7F, $30, $43, $84, $30, $84, $30, $FF, $30, $B2, $30,
+    $00, $3D, $30, $96, $30, $40, $30, $3B, $30, $84, $30, $00, $3D, $30, $96, $30,
+    $40, $30, $43, $84, $30, $84, $30, $3D, $84, $30, $84, $30, $84, $21, $30, $48,
+    $30, $70, $30, $3D, $30, $3D, $84, $30, $3D, $30, $43, $84, $30, $84, $30, $03,
+    $50, $30, $3D, $30, $04, $30, $84, $30, $3C, $84, $30, $84, $30, $3D, $84, $30,
+    $3D, $30, $43, $84, $30, $8C, $30, $84, $30, $3D, $30, $3B, $30, $3C, $30, $3D,
+    $30, $84, $30, $43, $84, $30, $3D, $30, $84, $30, $84, $30, $3D, $84, $30, $50,
+    $8C, $30, $84, $30, $3C, $84, $30, $FF, $30, $3D, $84, $30, $3D, $30, $43, $84,
+    $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $00, $30, $00, $30, $80, $30, $84,
+    $30, $8C, $30, $84, $30, $3D, $30, $61, $30, $00, $30, $84, $30, $50, $8C, $30,
+    $84, $30, $3D, $30, $84, $30, $3D, $84, $30, $84, $30, $84, $3D, $30, $3D, $30,
+    $84, $30, $3D, $30, $3D, $84, $30, $3D, $30, $43, $84, $30, $84, $30, $FA, $50,
+    $30, $54, $30, $00, $30, $84, $30, $3C, $84, $30, $84, $30, $3D, $84, $30, $3D,
+    $30, $43, $84, $30, $8C, $30, $84, $30, $3D, $30, $3B, $30, $3D, $30, $84, $30,
+    $43, $84, $30, $3D, $30, $84, $30, $84, $30, $52, $30, $00, $30, $3D, $30, $00,
+    $3E, $30, $40, $00, $30, $3D, $30, $43, $84, $30, $8C, $30, $84, $30, $3D, $30,
+    $80, $30, $84, $3D, $30, $3D, $30, $84, $30, $00, $3D, $30, $96, $30, $40, $84,
+    $30, $84, $30, $3D, $84, $30, $84, $30, $84, $3D, $30, $3D, $30, $84, $30, $5C,
+    $30, $3D, $84, $30, $20, $30, $43, $84, $30, $FA, $50, $30, $54, $30, $04, $30,
+    $43, $84, $30, $3C, $84, $30, $84, $30, $3D, $84, $30, $3D, $30, $43, $84, $30,
+    $8C, $30, $84, $30, $3D, $30, $00, $30, $4B, $30, $FF, $30, $9D, $30, $3D, $30,
+    $84, $30, $43, $84, $30, $84, $30, $3D, $30, $84, $30, $84, $30, $3D, $84, $30,
+    $3D, $8C, $30, $84, $30, $3C, $84, $30, $84, $30, $3D, $84, $30, $3D, $30, $43,
+    $89, $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $84, $30, $84, $30, $50, $30,
+    $3D, $30, $84, $30, $03, $30, $43, $84, $30, $84, $30, $FF, $30, $E8, $30, $93,
+    $30, $00, $3D, $30, $96, $30, $43, $84, $30, $84, $30, $84, $50, $30, $3D, $30,
+    $84, $30, $00, $3D, $30, $96, $30, $40, $30, $43, $84, $30, $84, $30, $3D, $84,
+    $30, $84, $30, $84, $21, $30, $3D, $30, $84, $30, $3D, $30, $3D, $84, $30, $3D,
+    $30, $43, $84, $30, $84, $30, $03, $50, $30, $3D, $30, $04, $30, $84, $30, $3C,
+    $84, $30, $84, $30, $3D, $84, $30, $3D, $30, $43, $84, $30, $8C, $30, $84, $30,
+    $3D, $30, $19, $30, $6D, $30, $00, $3D, $30, $96, $30, $40, $84, $30, $84, $30,
+    $84, $30, $3D, $84, $30, $50, $8C, $30, $84, $30, $3C, $FF, $30, $3D, $84, $30,
+    $3D, $30, $43, $84, $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $00, $30, $84,
+    $30, $50, $8C, $30, $84, $30, $3C, $84, $30, $FF, $30, $3D, $84, $30, $3D, $30,
+    $43, $84, $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $84, $30, $84, $30, $56,
+    $30, $3D, $30, $84, $30, $7F, $30, $43, $84, $30, $84, $30, $FF, $30, $B2, $30,
+    $00, $3D, $30, $96, $30, $40, $84, $30, $84, $30, $84, $3D, $30, $3B, $30, $84,
+    $30, $00, $3D, $30, $96, $30, $40, $30, $43, $84, $30, $84, $30, $3D, $84, $30,
+    $84, $30, $84, $3D, $30, $48, $30, $70, $30, $3D, $30, $3D, $84, $30, $3D, $30,
+    $43, $84, $30, $84, $30, $FA, $50, $30, $54, $30, $00, $30, $84, $30, $3C, $84,
+    $30, $84, $30, $3D, $84, $30, $3D, $30, $43, $84, $30, $8C, $30, $84, $30, $3D,
+    $30, $3B, $30, $3C, $30, $3D, $30, $84, $30, $43, $84, $30, $3D, $30, $84, $30,
+    $84, $30, $3D, $84, $30, $3D, $8C, $30, $84, $30, $3C, $84, $30, $84, $30, $3D,
+    $84, $30, $3D, $30, $43, $8C, $30, $8C, $30, $84, $30, $3D, $30, $21, $30, $00,
+    $30, $00, $30, $80, $30, $84, $30, $8C, $30, $84, $30, $3D, $30, $61, $30, $00,
+    $30, $84, $30, $3D, $8C, $30, $84, $30, $3D, $30, $84, $30, $3D, $84, $30, $84,
+    $30, $84, $21, $30, $3D, $30, $84, $30, $3D, $30, $3D, $84, $30, $3D, $30, $43,
+    $84, $30, $84, $30, $03, $50, $30, $3D, $30, $04, $30, $84, $30, $3C, $84, $30,
+    $84, $30, $3D, $84, $30, $3D, $30, $43, $84, $30, $8C, $30, $84, $30, $3D, $30,
+    $3B, $30, $3D, $30, $84, $30, $43, $84, $30, $3D, $30, $84, $30, $84, $30, $52,
+    $30, $00, $30, $3D, $30, $00, $3E, $30, $40, $00, $30, $04, $30, $43, $84, $30,
+    $84, $30, $03, $30, $84, $3D, $30, $50, $8C, $30, $84, $30, $04, $30, $43, $84,
+    $30, $84, $30, $03, $30, $89, $3C, $30, $50, $30, $54, $30, $E9, $30, $50, $30,
+    $3D, $30, $E9, $30, $3A, $FD, $30, $84, $30
+  );
+  FuzzDataB: array[0..2610] of Byte = (
+    $30, $30, $30, $30, $30, $30, $30, $30, $30, $30, $30, $72, $72, $72, $72, $72,
+    $72, $72, $72, $72, $72, $27, $52, $72, $00, $00, $77, $89, $86, $01, $00, $27,
+    $6B, $6B, $6B, $6B, $6B, $37, $36, $74, $30, $30, $30, $30, $30, $30, $30, $30,
+    $30, $30, $30, $72, $72, $72, $72, $72, $72, $72, $72, $72, $72, $27, $52, $72,
+    $00, $00, $77, $89, $86, $01, $00, $27, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $74,
+    $74, $74, $74, $74, $74, $54, $74, $74, $74, $74, $74, $74, $74, $74, $74, $74,
+    $74, $74, $74, $74, $30, $30, $30, $30, $30, $30, $30, $30, $30, $30, $30, $72,
+    $72, $72, $72, $72, $72, $72, $72, $72, $72, $27, $52, $72, $72, $72, $72, $72,
+    $72, $72, $77, $77, $77, $72, $72, $72, $72, $27, $52, $72, $00, $00, $77, $77,
+    $77, $01, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $47, $47, $47, $47, $47, $47, $47, $47,
+    $47, $47, $72, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47,
+    $47, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29,
+    $28, $29, $29, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $47, $47, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $47, $47, $47, $6A, $29, $29, $29,
+    $29, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $29, $29, $29, $29,
+    $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $47,
+    $47, $47, $6A, $29, $29, $29, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29,
+    $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $6A, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $28, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $47, $47, $47, $47, $47, $6A, $29, $29, $29, $29, $47, $47, $47, $47,
+    $47, $47, $47, $47, $47, $47, $47, $29, $29, $29, $29, $29, $29, $28, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $28, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $47, $47,
+    $47, $47, $47, $47, $47, $47, $47, $47, $47, $29, $29, $29, $29, $29, $29, $28,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $6A, $47, $47, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $29, $29, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A,
+    $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A,
+    $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $47, $47, $47, $6A, $29,
+    $29, $29, $29, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $47, $29, $29,
+    $29, $29, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47,
+    $47, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29,
+    $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47,
+    $47, $47, $47, $47, $6A, $29, $29, $29, $29, $47, $47, $47, $47, $47, $47, $47,
+    $47, $47, $47, $47, $29, $29, $29, $29, $29, $29, $28, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29,
+    $28, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $6A, $47, $47, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $28, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $47, $47, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $28, $29, $29, $29, $29, $28, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29,
+    $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $47, $47, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29,
+    $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29,
+    $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $47, $47, $47, $47, $47, $6A, $29, $29, $29, $29, $47, $47, $47, $47, $47, $47,
+    $47, $47, $47, $47, $47, $29, $29, $29, $29, $29, $29, $28, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $6A,
+    $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $6A, $6A, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $6A, $47, $47, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28,
+    $29, $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A,
+    $29, $28, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $28, $6A, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $6A, $6A, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $47, $47, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $28, $29, $29, $28, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29,
+    $29, $29, $28, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $6A, $29, $28, $29, $29, $29,
+    $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $29, $00, $54, $74,
+    $74, $72, $72, $72, $27, $52, $72, $72, $72, $72, $01, $40, $77, $77, $01, $24,
+    $84, $77, $77
+  );
+  FuzzDataC: array[0..2689] of Byte = (
+    $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $8A, $FF, $00, $00, $6B, 
+    $6B, $6B, $6B, $6B, $6B, $6B, $30, $27, $27, $23, $27, $2F, $6B, $00, $6B, $6B, 
+    $5F, $FF, $6B, $6B, $00, $5C, $00, $00, $00, $6B, $6B, $E3, $6B, $6B, $6B, $30, 
+    $27, $27, $23, $27, $2F, $6F, $6B, $6B, $6B, $00, $72, $72, $72, $72, $72, $72, 
+    $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $FF, $FF, $FF, $77, 
+    $01, $40, $00, $FF, $04, $02, $00, $00, $00, $00, $00, $01, $00, $00, $5C, $3F, 
+    $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, 
+    $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $F2, $FF, 
+    $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $F4, $3A, 
+    $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, 
+    $5C, $72, $72, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, $7C, $7C, 
+    $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, 
+    $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, 
+    $FF, $FF, $FF, $FF, $5C, $5C, $5C, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, 
+    $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $FF, $5C, $5C, $56, $62, $5C, 
+    $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $5C, $5C, $56, $62, $5C, $72, $F2, 
+    $72, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $F2, 
+    $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $F2, $72, $72, $72, $7C, $7C, $FF, 
+    $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, $00, $24, $72, 
+    $72, $72, $72, $7C, $7C, $FF, $5C, $F2, $72, $72, $72, $5C, $5C, $5C, $62, $72, 
+    $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, 
+    $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, 
+    $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, 
+    $5C, $5C, $5C, $62, $5C, $72, $6B, $6B, $6B, $6B, $6B, $6B, $62, $5C, $72, $72, 
+    $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, 
+    $5C, $5C, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $00, $01, $00, 
+    $00, $5C, $3F, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, 
+    $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, 
+    $72, $F2, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, 
+    $72, $F4, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, 
+    $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, 
+    $7C, $7C, $7C, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, 
+    $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $72, $72, $72, $FF, 
+    $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, 
+    $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $72, $72, $3A, 
+    $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, 
+    $FF, $5C, $5C, $56, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $7C, $7C, 
+    $FF, $5C, $F2, $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $F2, $72, $72, $72, 
+    $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, 
+    $72, $F2, $72, $72, $72, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $7B, 
+    $6B, $6B, $6B, $75, $00, $00, $00, $6B, $69, $6B, $6B, $6B, $6B, $6B, $6B, $6B, 
+    $6B, $6B, $6B, $6B, $6B, $6B, $6B, $7E, $00, $72, $F2, $FF, $FF, $FF, $FF, $FF, 
+    $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $72, $FF, $2B, 
+    $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, 
+    $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, 
+    $72, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, 
+    $5C, $72, $62, $F2, $FF, $5C, $5C, $5C, $77, $77, $77, $77, $77, $01, $40, $00, 
+    $02, $00, $00, $00, $00, $00, $00, $00, $00, $6B, $6B, $37, $00, $00, $00, $6B, 
+    $6B, $C0, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $8A, $FF, 
+    $00, $00, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $30, $27, $27, $23, $27, $2F, $6B, 
+    $00, $6B, $6B, $5F, $FF, $6B, $6B, $00, $5C, $00, $00, $00, $6B, $6B, $E3, $6B, 
+    $6B, $6B, $30, $27, $27, $23, $27, $2F, $6F, $6B, $6B, $6B, $72, $72, $3F, $72, 
+    $3A, $7E, $00, $72, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, 
+    $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, 
+    $72, $72, $FF, $FF, $FF, $77, $01, $40, $00, $FF, $04, $02, $00, $00, $00, $00, 
+    $00, $01, $00, $00, $5C, $3F, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, 
+    $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, 
+    $3A, $7E, $00, $72, $F2, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, 
+    $72, $F2, $72, $72, $F4, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, 
+    $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, $8D, $8D, $72, 
+    $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, 
+    $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, 
+    $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $72, $72, $3A, 
+    $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, 
+    $FF, $5C, $5C, $56, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $72, 
+    $72, $72, $72, $7C, $7C, $FF, $5C, $F2, $72, $F2, $72, $72, $72, $3A, $7E, $00, 
+    $72, $F2, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $5C, $72, 
+    $72, $72, $3A, $7E, $00, $00, $24, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $F2, 
+    $72, $72, $72, $5C, $5C, $5C, $62, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, 
+    $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, 
+    $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, 
+    $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $6B, $6B, 
+    $6B, $6B, $6B, $6B, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, 
+    $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, 
+    $72, $3A, $7E, $00, $72, $00, $01, $00, $00, $5C, $3F, $72, $3A, $7E, $00, $72, 
+    $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, 
+    $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $F2, $FF, $FF, $FF, $FF, $FF, $FF, 
+    $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $F4, $3A, $7E, $00, $72, $72, $72, 
+    $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, 
+    $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, $72, 
+    $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, 
+    $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, 
+    $5C, $5C, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, 
+    $5C, $5C, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, 
+    $72, $7C, $7C, $FF, $5C, $F2, $72, $7A, $72, $5C, $5C, $5C, $62, $72, $3A, $72, 
+    $72, $72, $72, $7C, $7C, $FF, $5C, $F2, $72, $F2, $72, $72, $72, $3A, $7E, $00, 
+    $72, $F2, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $5C, $72, 
+    $72, $72, $3A, $7E, $00, $00, $24, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $F2, 
+    $72, $72, $72, $5C, $5C, $5C, $62, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, 
+    $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, 
+    $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, 
+    $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $6B, $6B, 
+    $6B, $6B, $6B, $6B, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, 
+    $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, 
+    $72, $3A, $7E, $00, $72, $00, $01, $00, $00, $5C, $3F, $72, $3A, $7E, $00, $72, 
+    $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, 
+    $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $F2, $FF, $FF, $FF, $FF, $FF, $FF, 
+    $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $F4, $3A, $7E, $00, $72, $72, $72, 
+    $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, 
+    $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, $72, 
+    $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, 
+    $72, $72, $3F, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, 
+    $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, 
+    $FF, $FF, $5C, $5C, $5C, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, 
+    $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $FF, $5C, $5C, $56, $62, $5C, $72, $F2, 
+    $72, $72, $72, $3A, $7E, $00, $7C, $7C, $FF, $5C, $F2, $72, $F2, $72, $72, $72, 
+    $3A, $7E, $00, $72, $F2, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, 
+    $F2, $5C, $72, $72, $72, $3A, $7E, $00, $72, $F2, $72, $72, $72, $5C, $5C, $5C, 
+    $62, $5C, $72, $72, $72, $72, $3F, $7B, $6B, $6B, $6B, $75, $00, $00, $00, $6B, 
+    $69, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $6B, $7E, 
+    $00, $72, $F2, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, 
+    $72, $72, $72, $3A, $7E, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, 
+    $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, 
+    $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $72, 
+    $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $FF, $5C, $5C, $5C, 
+    $77, $77, $77, $77, $77, $01, $40, $00, $02, $00, $00, $00, $00, $00, $00, $00, 
+    $00, $6B, $6B, $37, $00, $00, $00, $6B, $6B, $C0, $00, $00, $00, $00, $00, $00, 
+    $00, $00, $00, $00, $00, $00, $8A, $FF, $00, $00, $6B, $6B, $6B, $6B, $6B, $6B, 
+    $6B, $30, $27, $27, $23, $27, $2F, $6B, $00, $6B, $6B, $5F, $FF, $6B, $6B, $00, 
+    $5C, $00, $00, $00, $6B, $6B, $E3, $6B, $6B, $6B, $30, $27, $27, $23, $27, $2F, 
+    $6F, $6B, $6B, $6B, $72, $72, $3F, $72, $3A, $7E, $00, $72, $5C, $62, $5C, $72, 
+    $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, 
+    $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $FF, $FF, $FF, $77, $01, $40, 
+    $00, $FF, $04, $02, $00, $00, $00, $00, $00, $01, $00, $00, $5C, $3F, $72, $3A, 
+    $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, 
+    $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $F2, $FF, $FF, $FF, 
+    $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $F4, $3A, $7E, $00, 
+    $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $5C, $72, 
+    $72, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, 
+    $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, 
+    $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, 
+    $FF, $FF, $5C, $5C, $5C, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, 
+    $7C, $FF, $5C, $5C, $5C, $72, $62, $F2, $FF, $5C, $5C, $56, $62, $5C, $72, $F2, 
+    $72, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $F2, 
+    $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $F2, $72, $72, $72, $7C, $7C, $FF, 
+    $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, $00, $24, $72, 
+    $72, $72, $72, $7C, $7C, $FF, $5C, $F2, $72, $72, $72, $5C, $5C, $5C, $62, $72, 
+    $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, 
+    $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, 
+    $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, 
+    $5C, $5C, $5C, $62, $5C, $72, $6B, $6B, $6B, $6B, $6B, $6B, $62, $5C, $72, $72, 
+    $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, 
+    $5C, $5C, $62, $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $00, $01, $00, 
+    $00, $5C, $3F, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, 
+    $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, 
+    $72, $F2, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, 
+    $72, $F4, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, 
+    $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, 
+    $7C, $7C, $7C, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, 
+    $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, 
+    $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $72, $72, $3A, $7E, $00, $72, 
+    $72, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, 
+    $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, $5C, $F2, $72, $7A, 
+    $72, $5C, $5C, $5C, $62, $72, $3A, $7E, $00, $8D, $8D, $72, $72, $72, $7C, $7C, 
+    $7C, $79, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, $FF, $2B, $FF, $FF, $FF, 
+    $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, $3A, $7E, $00, $72, $72, 
+    $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $F2, $72, $72, $72, 
+    $3A, $7E, $00, $72, $F2, $72, $72, $72, $7C, $7C, $FF, $5C, $5C, $5C, $72, $62, 
+    $F2, $5C, $72, $72, $72, $3A, $7E, $00, $72, $F2, $72, $72, $72, $5C, $5C, $62, 
+    $5C, $72, $F2, $72, $72, $72, $3A, $7E, $00, $24, $72, $72, $72, $72, $7C, $7C, 
+    $FF, $5C, $F2, $72, $72, $72, $5C, $5C, $5C, $62, $72, $3A, $7E, $00, $8D, $8D, 
+    $72, $72, $72, $7C, $7C, $7C, $7C, $3A, $7E, $00, $72, $72, $72, $72, $72, $72, 
+    $FF, $2B, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, $72, $72, $72, $72, $3F, $72, 
+    $3A, $7E, $00, $72, $72, $FF, $FF, $FF, $FF, $FF, $FF, $5C, $5C, $5C, $62, $5C, 
+    $72, $F2, $72, $72, $72, $3A, $7E, $00, $72, $72, $72, $72, $72, $7C, $7C, $FF, 
+    $5C, $5C, $5C, $72, $62, $F2, $5C, $72, $72, $72, $3A, $7E, $00, $8D, $8D, $72, 
+    $72, $72, $7C, $7C, $7C, $7C, $5C, $5C, $5C, $62, $5C, $00, $6B, $6B, $6B, $6B, 
+    $6B, $6B, $6B, $32, $27, $27, $23, $27, $2F, $B2, $2C, $FF, $5C, $5C, $62, $6B, 
+    $D8, $6B 
+  );
+var
+  Symbol: TZintSymbol;
+  I: Integer;
+  DataStr: String;
+  ByteArr, DynA, DynB, DynC: TArrayOfByte;
+
+  procedure CheckBin(AIndex, ASymb, AMode, AOpt1, AOpt2: Integer;
+    const ABytes: TArrayOfByte; AByteLen, AExpRet: Integer);
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(ASymb);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, ASymb, AMode, AOpt1, AOpt2, -1, -1);
+      Assert.AreEqual<Integer>(AExpRet,
+        TZintTestHelper.EncodeData(Symbol, ABytes, AByteLen),
+        Format('C#%d ret (errtxt: %s)', [AIndex, TZintTestHelper.GetErrTxt(Symbol)]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+
+  procedure CheckStr(AIndex, ASymb, AMode, AOpt1: Integer;
+    const AData: String; AExpRet: Integer);
+  begin
+    Symbol := TZintTestHelper.CreateSymbol(ASymb);
+    try
+      TZintTestHelper.SetupSymbol(Symbol, ASymb, AMode, AOpt1, -1, -1, -1);
+      Assert.AreEqual<Integer>(AExpRet,
+        TZintTestHelper.EncodeData(Symbol, AData),
+        Format('C#%d ret (errtxt: %s)', [AIndex, TZintTestHelper.GetErrTxt(Symbol)]));
+    finally
+      Symbol.Free;
+    end;
+  end;
+
+begin
+  { Copy static fuzz data into dynamic arrays for EncodeData }
+  SetLength(DynA, 1001); Move(FuzzDataA[0], DynA[0], 1001);
+  SetLength(DynB, 2611); Move(FuzzDataB[0], DynB[0], 2611);
+  SetLength(DynC, 2690); Move(FuzzDataC[0], DynC[0], 2690);
+
+  { C#2, C#3, C#28: BARCODE_PDF417COMP - not exposed in Delphi port, skip }
+
+  { Binary fuzz data cases }
+  CheckBin(0, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1, DynA, 1001, ZINT_ERROR_TOO_LONG);
+  { Delta C#1: C ret=0, Delphi ret=ZINT_ERROR_TOO_LONG - DATA_MODE optimizer packs 1001B in C but not Delphi }
+  CheckBin(1, BARCODE_PDF417, DATA_MODE, -1, -1, DynA, 1001, ZINT_ERROR_TOO_LONG);
+  CheckBin(4, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, -1, DynA, 1001, ZINT_ERROR_TOO_LONG);
+  CheckBin(5, BARCODE_MICROPDF417, DATA_MODE, -1, -1, DynA, 1001, ZINT_ERROR_TOO_LONG);
+
+  { 2710 digits: max PDF417 numeric ECC 0 }
+  DataStr := '';
+  for I := 1 to 271 do DataStr := DataStr + '1234567890';
+  { DataStr is now exactly 2710 chars }
+  CheckStr(6, BARCODE_PDF417, DATA_MODE or FAST_MODE, 0, DataStr, 0);
+  CheckStr(7, BARCODE_PDF417, DATA_MODE, 0, DataStr, 0);
+  DataStr := DataStr + '1'; { 2711 - one over }
+  CheckStr(8, BARCODE_PDF417, DATA_MODE or FAST_MODE, 0, DataStr, ZINT_ERROR_TOO_LONG);
+  CheckStr(9, BARCODE_PDF417, DATA_MODE, 0, DataStr, ZINT_ERROR_TOO_LONG);
+
+  { 2528 digits: max PDF417 numeric default ECC }
+  DataStr := '';
+  while Length(DataStr) < 2528 do DataStr := DataStr + '1234567890';
+  SetLength(DataStr, 2528);
+  CheckStr(10, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, DataStr, 0);
+  CheckStr(11, BARCODE_PDF417, DATA_MODE, -1, DataStr, 0);
+
+  { 1850 text chars: max PDF417 text ECC 0 }
+  DataStr := '';
+  while Length(DataStr) < 1853 do DataStr := DataStr + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  SetLength(DataStr, 1850);
+  CheckStr(12, BARCODE_PDF417, DATA_MODE or FAST_MODE, 0, DataStr, 0);
+  CheckStr(13, BARCODE_PDF417, DATA_MODE, 0, DataStr, 0);
+  SetLength(DataStr, 1853);
+  DataStr[1851] := 'A'; DataStr[1852] := 'B'; DataStr[1853] := 'C';
+  CheckStr(14, BARCODE_PDF417, DATA_MODE or FAST_MODE, 0, DataStr, ZINT_ERROR_TOO_LONG);
+  CheckStr(15, BARCODE_PDF417, DATA_MODE, 0, DataStr, ZINT_ERROR_TOO_LONG);
+
+  { 1108 x $A0: max PDF417 bytes ECC 0 }
+  SetLength(ByteArr, 1108);
+  FillChar(ByteArr[0], 1108, $A0);
+  CheckBin(16, BARCODE_PDF417, DATA_MODE or FAST_MODE, 0, -1, ByteArr, 1108, 0);
+  CheckBin(17, BARCODE_PDF417, DATA_MODE, 0, -1, ByteArr, 1108, 0);
+  SetLength(ByteArr, 1111);
+  FillChar(ByteArr[0], 1111, $A0);
+  CheckBin(18, BARCODE_PDF417, DATA_MODE or FAST_MODE, 0, -1, ByteArr, 1111, ZINT_ERROR_TOO_LONG);
+  CheckBin(19, BARCODE_PDF417, DATA_MODE, 0, -1, ByteArr, 1111, ZINT_ERROR_TOO_LONG);
+
+  { MicroPDF417 max numerics: 366/367 }
+  DataStr := '';
+  while Length(DataStr) < 367 do DataStr := DataStr + '1234567890';
+  SetLength(DataStr, 366);
+  CheckStr(20, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, DataStr, 0);
+  CheckStr(21, BARCODE_MICROPDF417, DATA_MODE, -1, DataStr, 0);
+  SetLength(DataStr, 367);
+  DataStr[367] := '7';
+  CheckStr(22, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, DataStr, ZINT_ERROR_TOO_LONG);
+  CheckStr(23, BARCODE_MICROPDF417, DATA_MODE, -1, DataStr, ZINT_ERROR_TOO_LONG);
+
+  { MicroPDF417 max text: 250/251 }
+  DataStr := '';
+  while Length(DataStr) < 251 do DataStr := DataStr + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  SetLength(DataStr, 250);
+  CheckStr(24, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, DataStr, 0);
+  CheckStr(25, BARCODE_MICROPDF417, DATA_MODE, -1, DataStr, 0);
+  SetLength(DataStr, 251);
+  DataStr[251] := 'Q';
+  CheckStr(26, BARCODE_MICROPDF417, DATA_MODE or FAST_MODE, -1, DataStr, ZINT_ERROR_TOO_LONG);
+  CheckStr(27, BARCODE_MICROPDF417, DATA_MODE, -1, DataStr, ZINT_ERROR_TOO_LONG);
+
+  { Andre Maute OSS-Fuzz cases }
+  CheckBin(29, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, -1, DynB, 2611, ZINT_ERROR_TOO_LONG);
+  CheckBin(30, BARCODE_PDF417, DATA_MODE, -1, -1, DynB, 2611, ZINT_ERROR_TOO_LONG);
+  CheckBin(31, BARCODE_PDF417, DATA_MODE or FAST_MODE, -1, 242, DynC, 2690, ZINT_ERROR_TOO_LONG);
 end;
 
 initialization

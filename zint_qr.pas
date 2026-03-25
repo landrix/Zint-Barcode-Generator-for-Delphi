@@ -2245,6 +2245,7 @@ function qr_code_with_seg_ends(symbol : zint_symbol; source : TArrayOfByte; _len
 	const seg_ends : TArrayOfInteger; const seg_ecis : TArrayOfInteger; seg_count : Integer): Integer;
 var
 	i, j : Integer;
+	best_eci : Integer;
 	error_number, glyph, est_binlen, prev_est_binlen : Integer;
 	required_cw, max_cw_version : Integer;
 	ecc_name : Char;
@@ -2252,6 +2253,7 @@ var
 	canShrink: Integer;
   bitmask, gs1 : Integer;
 	source_length, auto_eci_warning, auto_eci_fallback, auto_eci_mode, original_eci : Integer;
+	preconverted_eci_data : Boolean;
 	structapp_id_len, structapp_id_value : Integer;
 	structapp_ch : Char;
   utfdata : TArrayOfInteger;
@@ -2293,14 +2295,53 @@ begin
 
 			if symbol.eci = 0 then
 			begin
-				symbol.eci := 20;
-				auto_eci_mode := 1;
+				best_eci := rmqr_best_eci(utfdata, _length, jisdata);
+				if best_eci = 3 then
+				begin
+					// ECI 3 is implicit for QR and should not be signaled.
+					symbol.eci := 0;
+					auto_eci_mode := 0;
+					auto_eci_warning := 0;
+					preconverted_eci_data := True;
+				end
+				else if best_eci <> 26 then
+				begin
+					symbol.eci := best_eci;
+					auto_eci_mode := 0;
+					auto_eci_warning := ZWARN_USES_ECI;
+					preconverted_eci_data := True;
+				end
+				else
+				begin
+					// No single-byte ECI fits: try Shift JIS without ECI first.
+					symbol.eci := 20;
+					auto_eci_mode := 1;
+					auto_eci_warning := ZWARN_NONCOMPLIANT;
+					preconverted_eci_data := False;
+				end;
 			end
 			else
+			begin
 				auto_eci_mode := 0;
+				preconverted_eci_data := False;
+				if (symbol.eci <> 20) and (symbol.eci <> 26) and (eci_codepage(symbol.eci) <> 0) then
+				begin
+					if not try_single_byte_eci(utfdata, _length, symbol.eci, jisdata) then
+					begin
+						if symbol.eci = 3 then
+							strcpy(symbol.errtxt, 'Error 575: Invalid character in input for ECI ''3''')
+						else
+							strcpy(symbol.errtxt, 'Error 800: Invalid character in input');
+						Result := ZERROR_INVALID_DATA;
+						Exit;
+					end;
+					preconverted_eci_data := True;
+				end;
+			end;
 
 			auto_eci_fallback := 0;
 
+			if not preconverted_eci_data then
 			for  i := 0 to _length-1 do
 			begin
 				if (symbol.eci = 3) and (utfdata[i] > $FF) then
@@ -2373,6 +2414,9 @@ begin
 				for i := 0 to _length - 1 do
 					jisdata[i] := source[i];
 			end;
+
+			if (auto_eci_warning = ZWARN_NONCOMPLIANT) and (original_eci = 0) then
+				symbol.eci := 0;
   end;
 
 	define_mode(mode, jisdata, _length, gs1);

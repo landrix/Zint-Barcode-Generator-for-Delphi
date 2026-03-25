@@ -28,6 +28,8 @@ function pdf417_segs_encode(symbol : zint_symbol; const segs : TZintSegments) : 
 function micro_pdf417(symbol : zint_symbol; chaine : TArrayOfByte; _length : Integer) : Integer;
 
 procedure byteprocess(var chainemc : TArrayOfInteger; var mc_length : Integer; chaine : TArrayOfByte; start : Integer; _length : Integer; block : Integer);
+procedure byteprocess_stateful(var chainemc : TArrayOfInteger; var mc_length : Integer;
+  chaine : TArrayOfByte; start : Integer; _length : Integer; lastmode : Integer);
 
 const TEX = 900;
 const BYT = 901;
@@ -830,6 +832,82 @@ begin
   end;
 end;
 
+{ Segment-aware byte compaction: single-byte shift only from text mode, otherwise byte latch }
+procedure byteprocess_stateful(var chainemc : TArrayOfInteger; var mc_length : Integer;
+  chaine : TArrayOfByte; start : Integer; _length : Integer; lastmode : Integer);
+var
+  len : Integer;
+  chunkLen : UInt64;
+  mantisa : UInt64;
+  total : UInt64;
+begin
+  len := 0;
+
+  if (_length = 1) then
+  begin
+    if lastmode = TEX then
+      chainemc[mc_length] := 913
+    else
+      chainemc[mc_length] := 901;
+    Inc(mc_length);
+    chainemc[mc_length] := chaine[start];
+    Inc(mc_length);
+  end
+  else
+  begin
+    if (_length mod 6 = 0) then
+    begin
+      chainemc[mc_length] := 924;
+      Inc(mc_length);
+    end
+    else
+    begin
+      chainemc[mc_length] := 901;
+      Inc(mc_length);
+    end;
+
+    while (len < _length) do
+    begin
+      chunkLen := _length - len;
+      if (6 <= chunkLen) then
+      begin
+        chunkLen  := 6;
+        Inc(len, chunkLen);
+        total := 0;
+
+        while (chunkLen > 0) do
+        begin
+          Dec(chunkLen);
+          mantisa := chaine[start];
+          Inc(start);
+          total := total or (mantisa shl UInt64(chunkLen * 8));
+        end;
+
+        chunkLen := 5;
+
+        while (chunkLen > 0) do
+        begin
+          Dec(chunkLen);
+          chainemc[mc_length + Int64(chunkLen)] := Integer(total mod 900);
+          total := total div 900;
+        end;
+        Inc(mc_length, 5);
+      end
+      else
+      begin
+        Inc(len, chunkLen);
+        while (chunkLen > 0) do
+        begin
+          Dec(chunkLen);
+          chainemc[mc_length] := chaine[start];
+          Inc(mc_length);
+          Inc(start);
+        end;
+      end;
+    end;
+  end;
+end;
+
 { 712 }
 procedure numbprocess(var chainemc : TArrayOfInteger; var mc_length : Integer; chaine : TArrayOfChar; start : Integer; _length : Integer; block : Integer);
 var
@@ -1260,7 +1338,7 @@ var
   dummy : array[0..34] of Integer;
   codebarre, pattern : TArrayOfChar;
   liste : TGLoballiste;
-  seg_idx, block_counter, seg_len, seg_eci : Integer;
+  seg_idx, block_counter, seg_len, seg_eci, current_mode : Integer;
   seg_data : TArrayOfByte;
 begin
   SetLength(chainemc, 2700);
@@ -1270,12 +1348,17 @@ begin
   mc_length := 0;
   block_counter := 0;
 
+  if symbol.symbology in [BARCODE_MICROPDF417, BARCODE_HIBC_MICPDF] then
+    current_mode := BYT
+  else
+    current_mode := TEX;
+
   { Process each segment: optionally insert ECI codewords, then encode data }
   for seg_idx := 0 to High(segs) do
   begin
     seg_len := segs[seg_idx].Length;
     if (seg_len <= 0) and (Length(segs[seg_idx].Source) > 0) then
-      seg_len := ustrlen(segs[seg_idx].Source);
+      seg_len := Length(segs[seg_idx].Source);
     if seg_len <= 0 then
       Continue;
 
@@ -1331,11 +1414,24 @@ begin
     begin
       case liste[1][i] of
         TEX:
-          textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], block_counter);
+        begin
+          if current_mode = TEX then
+            textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], 0)
+          else
+            textprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], 1);
+          current_mode := TEX;
+        end;
         BYT:
-          byteprocess(chainemc, mc_length, seg_data, indexchaine, liste[0][i], block_counter);
+        begin
+          byteprocess_stateful(chainemc, mc_length, seg_data, indexchaine, liste[0][i], current_mode);
+          if not ((current_mode = TEX) and (liste[0][i] = 1)) then
+            current_mode := BYT;
+        end;
         NUM:
+        begin
           numbprocess(chainemc, mc_length, ArrayOfByteToArrayOfChar(seg_data), indexchaine, liste[0][i], block_counter);
+          current_mode := NUM;
+        end;
       end;
       Inc(indexchaine, liste[0][i]);
       Inc(block_counter);
