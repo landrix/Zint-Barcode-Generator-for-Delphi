@@ -235,7 +235,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `code16k.c` | `zint_code16k.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `code49.c` | `zint_code49.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `composite.c` | `zint_composite.pas` | in Arbeit |
-| `dmatrix.c` | `zint_dmatrix.pas` | b3a3c0d port-check erweitert: `Test_DMatrix.pas` aktiv (`test_large`/`test_input`/`test_encode`/`test_options`/`test_reader_init`/`test_buffer`/`test_minimalenc`/`test_ct`/`test_ct_segs` Subsets). Core-Paritaet-Fixes: `Error 719` (MAXBARCODE), versionsspezifischer `Error 522`-Overflow-Text bei fixierter `option_2`, GS1+ReaderInit `Error 521`, ECC-Option `Error 524`, konsistente Rueckmeldung von `option_2` auf CLI-Version. Dokumentierte Restdeltas: (1) `test_ct` C#2-C#3: Auto-ECI-Warnklassifikation (Delphi: kein ZWARN_USES_ECI, statt Return-code 0 + warning 3; Ursache: UNICODE_MODE→DATA_MODE Konvertierung in Vorverarbeitung verliert semantischen Kontext fuer Auto-ECI-Retry). (2) `test_ct_segs` C#0-C#1: Symbolgroesse-Delta 16x16 (Delphi) vs 14x14 (C); Ursache: C nutzt `dm_encode_segs()` mit per-Segment-ECI-Markern interleaved in Binary-Stream (kompaktere Kodierung), Delphi nutzt aktuell Merged-Bytes via Single-Symbol-ECI-Pfad. Segmentweise ECI-Marker-Interleaving wuerden Umstrukturierung des dm200encode()-State-Machines erfordern (nicht portiert). |
+| `dmatrix.c` | `zint_dmatrix.pas` | b3a3c0d port-check erweitert: `Test_DMatrix.pas` aktiv (`test_large`/`test_input`/`test_encode`/`test_options`/`test_reader_init`/`test_buffer`/`test_minimalenc`/`test_ct`/`test_ct_segs` Subsets). Core-Paritaet-Fixes: `Error 719` (MAXBARCODE), versionsspezifischer `Error 522`-Overflow-Text bei fixierter `option_2`, GS1+ReaderInit `Error 521`, ECC-Option `Error 524`, konsistente Rueckmeldung von `option_2` auf CLI-Version, `test_ct_segs` C#0-C#1 auf 14x14-C-Paritaet sowie `test_ct` C#2-C#3 Auto-ECI-Warnklassifikation auf C-Paritaet (Thai/UNICODE, `ZWARN_USES_ECI`, ECI 13). |
 | `dotcode.c` | `zint_dotcode.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `gb2312.h` | `zint_gb2312.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `gridmtx.c` | `zint_gridmtx.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
@@ -387,9 +387,9 @@ UnitTests/
 
 ## Naechste Arbeitsschritte
 
-1. Data Matrix nachziehen: verbleibende Deltas in `test_ct` und `test_ct_segs` gezielt schliessen.
-2. PDF417 weiter angleichen: dokumentierte Delphi-vs-C-Deltas in Segment-/Option-Subsets (`rows/width/warn`) schrittweise abbauen.
-3. QR-Familie optional erweitern: konservative MicroQR/UPNQR-Input-/Encode-Subsets bei Bedarf auf breitere 1:1-C-Abdeckung ausbauen.
+1. PDF417 weiter angleichen: dokumentierte Delphi-vs-C-Deltas in Segment-/Option-Subsets (`rows/width/warn`) schrittweise abbauen.
+2. QR-Familie optional erweitern: konservative MicroQR/UPNQR-Input-/Encode-Subsets bei Bedarf auf breitere 1:1-C-Abdeckung ausbauen.
+3. Data Matrix nur noch bei neuen C-Upstream-Aenderungen nachziehen (aktuell kein offenes Kern-Delta im aktiven Subset).
 
 ### PDF417 Status (aktuell)
 
@@ -406,6 +406,6 @@ Empfehlung fuer "was waere als naechstes dran":
 
 | Prioritaet | Aufgabe | Aufwand |
 |---|---|---|
-| Hoch | Data Matrix `test_ct`/`test_ct_segs` Deltas schliessen | mittel |
-| Mittel | PDF417 Segment-Delta-Reduktion (Rows/Width/Warnungen) statt nur Delta-Absicherung | hoch |
-| Niedrig | QR-Familie konservative MicroQR/UPNQR-Subsets bei Bedarf weiter auf 1:1-C ausbauen | gering |
+| Hoch | PDF417 Segment-Delta-Reduktion (Rows/Width/Warnungen) statt nur Delta-Absicherung | hoch |
+| Mittel | QR-Familie konservative MicroQR/UPNQR-Subsets bei Bedarf weiter auf 1:1-C ausbauen | gering |
+| Niedrig | Data Matrix Monitoring bei neuen b3a3c0d-Nachfolgediffs (kein aktueller Blocker) | gering |

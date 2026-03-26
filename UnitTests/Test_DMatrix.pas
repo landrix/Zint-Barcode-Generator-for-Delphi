@@ -547,7 +547,9 @@ var
   Symbol: TZintSymbol;
   Ret: Integer;
   Expected: TArrayOfByte;
+  ThaiUtf8: TArrayOfByte;
 begin
+  ThaiUtf8 := TArrayOfByte.Create($E0, $B8, $81, 0);
   { C test_ct C#0 }
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_DATAMATRIX);
   try
@@ -580,10 +582,9 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_DATAMATRIX);
   try
     TZintTestHelper.SetupSymbol(Symbol, BARCODE_DATAMATRIX, UNICODE_MODE, -1, -1, -1, -1);
-    Ret := TZintTestHelper.EncodeData(Symbol, 'ก');
-    { Delta: Delphi DM auto-ECI currently returns 0 here (C expects ZWARN_USES_ECI). }
-    Assert.AreEqual<Integer>(0, Ret, 'C#2 ret (Delta)');
-    Assert.AreEqual<Integer>(0, Symbol.eci, 'C#2 eci (Delta)');
+    Ret := TZintTestHelper.EncodeData(Symbol, ThaiUtf8, 3);
+    Assert.AreEqual<Integer>(ZWARN_USES_ECI, Ret, 'C#2 ret');
+    Assert.AreEqual<Integer>(13, Symbol.eci, 'C#2 eci');
   finally
     Symbol.Free;
   end;
@@ -592,15 +593,17 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_DATAMATRIX);
   try
     TZintTestHelper.SetupSymbol(Symbol, BARCODE_DATAMATRIX, UNICODE_MODE, -1, -1, -1, BARCODE_CONTENT_SEGS);
-    Ret := TZintTestHelper.EncodeData(Symbol, 'ก');
-    { Delta: Delphi DM auto-ECI currently returns 0 here (C expects ZWARN_USES_ECI). }
-    Assert.AreEqual<Integer>(0, Ret, 'C#3 ret (Delta)');
-    Assert.AreEqual<Integer>(0, Symbol.eci, 'C#3 eci (Delta)');
+    Ret := TZintTestHelper.EncodeData(Symbol, ThaiUtf8, 3);
+    Assert.AreEqual<Integer>(ZWARN_USES_ECI, Ret, 'C#3 ret');
+    Assert.AreEqual<Integer>(13, Symbol.eci, 'C#3 eci');
     Assert.AreEqual<Integer>(1, Symbol.content_segs_count, 'C#3 content_segs_count');
-    Expected := Utf8Bytes('ก');
+    SetLength(Expected, 3);
+    Expected[0] := $E0;
+    Expected[1] := $B8;
+    Expected[2] := $81;
     Assert.IsTrue(BytesEqual(Symbol.content_segs[0].Source, Expected, Length(Expected)), 'C#3 content source');
     Assert.AreEqual<Integer>(Length(Expected), Symbol.content_segs[0].Length, 'C#3 content length');
-    Assert.AreEqual<Integer>(3, Symbol.content_segs[0].ECI, 'C#3 content eci (Delta)');
+    Assert.AreEqual<Integer>(13, Symbol.content_segs[0].ECI, 'C#3 content eci');
   finally
     Symbol.Free;
   end;
@@ -631,9 +634,8 @@ begin
     TZintTestHelper.SetupSymbol(Symbol, BARCODE_DATAMATRIX, UNICODE_MODE, -1, -1, -1, -1);
     Ret := ZBarcode_Encode_Segs(Symbol, Segs);
     Assert.AreEqual<Integer>(0, Ret, 'C#0 ret');
-    { Delta: Delphi produces 16x16 (merged multi-segment encoding), C produces 14x14 (per-segment ECI interleaving) }
-    Assert.AreEqual<Integer>(16, Symbol.rows, 'C#0 rows (Delta)');
-    Assert.AreEqual<Integer>(16, Symbol.width, 'C#0 width (Delta)');
+    Assert.AreEqual<Integer>(14, Symbol.rows, 'C#0 rows');
+    Assert.AreEqual<Integer>(14, Symbol.width, 'C#0 width');
     Assert.AreEqual<Integer>(0, Symbol.content_segs_count, 'C#0 content_segs_count');
   finally
     Symbol.Free;
@@ -645,9 +647,8 @@ begin
     TZintTestHelper.SetupSymbol(Symbol, BARCODE_DATAMATRIX, UNICODE_MODE, -1, -1, -1, BARCODE_CONTENT_SEGS);
     Ret := ZBarcode_Encode_Segs(Symbol, Segs);
     Assert.AreEqual<Integer>(0, Ret, 'C#1 ret');
-    { Delta: Delphi produces 16x16 (merged multi-segment encoding), C produces 14x14 (per-segment ECI interleaving) }
-    Assert.AreEqual<Integer>(16, Symbol.rows, 'C#1 rows (Delta)');
-    Assert.AreEqual<Integer>(16, Symbol.width, 'C#1 width (Delta)');
+    Assert.AreEqual<Integer>(14, Symbol.rows, 'C#1 rows');
+    Assert.AreEqual<Integer>(14, Symbol.width, 'C#1 width');
     Assert.AreEqual<Integer>(2, Symbol.content_segs_count, 'C#1 content_segs_count');
 
     Assert.IsTrue(BytesEqual(Symbol.content_segs[0].Source, E0, Length(E0)), 'C#1 seg0 source');

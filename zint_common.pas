@@ -336,6 +336,23 @@ begin
   end;
 end;
 
+function try_tis620_byte(const codepoint: Integer; out mapped: Byte): Boolean;
+begin
+  Result := True;
+  if (codepoint >= 0) and (codepoint <= $7F) then
+    mapped := Byte(codepoint)
+  else if codepoint = $00A0 then
+    mapped := $A0
+  else if (codepoint >= $0E01) and (codepoint <= $0E3A) then
+    mapped := Byte($A0 + (codepoint - $0E00))
+  else if codepoint = $0E3F then
+    mapped := $DF
+  else if (codepoint >= $0E40) and (codepoint <= $0E5B) then
+    mapped := Byte($A0 + (codepoint - $0E00))
+  else
+    Result := False;
+end;
+
 function try_single_byte_eci(const utfdata: TArrayOfInteger; const _length, eci: Integer;
   var eci_data: TArrayOfInteger): Boolean;
 var
@@ -343,11 +360,25 @@ var
   bytes: TBytes;
   ch, decoded: UnicodeString;
   encoding: TEncoding;
+  tis620_byte: Byte;
 begin
   Result := False;
   codepage := eci_codepage(eci);
   if codepage = 0 then
     Exit;
+
+  if eci = 13 then
+  begin
+    for i := 0 to _length - 1 do
+    begin
+      if not try_tis620_byte(utfdata[i], tis620_byte) then
+        Exit;
+      if Length(eci_data) > i then
+        eci_data[i] := tis620_byte;
+    end;
+    Result := True;
+    Exit;
+  end;
 
   try
     encoding := TEncoding.GetEncoding(codepage);

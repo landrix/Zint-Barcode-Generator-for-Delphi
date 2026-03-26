@@ -2315,11 +2315,12 @@ end;
 function reduced_charset(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 { These are the "norm" standards which only support Latin-1 at most }
 var
-  error_number : Integer;
+  error_number, mode_base : Integer;
   preprocessed : TArrayOfByte;
 begin
   SetLength(preprocessed, _length + 1);
   error_number := 0;
+  mode_base := symbol.input_mode and $07;
 
 	if (symbol.symbology = BARCODE_CODE16K) then
   begin
@@ -2328,7 +2329,7 @@ begin
 		symbol.output_options := BARCODE_BIND;
 	end;
 
-	case symbol.input_mode of
+  case mode_base of
 		DATA_MODE,
 		GS1_MODE:
 			preprocessed := source;
@@ -2572,16 +2573,22 @@ begin
 end;
 
 procedure qr_normalize_content_segs_eci(symbol: zint_symbol); forward;
+function qr_guess_best_eci_from_utf8(symbol: zint_symbol; const bytes: TArrayOfByte;
+  const seg_len: Integer): Integer; forward;
+function dm_convert_seg_to_bytes(symbol: zint_symbol; const source: TArrayOfByte;
+  const seg_len, seg_eci: Integer; out converted_bytes: TArrayOfByte; out converted_len: Integer): Boolean; forward;
 
 
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  error_number, error_buffer, i, base_mode, content_eci, original_eci : Integer;
-  local_source, original_source : TArrayOfByte;
+  error_number, error_buffer, i, base_mode, content_eci, original_eci, original_input_mode, auto_eci : Integer;
+  local_source, original_source, dm_retry_bytes : TArrayOfByte;
+  dm_retry_len: Integer;
 begin
   SetLength(symbol.content_segs, 0);
   symbol.content_segs_count := 0;
   original_eci := symbol.eci;
+  original_input_mode := symbol.input_mode;
 
   error_number := 0;
 
@@ -2794,8 +2801,9 @@ begin
 
 	if (symbol.eci <> 3) and (symbol.eci <> 26) then
   begin
-		if not ((symbol.input_mode = UNICODE_MODE) and
-  (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_GRIDMATRIX, BARCODE_UPNQR, BARCODE_RMQR])) then
+		if not (((symbol.input_mode and $07) = UNICODE_MODE) and
+  (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_GRIDMATRIX, BARCODE_UPNQR, BARCODE_RMQR,
+                        BARCODE_DATAMATRIX, BARCODE_HIBC_DM])) then
     begin
       { Preserve GS1_MODE for encoders that interrogate input_mode internally }
       if not (((symbol.input_mode and $07) = GS1_MODE) and
@@ -2805,6 +2813,12 @@ begin
         symbol.input_mode := DATA_MODE;
     end;
   end;
+
+  if ((original_input_mode and FAST_MODE) <> 0) and
+     (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM,
+                           BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417,
+                           BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF]) then
+    symbol.input_mode := symbol.input_mode or FAST_MODE;
 
 //  if (symbol.input_mode = UNICODE_MODE) then
 //        strip_bom(local_source, &in_length);
@@ -2826,6 +2840,39 @@ begin
     else
 			error_number := reduced_charset(symbol, local_source, _length);
 	end;
+
+  if (error_number = ZERROR_INVALID_DATA) and (base_mode = UNICODE_MODE)
+    and (original_eci = 0) and supports_eci(symbol.symbology) then
+  begin
+    auto_eci := qr_guess_best_eci_from_utf8(symbol, local_source, _length);
+    if auto_eci > 0 then
+    begin
+      if (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM])
+        and dm_convert_seg_to_bytes(symbol, local_source, _length, auto_eci, dm_retry_bytes, dm_retry_len) then
+      begin
+        symbol.eci := auto_eci;
+        symbol.input_mode := DATA_MODE;
+        error_number := reduced_charset(symbol, dm_retry_bytes, dm_retry_len);
+      end
+      else
+      begin
+        symbol.eci := auto_eci;
+        symbol.input_mode := base_mode;
+        case symbol.symbology of
+          BARCODE_QRCODE,
+          BARCODE_MICROQR,
+          BARCODE_UPNQR,
+          BARCODE_RMQR,
+          BARCODE_GRIDMATRIX:
+            error_number := extended_charset(symbol, local_source, _length);
+        else
+            error_number := reduced_charset(symbol, local_source, _length);
+        end;
+      end;
+      if error_number < ZERROR_TOO_LONG then
+        error_number := ZWARN_USES_ECI;
+    end;
+  end;
 	if ((symbol.symbology = BARCODE_CODE128) or (symbol.symbology = BARCODE_CODE128B)) then
   begin
 		for i := 0 to _length - 1 do
@@ -2853,6 +2900,17 @@ begin
 
 	if (error_number = 0) then
 		error_number := error_buffer;
+
+  if (error_number = 0) and (base_mode = UNICODE_MODE) and (original_eci = 0)
+    and (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
+  begin
+    auto_eci := qr_guess_best_eci_from_utf8(symbol, local_source, _length);
+    if (auto_eci > 3) and (auto_eci <> 26) then
+    begin
+      symbol.eci := auto_eci;
+      error_number := ZWARN_USES_ECI;
+    end;
+  end;
 
   if (error_number < ZERROR_TOO_LONG) and ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0)
     and (symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_UPNQR, BARCODE_RMQR,
@@ -2890,6 +2948,8 @@ begin
     end;
     if original_eci <> 0 then
       content_eci := symbol.eci
+    else if (base_mode = UNICODE_MODE) and (error_number = ZWARN_USES_ECI) and (symbol.eci > 0) then
+      content_eci := symbol.eci
     else if (base_mode = UNICODE_MODE) and (symbol.eci = 20) then
       content_eci := 20
     else
@@ -2905,16 +2965,20 @@ begin
   if (error_number > 0) and (error_number <= 5) then
     check_row_heights(symbol);
 
+  symbol.input_mode := original_input_mode;
+
 	result := error_number;
 end;
 
 function qr_guess_best_eci_from_utf8(symbol: zint_symbol; const bytes: TArrayOfByte;
   const seg_len: Integer): Integer;
 var
-  i, eci, codepage: Integer;
+  eci, utf_len: Integer;
+  utfdata, eci_data: TArrayOfInteger;
   source_copy, utf8_roundtrip, encoded: TBytes;
   encoding: TEncoding;
   text, roundtrip_text: UnicodeString;
+  i: Integer;
 begin
   if seg_len <= 0 then
   begin
@@ -2922,63 +2986,49 @@ begin
     Exit;
   end;
 
-  SetLength(source_copy, seg_len);
-  for i := 0 to seg_len - 1 do
-    source_copy[i] := bytes[i];
-
-  try
-    text := TEncoding.UTF8.GetString(source_copy);
-    utf8_roundtrip := TEncoding.UTF8.GetBytes(text);
-  except
-    Result := 26;
-    Exit;
-  end;
-
-  if Length(utf8_roundtrip) <> seg_len then
+  utf_len := seg_len;
+  SetLength(utfdata, utf_len + 1);
+  if utf8toutf16(symbol, bytes, utfdata, utf_len) <> 0 then
   begin
     Result := 26;
     Exit;
   end;
-  if (seg_len > 0) and not CompareMem(@utf8_roundtrip[0], @source_copy[0], seg_len) then
-  begin
-    Result := 26;
-    Exit;
-  end;
+
+  SetLength(eci_data, utf_len + 1);
 
   for eci := 3 to 24 do
   begin
     if (eci = 14) or (eci = 19) or (eci = 20) then
       Continue;
 
-    codepage := eci_codepage(eci);
-    if codepage = 0 then
-      Continue;
-
-    try
-      encoding := TEncoding.GetEncoding(codepage);
-      encoded := encoding.GetBytes(text);
-      roundtrip_text := encoding.GetString(encoded);
-    except
-      Continue;
-    end;
-
-    if (Length(encoded) = Length(text)) and (roundtrip_text = text) then
+    if try_single_byte_eci(utfdata, utf_len, eci, eci_data) then
     begin
       Result := eci;
       Exit;
     end;
   end;
 
-  try
-    encoding := TEncoding.GetEncoding(932);
-    encoded := encoding.GetBytes(text);
-    roundtrip_text := encoding.GetString(encoded);
-    if roundtrip_text = text then
-    begin
-      Result := 20;
-      Exit;
+  if symbol.symbology in [BARCODE_QRCODE, BARCODE_MICROQR, BARCODE_UPNQR, BARCODE_RMQR] then
+  begin
+    SetLength(source_copy, seg_len);
+    for i := 0 to seg_len - 1 do
+      source_copy[i] := bytes[i];
+    try
+      text := TEncoding.UTF8.GetString(source_copy);
+      utf8_roundtrip := TEncoding.UTF8.GetBytes(text);
+      if (Length(utf8_roundtrip) = seg_len) and CompareMem(@utf8_roundtrip[0], @source_copy[0], seg_len) then
+      begin
+        encoding := TEncoding.GetEncoding(932);
+        encoded := encoding.GetBytes(text);
+        roundtrip_text := encoding.GetString(encoded);
+        if roundtrip_text = text then
+        begin
+          Result := 20;
+          Exit;
+        end;
+      end;
+    except
     end;
-  except
   end;
 
   Result := 26;
@@ -3516,8 +3566,14 @@ begin
     symbol.eci := first_eci;
   if first_mode >= 0 then
     symbol.input_mode := first_mode;
+  if dm_all_converted and (first_mode < 0)
+    and (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
+    symbol.input_mode := DATA_MODE;
 
   Result := ZBarcode_Encode(symbol, merged, total_len);
+  if (Result = ZWARN_USES_ECI) and (Length(segs) > 1)
+    and (symbol.symbology in [BARCODE_DATAMATRIX, BARCODE_HIBC_DM]) then
+    Result := 0;
   if restore_dm_content_segs and (Result < ZERROR_TOO_LONG) then
   begin
     symbol.content_segs := saved_content_segs;
