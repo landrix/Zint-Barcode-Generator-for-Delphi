@@ -3083,8 +3083,7 @@ begin
     Exit;
   end;
 
-  if ((symbol.input_mode and FAST_MODE) <> 0) and (symbol.option_1 < 0)
-    and (symbol.option_2 = 5)
+  if ((symbol.input_mode and FAST_MODE) <> 0)
     and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC]) then
   begin
     SetLength(segs, 1);

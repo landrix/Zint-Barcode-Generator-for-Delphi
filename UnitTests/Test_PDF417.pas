@@ -102,7 +102,6 @@ begin
   Cases[1].ExpectedRows := -1;
   Cases[1].ExpectedWidth := -1;
   Cases[1].ExpectedErrTxt := 'Error 464: Input too long, requires too many codewords (maximum 928)';
-
   { C test_large C#2 }
   Cases[2].Index := 2;
   Cases[2].Symbology := BARCODE_PDF417;
@@ -686,7 +685,6 @@ begin
   Cases[8].ExpectedEci := 810900;
   Cases[8].ExpectedRows := 11;
   Cases[8].ExpectedWidth := 38;
-
   { C test_input C#43 }
   Cases[9].Index := 43;
   Cases[9].Symbology := BARCODE_MICROPDF417;
@@ -1856,8 +1854,7 @@ begin
   Cases[84].Option3 := -1;
   Cases[84].Data := 'ABC123456789ABC';
   Cases[84].ExpectedRet := 0;
-  { Delta to C#175: Delphi currently selects 10 rows (C expects 9). }
-  Cases[84].ExpectedRows := 10;
+  Cases[84].ExpectedRows := 9;
   Cases[84].ExpectedWidth := 103;
 
   { C test_encode C#177 }
@@ -1870,8 +1867,7 @@ begin
   Cases[85].Option3 := -1;
   Cases[85].Data := 'ABC1234567890ABC';
   Cases[85].ExpectedRet := 0;
-  { Delta to C#177: Delphi currently selects 10 rows (C expects 9). }
-  Cases[85].ExpectedRows := 10;
+  Cases[85].ExpectedRows := 9;
   Cases[85].ExpectedWidth := 103;
 
   { C test_encode C#179 }
@@ -1910,10 +1906,8 @@ begin
   Cases[88].Option3 := -1;
   Cases[88].Data := 'ABC12345678901+BC';
   Cases[88].ExpectedRet := 0;
-  { Delta to C#183: Delphi currently selects 7 rows (C expects 10). }
-  Cases[88].ExpectedRows := 7;
-  { Delta to C#183: Delphi currently produces width 120 (C expects 103). }
-  Cases[88].ExpectedWidth := 120;
+  Cases[88].ExpectedRows := 10;
+  Cases[88].ExpectedWidth := 103;
 
   { C test_encode C#185 }
   Cases[89].Index := 185;
@@ -1925,10 +1919,8 @@ begin
   Cases[89].Option3 := -1;
   Cases[89].Data := 'AB+12345678901+BC';
   Cases[89].ExpectedRet := 0;
-  { Delta to C#185: Delphi currently selects 7 rows (C expects 10). }
-  Cases[89].ExpectedRows := 7;
-  { Delta to C#185: Delphi currently produces width 120 (C expects 103). }
-  Cases[89].ExpectedWidth := 120;
+  Cases[89].ExpectedRows := 10;
+  Cases[89].ExpectedWidth := 103;
 
   { C test_encode C#187 }
   Cases[90].Index := 187;
@@ -1940,9 +1932,8 @@ begin
   Cases[90].Option3 := -1;
   Cases[90].Data := 'ABC123456789012ABC';
   Cases[90].ExpectedRet := 0;
-  { Delta to C#187: Delphi currently produces 7x120 (C expects 10x103). }
-  Cases[90].ExpectedRows := 7;
-  Cases[90].ExpectedWidth := 120;
+  Cases[90].ExpectedRows := 10;
+  Cases[90].ExpectedWidth := 103;
 
   { C test_encode C#188 }
   Cases[91].Index := 188;
@@ -1968,8 +1959,7 @@ begin
   Cases[92].Option3 := -1;
   Cases[92].Data := 'ABCD123456789ABC';
   Cases[92].ExpectedRet := 0;
-  { Delta to C#189: Delphi currently selects 10 rows (C expects 9). }
-  Cases[92].ExpectedRows := 10;
+  Cases[92].ExpectedRows := 9;
   Cases[92].ExpectedWidth := 103;
 
   { C test_encode C#190 }
@@ -2074,8 +2064,7 @@ begin
   Cases[100].Option3 := -1;
   Cases[100].Data := 'ABCD' + Chr(127) + 'FGH';
   Cases[100].ExpectedRet := 0;
-  { Delta to C#197: Delphi currently selects 8 rows (C expects 9). }
-  Cases[100].ExpectedRows := 8;
+  Cases[100].ExpectedRows := 9;
   Cases[100].ExpectedWidth := 103;
 
   { C test_encode C#198 }
@@ -2207,8 +2196,7 @@ begin
   Cases[110].Option3 := -1;
   Cases[110].Data := 'ABCD+' + Chr(127) + '+GH';
   Cases[110].ExpectedRet := 0;
-  { Delta to C#207: Delphi currently selects 9 rows (C expects 8). }
-  Cases[110].ExpectedRows := 9;
+  Cases[110].ExpectedRows := 8;
   Cases[110].ExpectedWidth := 103;
 
   { C test_encode C#208 }
@@ -2725,7 +2713,7 @@ begin
   Cases[0].Option3 := -1;
   Cases[0].Data := CUnescape('[)>\03601\0350246290\035840\03501\0355622748502010201\035FDE\035605421261\035280\035\0351/1\0350.30LB\035N\035201 West 103rd St\035Indianapolis\035IN\035Recipient Name\03606\03510ZED006\03511ZSam''s Publishing\03512Z1234567890\03515Z118561\03520Z0.00\0340\03531Z1001891751060004629000562274850201\03532Z02\03534Z01\035KShipment PO10001\035\036\004');
   Cases[0].ExpectedRet := 0;
-  Cases[0].ExpectedRows := 28; { DELTA: C rows=26, Delphi rows=28 }
+  Cases[0].ExpectedRows := 26;
   Cases[0].ExpectedWidth := 222;
 
   Cases[1].Index := 166;
@@ -2749,7 +2737,7 @@ begin
   Cases[2].Option3 := -1;
   Cases[2].Data := CUnescape('[)>\03601\0350274310\035250\03570\0351111123177100430\035FDE\035630133769\035222\035\0351/1\035160.00KG\035N\03554 Some Paris St\035Paris\035  \035F. Consignee\03606\03510ZEIO05\03511ZThe French Company\03512Z9876543210\03514Z5th Floor - Receiving\03515Z113167\03531Z1010147571640963660600111112317710\03532Z02\035KMISC_REF1\03599ZEI0005\034US\034200\034USD\034Content DESCRIPTION\034\034Y\034NO EEI 30.37 (a)\0340\034\035\036\004');
   Cases[2].ExpectedRet := 0;
-  Cases[2].ExpectedRows := 30; { DELTA: C rows=28, Delphi rows=30 }
+  Cases[2].ExpectedRows := 28;
   Cases[2].ExpectedWidth := 239;
 
   Cases[3].Index := 168;
@@ -2773,7 +2761,7 @@ begin
   Cases[4].Option3 := -1;
   Cases[4].Data := CUnescape('[)>\03601\0350278759\035840\03503\0355659756807730201\035FDE\035604081602\035169\035\0351/1\0355.00LB\035N\0351234\035Austin\035TX\035Test Co\03606\03510ZED007\03511ZTest Co\03512Z8005553333\03515Z119534\03520Z0.00\034134\03531Z1001901752720007875900565975680773\03532Z02\03534Z01\03539ZNOHA\035\03609\035FDX\035z\0358\035-]\021\020<2\177B\036\004');
   Cases[4].ExpectedRet := 0;
-  Cases[4].ExpectedRows := 28; { DELTA: C rows=25, Delphi rows=28 }
+  Cases[4].ExpectedRows := 25;
   Cases[4].ExpectedWidth := 222;
 
   Cases[5].Index := 170;
@@ -2798,7 +2786,7 @@ begin
   Cases[6].Data := CUnescape('[)>\03601\0350285040\035840\03501\035D10011060813097\035EMSY\03537\03562\035\0351/1\0353LB\035N\0354440 E ELWOOD ST\035PHOENIX\035AZ\035CXXXXXX RXXX\03606\0353Z01\03511ZONTRAC - CXXXXXX RXXX\03512Z\03514ZSTE 102\03515Z90210\03520Z2000\034U\0341288\03521Z1\03522Z0\03524Z1\0359KRef-12549\035\036\004');
   Cases[6].ExpectedRet := 0;
   Cases[6].ExpectedRows := 25;
-  Cases[6].ExpectedWidth := 222; { DELTA: C width=205, Delphi width=222 }
+  Cases[6].ExpectedWidth := 205;
 
   Cases[7].Index := 172;
   Cases[7].Symbology := BARCODE_PDF417;
@@ -2821,7 +2809,7 @@ begin
   Cases[8].Option3 := -1;
   Cases[8].Data := CUnescape('01\01130\011{)>\01194\011GSA/XE 7\0110200\01502\01107072017\0111Z291YX2AT50000027\01111\011P\011\0113\01110.0\011KGS\011\011\011F/D\011415.52\011USD\011\011\011\011US\011EFTA\011U\011\011\011\011\0112\01504\011SH\011PHILIPS HEALTHCARE\011ROERMOND\011\0116045GH   \011NL\011291YX2\011MARIE CURIEWEG 20\011\011\011NL009076840B01\011PHS EMEA TOMS\011310475528727\011\011\011\01504\011ST\011PHILIPS MEDICAL SYSTEMS\011LOUISVILLE\011KY\01140219    \011US\011\0111920 OUTER LOOP  DRIVE\011\011\011\011C/O UPS-SPS. DOCK 157\011\011\011\011\01505\011GSI\011MEDICAL EQUIPMENT\01507\0111Z291YX2AT50000027\01110.0\011\011\011\011\011\011\011\011\011\011\011\01508\0112\011EA\011103.88\011FILTER  603Y0066\011JP\011\011\011\011\011\011451213341491\01508\0112\011EA\011103.88\011FILTER  603Y0066\011JP\011\011\011\011\011\011451213341491\01513\011\011\011\0114509123000\0112\011415.52\011415.52\01599\015');
   Cases[8].ExpectedRet := 0;
-  Cases[8].ExpectedRows := 36; { DELTA: C rows=32, Delphi rows=36 }
+  Cases[8].ExpectedRows := 32;
   Cases[8].ExpectedWidth := 256;
 
   Cases[9].Index := 174;
