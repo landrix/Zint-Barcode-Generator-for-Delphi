@@ -1112,8 +1112,7 @@ begin
   Cases[27].Option3 := -1;
   Cases[27].Data := 'ABCDEF1234567890123' + StringOfChar(Chr(127), 4) + 'YZ1234567890123';
   Cases[27].ExpectedRet := 0;
-  { Delta to C#53: Delphi currently chooses a shorter path with 6 rows (C expects 7). }
-  Cases[27].ExpectedRows := 6;
+  Cases[27].ExpectedRows := 7;
   Cases[27].ExpectedWidth := 154;
 
   { C test_encode C#55 }

@@ -3043,6 +3043,7 @@ end;
 function pdf417enc(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   codeerr, error_number : Integer;
+  segs : TZintSegments;
 begin
   error_number := 0;
 
@@ -3082,8 +3083,22 @@ begin
     Exit;
   end;
 
-  { 349 }
-  codeerr := pdf417(symbol, source, _length);
+  if ((symbol.input_mode and FAST_MODE) <> 0) and (symbol.option_1 < 0)
+    and (symbol.option_2 = 5)
+    and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC]) then
+  begin
+    SetLength(segs, 1);
+    segs[0].Source := source;
+    segs[0].Length := _length;
+    segs[0].ECI := symbol.eci;
+    segs[0].SourceMode := symbol.input_mode;
+    codeerr := pdf417_segs_encode(symbol, segs);
+  end
+  else
+  begin
+    { 349 }
+    codeerr := pdf417(symbol, source, _length);
+  end;
 
   { 352 }
   if (codeerr <> 0) then

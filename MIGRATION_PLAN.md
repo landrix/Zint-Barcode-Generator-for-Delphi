@@ -244,7 +244,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `large.c` | `zint_large.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `maxicode.c` | `zint_maxicode.pas` | in Arbeit |
 | `medical.c` | `zint_medical.pas` | b3a3c0d portiert + Tests gruen |
-| `pdf417.c` | `zint_pdf417.pas` | Port-Check weit fortgeschritten: `Test_PDF417.pas` deckt `test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie grosse Subsets aus `test_encode`, `test_encode_segs` und `test_fuzz` ab. Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), Option-Validierung, Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`) und ECI-Codeword-Ausgabe (927/926/925-Pfade). Full-Gate aktuell gruen (`808/808`), verbleibend sind dokumentierte PDF417-Paritaetsdeltas in einzelnen Segment-/Rows-/Width-Faellen. |
+| `pdf417.c` | `zint_pdf417.pas` | Port-Check weit fortgeschritten: `Test_PDF417.pas` deckt `test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie grosse Subsets aus `test_encode`, `test_encode_segs` und `test_fuzz` ab. Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), Option-Validierung, Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`), ECI-Codeword-Ausgabe (927/926/925-Pfade) und C-Paritaet fuer `test_encode` C#53 (Rows 7) via selektiver FAST-Route. Full-Gate aktuell gruen (`808/808`), verbleibend sind dokumentierte PDF417-Paritaetsdeltas in einzelnen Segment-/Rows-/Width-Faellen. |
 | `plessey.c` | `zint_plessey.pas` | b3a3c0d portiert + Tests gruen |
 | `postal.c` | `zint_postal.pas` | b3a3c0d portiert + Tests gruen |
 | `qr.c` | `zint_qr.pas` | b3a3c0d portiert + Tests gruen (aktive RT-/Segment-API-Pfade auf 1:1-C-Paritaet; optional nur weitere Subset-Erweiterungen) |
@@ -395,7 +395,8 @@ UnitTests/
 
 - Full-Gate ist gruen (`808/808` bestanden).
 - `test_encode_segs` Main-Subset C#0..C#39 ist aktiv.
-- Es gibt aktuell keinen akuten Blocker; offen sind dokumentierte Paritaetsdeltas in einzelnen PDF417-Teilbloecken.
+- `test_encode` C#53 ist auf C-Paritaet geschlossen (Rows 7).
+- Offen bleiben dokumentierte Paritaetsdeltas in einzelnen PDF417-Teilbloecken (insb. Odd-Subset C#165..C#174 und weitere Rows/Width-Cluster).
 
 Naechste Optionen:
 1. `pdf_initial_segs()` C-nah nach Delphi portieren (bevorzugt).
