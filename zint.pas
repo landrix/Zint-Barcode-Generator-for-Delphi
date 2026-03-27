@@ -2582,6 +2582,7 @@ function dm_convert_seg_to_bytes(symbol: zint_symbol; const source: TArrayOfByte
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   error_number, error_buffer, i, base_mode, content_eci, original_eci, original_input_mode, auto_eci : Integer;
+  pdf417_unicode_ctrl_hint : Boolean;
   local_source, original_source, dm_retry_bytes : TArrayOfByte;
   dm_retry_len: Integer;
 begin
@@ -2812,6 +2813,22 @@ begin
                 BARCODE_UPNQR, BARCODE_RMQR])) then
         symbol.input_mode := DATA_MODE;
     end;
+  end;
+
+  if ((original_input_mode and $07) = UNICODE_MODE)
+      and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC]) then
+  begin
+    pdf417_unicode_ctrl_hint := False;
+    for i := 0 to _length - 1 do
+    begin
+      if local_source[i] < 32 then
+      begin
+        pdf417_unicode_ctrl_hint := True;
+        Break;
+      end;
+    end;
+    if pdf417_unicode_ctrl_hint then
+      symbol.input_mode := UNICODE_MODE;
   end;
 
   if ((original_input_mode and FAST_MODE) <> 0) and

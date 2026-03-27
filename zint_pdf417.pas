@@ -3083,8 +3083,9 @@ begin
     Exit;
   end;
 
-  if ((symbol.input_mode and FAST_MODE) <> 0)
-    and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC]) then
+  if (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC])
+    and (((symbol.input_mode and FAST_MODE) <> 0)
+      or ((symbol.input_mode and $07) = UNICODE_MODE)) then
   begin
     SetLength(segs, 1);
     segs[0].Source := source;
