@@ -1945,9 +1945,8 @@ begin
   Cases[91].Option3 := -1;
   Cases[91].Data := 'ABC123456789012ABC';
   Cases[91].ExpectedRet := 0;
-  { Delta to C#188: Delphi currently produces 7x120 (C expects 10x103). }
-  Cases[91].ExpectedRows := 7;
-  Cases[91].ExpectedWidth := 120;
+  Cases[91].ExpectedRows := 10;
+  Cases[91].ExpectedWidth := 103;
 
   { C test_encode C#189 }
   Cases[92].Index := 189;
@@ -1972,8 +1971,7 @@ begin
   Cases[93].Option3 := -1;
   Cases[93].Data := 'ABCD123456789ABC';
   Cases[93].ExpectedRet := 0;
-  { Delta to C#190: Delphi currently selects 10 rows (C expects 9). }
-  Cases[93].ExpectedRows := 10;
+  Cases[93].ExpectedRows := 9;
   Cases[93].ExpectedWidth := 103;
 
   { C test_encode C#191 }
@@ -2129,8 +2127,7 @@ begin
   Cases[105].Option3 := -1;
   Cases[105].Data := 'ABC+' + Chr(127) + '+GH';
   Cases[105].ExpectedRet := 0;
-  { Delta to C#202: Delphi currently selects 9 rows (C expects 8). }
-  Cases[105].ExpectedRows := 9;
+  Cases[105].ExpectedRows := 8;
   Cases[105].ExpectedWidth := 103;
 
   { C test_encode C#203 }
@@ -2182,8 +2179,7 @@ begin
   Cases[109].Option3 := -1;
   Cases[109].Data := 'ABCD' + Chr(127) + '+GH';
   Cases[109].ExpectedRet := 0;
-  { Delta to C#206: Delphi currently selects 9 rows (C expects 8). }
-  Cases[109].ExpectedRows := 9;
+  Cases[109].ExpectedRows := 8;
   Cases[109].ExpectedWidth := 103;
 
   { C test_encode C#207 }
@@ -2209,8 +2205,7 @@ begin
   Cases[111].Option3 := -1;
   Cases[111].Data := 'ABCD+' + Chr(127) + '+GH';
   Cases[111].ExpectedRet := 0;
-  { Delta to C#208: Delphi currently selects 9 rows (C expects 8). }
-  Cases[111].ExpectedRows := 9;
+  Cases[111].ExpectedRows := 8;
   Cases[111].ExpectedWidth := 103;
 
   { C test_encode C#209 }
@@ -2564,7 +2559,7 @@ begin
   Cases[3].Option3 := -1;
   Cases[3].Data := 'AB{}  C#+  de{}  {}F  12{}  G{}  H';
   Cases[3].ExpectedRet := 0;
-  Cases[3].ExpectedRows := 10; { DELTA: C rows=9, Delphi rows=10 (text compaction difference) }
+  Cases[3].ExpectedRows := 9;
   Cases[3].ExpectedWidth := 120;
 
   Cases[4].Index := 38;
