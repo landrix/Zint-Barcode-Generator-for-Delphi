@@ -1668,7 +1668,7 @@ const
   // C#0(é),C#9(¿),C#39,C#40 also skipped: non-Shift-JIS Latin chars → Delphi port returns WARN_USES_ECI
   // C#3(ก),C#5(ກ) also skipped: Delphi port returns WARN_USES_ECI instead of ZERROR_INVALID_DATA
   // C#11(~) also skipped: U+007E has no Shift JIS mapping (0x7E = overline in JIS) → WARN_USES_ECI
-  CItems: array[0..12] of TMicroQRInputItem = (
+  CItems: array[0..22] of TMicroQRInputItem = (
     (Index:  2; InputMode: UNICODE_MODE; Option3: -1;                Data: #$03B2;                    ExpectedRet: 0;                   ExpectedErrTxt: ''),
     (Index:  4; InputMode: UNICODE_MODE; Option3: -1;                Data: #$0416;                    ExpectedRet: 0;                   ExpectedErrTxt: ''),
     (Index:  6; InputMode: UNICODE_MODE; Option3: -1;                Data: '\';                       ExpectedRet: 0;                   ExpectedErrTxt: ''),
@@ -1681,7 +1681,17 @@ const
     (Index: 21; InputMode: UNICODE_MODE; Option3: -1;                Data: #$00A5#$70B9;               ExpectedRet: 0;                   ExpectedErrTxt: ''),
     (Index: 24; InputMode: UNICODE_MODE; Option3: -1;                Data: #$70B9#$8317;               ExpectedRet: 0;                   ExpectedErrTxt: ''),
     (Index: 29; InputMode: UNICODE_MODE; Option3: -1;                Data: #$70B9#$8317#$FF65;          ExpectedRet: 0;                   ExpectedErrTxt: ''),
-    (Index: 33; InputMode: UNICODE_MODE; Option3: -1;                Data: #$00A5#$70B9#$8317#$FF65;   ExpectedRet: 0;                   ExpectedErrTxt: '')
+    (Index: 33; InputMode: UNICODE_MODE; Option3: -1;                Data: #$00A5#$70B9#$8317#$FF65;   ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 16; InputMode: DATA_MODE;    Option3: -1;                Data: #$70B9;                    ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 20; InputMode: DATA_MODE;    Option3: -1;                Data: #$8317;                    ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 23; InputMode: DATA_MODE;    Option3: -1;                Data: #$00A5#$70B9;               ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 27; InputMode: DATA_MODE;    Option3: -1;                Data: #$70B9#$8317;               ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 28; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; Data: #$70B9#$8317;             ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 32; InputMode: DATA_MODE;    Option3: -1;                Data: #$70B9#$8317#$FF65;          ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 35; InputMode: DATA_MODE;    Option3: -1;                Data: #$00A5#$70B9#$8317#$FF65;   ExpectedRet: 0;                   ExpectedErrTxt: ''),
+    (Index: 36; InputMode: DATA_MODE;    Option3: -1;                Data: #$00C1#$0201#$0201#$0201#$0202#$00A2; ExpectedRet: 0; ExpectedErrTxt: ''),
+    (Index: 37; InputMode: DATA_MODE;    Option3: -1;                Data: #$00C1#$0201#$0201#$0201#$0201#$0202#$00A2; ExpectedRet: 0; ExpectedErrTxt: ''),
+    (Index: 38; InputMode: DATA_MODE;    Option3: ZINT_FULL_MULTIBYTE; Data: #$00C1#$0201#$0201#$0201#$0201#$0202#$00A2; ExpectedRet: 0; ExpectedErrTxt: '')
   );
 var
   i, ret: Integer;
@@ -2078,6 +2088,7 @@ type
     InputMode: Integer;
     Option3: Integer;
     Data: string;
+    DataHex: string;
     ExpectedRet: Integer;
     ExpectedErrTxt: string;
     ExpectedRows: Integer;
@@ -2085,24 +2096,26 @@ type
   end;
 const
   // Conservative subset from C test_upnqr_input.
-  CItems: array[0..12] of TUPNQRInputItem = (
-    (Index: 0; InputMode: UNICODE_MODE; Option3: -1; Data: #$0104#$0154;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ExpectedRet: ZINT_WARN_USES_ECI;      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 1; InputMode: UNICODE_MODE; Option3: -1; Data: #$00E9;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: 0;                      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 2; InputMode: UNICODE_MODE; Option3: -1; Data: #$03B2;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: ZINT_WARN_USES_ECI;      ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 10; InputMode: DATA_MODE; Option3: -1; Data: 'UPNQR';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 11; InputMode: DATA_MODE; Option3: -1; Data: 'SI56051008010486080';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 12; InputMode: DATA_MODE; Option3: -1; Data: 'RF45SBO2010';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 13; InputMode: DATA_MODE; Option3: -1; Data: 'SI00123456-67890-12345';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 14; InputMode: DATA_MODE; Option3: -1; Data: 'Novo podjetje d.o.o.';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 15; InputMode: DATA_MODE; Option3: -1; Data: 'Lepa cesta 15';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ExpectedRet: 0;                        ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 7; InputMode: DATA_MODE; Option3: -1; Data: '123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901'; ExpectedRet: 0;                   ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 8; InputMode: DATA_MODE; Option3: -1; Data: '1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012'; ExpectedRet: 0;                   ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 9; InputMode: UNICODE_MODE; Option3: ZINT_FULL_MULTIBYTE; Data: '12345';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ExpectedRet: 0;                   ExpectedErrTxt: '';                                                   ExpectedRows: 77; ExpectedWidth: 77),
-    (Index: 4; InputMode: GS1_MODE;  Option3: -1; Data: '[20]12';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ExpectedRet: ZINT_ERROR_INVALID_OPTION; ExpectedErrTxt: 'Selected symbology does not support GS1 mode'; ExpectedRows: -1; ExpectedWidth: -1)
+  CItems: array[0..13] of TUPNQRInputItem = (
+    (Index: 0; InputMode: UNICODE_MODE; Option3: -1; Data: #$0104#$0154; DataHex: ''; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 1; InputMode: UNICODE_MODE; Option3: -1; Data: #$00E9; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 2; InputMode: UNICODE_MODE; Option3: -1; Data: #$03B2; DataHex: ''; ExpectedRet: ZINT_WARN_USES_ECI; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 3; InputMode: DATA_MODE; Option3: -1; Data: ''; DataHex: 'C0 A1'; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 10; InputMode: DATA_MODE; Option3: -1; Data: 'UPNQR'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 11; InputMode: DATA_MODE; Option3: -1; Data: 'SI56051008010486080'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 12; InputMode: DATA_MODE; Option3: -1; Data: 'RF45SBO2010'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 13; InputMode: DATA_MODE; Option3: -1; Data: 'SI00123456-67890-12345'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 14; InputMode: DATA_MODE; Option3: -1; Data: 'Novo podjetje d.o.o.'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 15; InputMode: DATA_MODE; Option3: -1; Data: 'Lepa cesta 15'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 7; InputMode: DATA_MODE; Option3: -1; Data: '123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 8; InputMode: DATA_MODE; Option3: -1; Data: '1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 9; InputMode: UNICODE_MODE; Option3: ZINT_FULL_MULTIBYTE; Data: '12345'; DataHex: ''; ExpectedRet: 0; ExpectedErrTxt: ''; ExpectedRows: 77; ExpectedWidth: 77),
+    (Index: 4; InputMode: GS1_MODE;  Option3: -1; Data: '[20]12'; DataHex: ''; ExpectedRet: ZINT_ERROR_INVALID_OPTION; ExpectedErrTxt: 'Selected symbology does not support GS1 mode'; ExpectedRows: -1; ExpectedWidth: -1)
   );
 var
-  i, ret: Integer;
+  i, ret, rawLen: Integer;
   sym: TZintSymbol;
+  rawData: TArrayOfByte;
 begin
   for i := Low(CItems) to High(CItems) do
   begin
@@ -2112,7 +2125,14 @@ begin
       if CItems[i].Option3 >= 0 then
         sym.option_3 := CItems[i].Option3;
 
-      ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
+      if CItems[i].DataHex <> '' then
+      begin
+        rawData := HexToByteArray(CItems[i].DataHex);
+        rawLen := Length(rawData) - 1;
+        ret := TZintTestHelper.EncodeData(sym, rawData, rawLen);
+      end
+      else
+        ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
       Assert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',

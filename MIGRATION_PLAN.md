@@ -48,17 +48,8 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 
 Hinweis PDF417 test_encode odd-subset (Session 9):
 - `TestEncodeOddSubset3` (C#165-C#174) portiert, C-Escape-Strings (`\ooo`) werden im Test per lokalem Parser als Byte-Daten dekodiert.
-- Dokumentierte Delphi-vs-C-Deltas in diesem Block:
-  - C#165: rows 28 statt 26
-  - C#166: rows 28 statt 25
-  - C#167: rows 30 statt 28
-  - C#168: width 239 statt 222
-  - C#169: rows 28 statt 25
-  - C#170: rows 28 statt 26; width 222 statt 205
-  - C#171: width 222 statt 205
-  - C#172: rows 25 statt 22; width 222 statt 205
-  - C#173: rows 36 statt 32
-  - C#174: rows 36 statt 32
+- Status: C#165-C#174 sind aktuell auf C-Paritaet (Rows/Width gruen).
+- Verbleibende PDF417-Deltas liegen derzeit in anderen Teilbloecken (u.a. C#147/C#149/C#151/C#209/C#210 sowie einzelne ECI-/Byte-Compaction-Faelle) und sind im Testmodul direkt markiert.
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie symbol.eci-Faelle).
@@ -342,7 +333,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 - [x] Warning ZWARN_NONCOMPLIANT: Kanji-Optimierung (C#4/C#5) und GS1+ECI170 (C#18) auf C-Paritaet.
 - [x] Structured Append fuer QR API-seitig nachziehen: Basis-Validierung/GS1-Warnpfade und Segment-/Mixed-ECI-Fall in `Encode_Segs` sind auf C-Paritaet; die aktiv genutzten RT-/Segment-Tests sind 1:1 an C ausgerichtet.
 - [x] Surrogate in `UnitTests/Test_QR.pas` fuer die aktiven RT-/Segmentpfade durch 1:1 C-Testfaelle ersetzt.
-- [~] Verbleibend in der QR-Familie: einzelne konservative Teilmengen bei MicroQR/UPNQR-Input-/Encode-Tests koennen spaeter noch auf breitere 1:1-C-Abdeckung erweitert werden; aktuell kein offener Kern-/API-Blocker mehr.
+- [x] MicroQR/UPNQR-Input-/Encode-Subsets weiter auf breitere 1:1-C-Abdeckung ausgebaut (inkl. zusaetzlicher DATA_MODE- und Byte-Input-Faelle aus den C-Indizes); aktuell kein offener Kern-/API-Blocker in der QR-Familie.
 
 ---
 
@@ -388,7 +379,7 @@ UnitTests/
 ## Naechste Arbeitsschritte
 
 1. PDF417 weiter angleichen: dokumentierte Delphi-vs-C-Deltas in Segment-/Option-Subsets (`rows/width/warn`) schrittweise abbauen.
-2. QR-Familie optional erweitern: konservative MicroQR/UPNQR-Input-/Encode-Subsets bei Bedarf auf breitere 1:1-C-Abdeckung ausbauen.
+2. QR-Familie: nur noch Monitoring bei neuen C-Upstream-Aenderungen (MicroQR/UPNQR-Input-/Encode-Subsets im aktiven Scope erweitert).
 3. Data Matrix nur noch bei neuen C-Upstream-Aenderungen nachziehen (aktuell kein offenes Kern-Delta im aktiven Subset).
 
 ### PDF417 Status (aktuell)
@@ -409,5 +400,5 @@ Empfehlung fuer "was waere als naechstes dran":
 | Prioritaet | Aufgabe | Aufwand |
 |---|---|---|
 | Hoch | PDF417 Segment-Delta-Reduktion (Rows/Width/Warnungen) statt nur Delta-Absicherung | hoch |
-| Mittel | QR-Familie konservative MicroQR/UPNQR-Subsets bei Bedarf weiter auf 1:1-C ausbauen | gering |
+| Niedrig | QR-Familie Monitoring bei neuen C-Upstream-Aenderungen (MicroQR/UPNQR-Subsets im aktiven Scope erweitert) | gering |
 | Niedrig | Data Matrix Monitoring bei neuen b3a3c0d-Nachfolgediffs (kein aktueller Blocker) | gering |
