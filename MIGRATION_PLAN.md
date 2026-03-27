@@ -95,29 +95,27 @@ Hinweis Code One:
 | Rückgabe `0` (ZINT_OK) | Encode wirft keine Exception |
 | Rückgabe `>= 5` (ZINT_ERROR_*) | Encode wirft `Exception` (bei `ARaiseExceptions=True`) |
 
-### 1.3 Fehlercode-Konstanten (Delphi-IST)
+### 1.3 Fehlercode-Konstanten (Delphi-IST, aktuell)
 
 ```delphi
-ZWARN_INVALID_OPTION  = 2;
-ZERROR_TOO_LONG       = 5;
-ZERROR_INVALID_DATA   = 6;
-ZERROR_INVALID_CHECK  = 7;
-ZERROR_INVALID_OPTION = 8;
+ZWARN_HRT_TRUNCATED     = 1;
+ZWARN_INVALID_OPTION    = 2;
+ZWARN_USES_ECI          = 3;
+ZWARN_NONCOMPLIANT      = 4;
+ZERROR_TOO_LONG         = 5;
+ZERROR_INVALID_DATA     = 6;
+ZERROR_INVALID_CHECK    = 7;
+ZERROR_INVALID_OPTION   = 8;
 ZERROR_ENCODING_PROBLEM = 9;
+ZERROR_FILE_ACCESS      = 10;
+ZERROR_MEMORY           = 11;
+ZERROR_FILE_WRITE       = 12;
+ZERROR_USES_ECI         = 13;
+ZERROR_NONCOMPLIANT     = 14;
+ZERROR_HRT_TRUNCATED    = 15;
 ```
 
-**Fehlend gegenüber C (2.16.0):**
-```
-ZINT_WARN_HRT_TRUNCATED   = 1   (neu)
-ZINT_WARN_USES_ECI        = 3   (neu)
-ZINT_WARN_NONCOMPLIANT    = 4   (neu)
-ZINT_ERROR_FILE_ACCESS    = 10  (neu)
-ZINT_ERROR_MEMORY         = 11  (neu)
-ZINT_ERROR_FILE_WRITE     = 12  (neu)
-ZINT_ERROR_USES_ECI       = 13  (neu)
-ZINT_ERROR_NONCOMPLIANT   = 14  (neu)
-ZINT_ERROR_HRT_TRUNCATED  = 15  (neu)
-```
+Hinweis: Die frueher als "fehlend" markierten C-2.16.x-Codes sind im aktuellen Delphi-Stand bereits vorhanden.
 
 ### 1.4 DUnitX-Projekt konfigurieren
 - [x] `DUnitXGuiRunner.dpr` um uses-Klauseln für Test-Units erweitern
@@ -235,7 +233,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `large.c` | `zint_large.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
 | `maxicode.c` | `zint_maxicode.pas` | in Arbeit |
 | `medical.c` | `zint_medical.pas` | b3a3c0d portiert + Tests gruen |
-| `pdf417.c` | `zint_pdf417.pas` | Port-Check weit fortgeschritten: `Test_PDF417.pas` deckt `test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie grosse Subsets aus `test_encode`, `test_encode_segs` und `test_fuzz` ab. Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), Option-Validierung, Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`) und ECI-Codeword-Ausgabe (927/926/925-Pfade). Neu: FAST-Mode fuer PDF417/PDF417TRUNC wird ueber den Segmentpfad gefuehrt; zusaetzlich wird non-FAST `UNICODE_MODE` fuer PDF417/PDF417TRUNC ASCII-begrenzt beibehalten (keine Ausweitung auf non-ASCII), wodurch weitere `test_encode`-Deltas auf C-Paritaet geschlossen wurden (u.a. C#175/C#177/C#183/C#185/C#187/C#188/C#189/C#190/C#197/C#202/C#206/C#207/C#208 sowie C#36 und Teile aus Odd-Subset C#165..C#174). Full-Gate aktuell gruen (`808/808`), verbleibende PDF417-Deltas sind reduziert und weiter dokumentiert. |
+| `pdf417.c` | `zint_pdf417.pas` | Port-Check weit fortgeschritten: `Test_PDF417.pas` deckt `test_large`/`test_options`/`test_numbprocess`/`test_reader_init`/`test_input` sowie grosse Subsets aus `test_encode`, `test_encode_segs` und `test_fuzz` ab. Umgesetzte Kernfixes: C-nahe Auto-Sizing-Logik (Rows/Cols), Option-Validierung, Initialmode-Behandlung (PDF417 Text-Default vs. MicroPDF417 Byte-Default), `quelmode()`-Prioritaet fuer Digits, C-nahe `numbprocess()`-Logik, 2710-Maxlaengencheck (`Error 463`) und ECI-Codeword-Ausgabe (927/926/925-Pfade). Neu: FAST-Mode fuer PDF417/PDF417TRUNC wird ueber den Segmentpfad gefuehrt; fuer non-FAST wurden die Unicode-/ECI-Single-Encode-Pfade in `ZBarcode_Encode()` an die Segmentkonvertierung angebunden und der DATA_MODE-Segmentrouter auf ECI-markierte Inputs eingegrenzt (C#210 geschlossen, C#19 bleibt dokumentiertes Delta). Full-Gate aktuell gruen (`808/808`), verbleibende PDF417-Deltas sind reduziert und weiter dokumentiert. |
 | `plessey.c` | `zint_plessey.pas` | b3a3c0d portiert + Tests gruen |
 | `postal.c` | `zint_postal.pas` | b3a3c0d portiert + Tests gruen |
 | `qr.c` | `zint_qr.pas` | b3a3c0d portiert + Tests gruen (aktive RT-/Segment-API-Pfade auf 1:1-C-Paritaet; optional nur weitere Subset-Erweiterungen) |
@@ -385,7 +383,7 @@ UnitTests/
 
 - Full-Gate ist gruen (`808/808` bestanden).
 - `test_encode_segs` Main-Subset C#0..C#39 ist aktiv.
-- `pdf_initial_segs()` ist im Delphi-Pfad C-nah nachgezogen (aktive Segment-Initialisierung in den FAST/UNICODE-MicroPDF417-Pfaden ueber `pdf417_segs_encode`).
+- `pdf_initial_segs()` ist im Delphi-Pfad C-nah nachgezogen (aktive Segment-Initialisierung ueber `pdf417_segs_encode` in FAST/UNICODE sowie DATA_MODE+ECI fuer PDF417/PDF417TRUNC/MicroPDF417).
 - `test_encode` C#53 bleibt auf C-Paritaet geschlossen (Rows 7).
 - `test_encode` C#147/C#149/C#151 sind auf C-Paritaet geschlossen (Ursache war ein Testdaten-Mismatch: zu lange Delphi-Inputstrings, kein Core-Delta).
 - Der Einzelencode-Pfad fuer PDF417/MicroPDF417 nutzt bei `UNICODE_MODE` + non-ASCII/ECI jetzt ebenfalls die vorhandene UTF-8->ECI-Bytekonvertierung; dadurch sind u.a. `test_encode` C#18 und C#209 sowie die PDF417-RT-Auto-ECI-Faelle fuer Thai auf C-Paritaet geschlossen.
