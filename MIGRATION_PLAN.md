@@ -380,20 +380,20 @@ UnitTests/
 
 1. PDF417 weiter angleichen: dokumentierte Delphi-vs-C-Deltas in Segment-/Option-Subsets (`rows/width/warn`) schrittweise abbauen.
 2. QR-Familie: nur noch Monitoring bei neuen C-Upstream-Aenderungen (MicroQR/UPNQR-Input-/Encode-Subsets im aktiven Scope erweitert).
-3. Data Matrix nur noch bei neuen C-Upstream-Aenderungen nachziehen (aktuell kein offenes Kern-Delta im aktiven Subset).
 
 ### PDF417 Status (aktuell)
 
 - Full-Gate ist gruen (`808/808` bestanden).
 - `test_encode_segs` Main-Subset C#0..C#39 ist aktiv.
+- `pdf_initial_segs()` ist im Delphi-Pfad C-nah nachgezogen (aktive Segment-Initialisierung in den FAST/UNICODE-MicroPDF417-Pfaden ueber `pdf417_segs_encode`).
 - `test_encode` C#53 bleibt auf C-Paritaet geschlossen (Rows 7).
+- `test_encode` C#147/C#149/C#151 sind auf C-Paritaet geschlossen (Ursache war ein Testdaten-Mismatch: zu lange Delphi-Inputstrings, kein Core-Delta).
 - Zusaetzlich wurden weitere Delta-Locks auf C-Paritaet geschlossen (u.a. C#175/C#177/C#183/C#185/C#187/C#188/C#189/C#190/C#197/C#202/C#206/C#207/C#208, C#36 sowie Teile aus Odd-Subset C#165..C#174).
 - Offen bleiben verbleibende dokumentierte PDF417-Teilbloecke fuer weitere schrittweise Angleichung.
 
 Naechste Optionen:
-1. `pdf_initial_segs()` C-nah nach Delphi portieren (bevorzugt).
-2. Zwischenstufe: fokussiert pro Delta-Cluster (`rows/width/warn`) vereinheitlichen und jeweils gegen C gegenpruefen.
-3. Delta-Stand bewusst einfrieren und nur dokumentieren.
+1. Fokussiert pro verbleibendem Delta-Cluster (`rows/width/warn`) vereinheitlichen und jeweils gegen C gegenpruefen.
+2. Delta-Stand bewusst einfrieren und nur dokumentieren.
 
 Empfehlung fuer "was waere als naechstes dran":
 
@@ -401,4 +401,3 @@ Empfehlung fuer "was waere als naechstes dran":
 |---|---|---|
 | Hoch | PDF417 Segment-Delta-Reduktion (Rows/Width/Warnungen) statt nur Delta-Absicherung | hoch |
 | Niedrig | QR-Familie Monitoring bei neuen C-Upstream-Aenderungen (MicroQR/UPNQR-Subsets im aktiven Scope erweitert) | gering |
-| Niedrig | Data Matrix Monitoring bei neuen b3a3c0d-Nachfolgediffs (kein aktueller Blocker) | gering |

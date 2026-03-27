@@ -3161,7 +3161,22 @@ var
   variant, LeftRAPStart, CentreRAPStart, RightRAPStart, StartCluster : Integer;
   LeftRAP, CentreRAP, RightRAP, Cluster, writer, flip, loop : Integer;
   liste : TGLoballiste;
+  segs : TZintSegments;
 begin
+  { C-nahe Segment-Initialisierung (pdf_initial_segs()) fuer die aktiven FAST/UNICODE-Pfade. }
+  if (symbol.symbology = BARCODE_MICROPDF417)
+    and (((symbol.input_mode and FAST_MODE) <> 0)
+      or ((symbol.input_mode and $07) = UNICODE_MODE)) then
+  begin
+    SetLength(segs, 1);
+    segs[0].Source := chaine;
+    segs[0].Length := _length;
+    segs[0].ECI := symbol.eci;
+    segs[0].SourceMode := symbol.input_mode;
+    Result := pdf417_segs_encode(symbol, segs);
+    Exit;
+  end;
+
   if symbol.option_2 = -1 then
     symbol.option_2 := 0;
   if symbol.option_3 = -1 then
