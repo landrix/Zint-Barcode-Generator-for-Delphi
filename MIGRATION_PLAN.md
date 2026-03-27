@@ -49,7 +49,7 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 Hinweis PDF417 test_encode odd-subset (Session 9):
 - `TestEncodeOddSubset3` (C#165-C#174) portiert, C-Escape-Strings (`\ooo`) werden im Test per lokalem Parser als Byte-Daten dekodiert.
 - Status: C#165-C#174 sind aktuell auf C-Paritaet (Rows/Width gruen).
-- Verbleibende PDF417-Deltas liegen derzeit in anderen Teilbloecken (u.a. C#147/C#149/C#151/C#209/C#210 sowie einzelne ECI-/Byte-Compaction-Faelle) und sind im Testmodul direkt markiert.
+- Verbleibende PDF417-Deltas liegen derzeit in anderen Teilbloecken (aktuell v.a. C#19/C#210 sowie einzelne ECI-/Byte-Compaction- und legacy-Surrogatfaelle) und sind im Testmodul direkt markiert.
 
 Hinweis: Die QR-Familie ist aktuell voll gruen, enthaelt aber dokumentierte Delphi-vs-C-Paritaetsdeltas
 (vor allem Warning-Klassifikation in einzelnen Unicode-Optimize-Faellen sowie symbol.eci-Faelle).
@@ -388,6 +388,7 @@ UnitTests/
 - `pdf_initial_segs()` ist im Delphi-Pfad C-nah nachgezogen (aktive Segment-Initialisierung in den FAST/UNICODE-MicroPDF417-Pfaden ueber `pdf417_segs_encode`).
 - `test_encode` C#53 bleibt auf C-Paritaet geschlossen (Rows 7).
 - `test_encode` C#147/C#149/C#151 sind auf C-Paritaet geschlossen (Ursache war ein Testdaten-Mismatch: zu lange Delphi-Inputstrings, kein Core-Delta).
+- Der Einzelencode-Pfad fuer PDF417/MicroPDF417 nutzt bei `UNICODE_MODE` + non-ASCII/ECI jetzt ebenfalls die vorhandene UTF-8->ECI-Bytekonvertierung; dadurch sind u.a. `test_encode` C#18 und C#209 sowie die PDF417-RT-Auto-ECI-Faelle fuer Thai auf C-Paritaet geschlossen.
 - Zusaetzlich wurden weitere Delta-Locks auf C-Paritaet geschlossen (u.a. C#175/C#177/C#183/C#185/C#187/C#188/C#189/C#190/C#197/C#202/C#206/C#207/C#208, C#36 sowie Teile aus Odd-Subset C#165..C#174).
 - Offen bleiben verbleibende dokumentierte PDF417-Teilbloecke fuer weitere schrittweise Angleichung.
 

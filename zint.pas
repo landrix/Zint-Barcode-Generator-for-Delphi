@@ -2577,14 +2577,17 @@ function qr_guess_best_eci_from_utf8(symbol: zint_symbol; const bytes: TArrayOfB
   const seg_len: Integer): Integer; forward;
 function dm_convert_seg_to_bytes(symbol: zint_symbol; const source: TArrayOfByte;
   const seg_len, seg_eci: Integer; out converted_bytes: TArrayOfByte; out converted_len: Integer): Boolean; forward;
+function pdf417_seg_convert(symbol: zint_symbol; const source: TArrayOfByte;
+  const seg_len, seg_eci: Integer; out converted_bytes: TArrayOfByte; out converted_len: Integer): Boolean; forward;
 
 
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
-  error_number, error_buffer, i, base_mode, content_eci, original_eci, original_input_mode, auto_eci : Integer;
-  pdf417_unicode_ascii_hint : Boolean;
-  local_source, original_source, dm_retry_bytes : TArrayOfByte;
-  dm_retry_len: Integer;
+  error_number, error_buffer, i, base_mode, content_eci, original_eci, original_input_mode, auto_eci,
+    dm_retry_len, pdf_retry_len, pdf_single_eci : Integer;
+  pdf417_unicode_ascii_hint, pdf417_single_warn_eci, pdf417_needs_unicode_convert,
+    pdf417_single_converted : Boolean;
+  local_source, original_source, dm_retry_bytes, pdf_retry_bytes : TArrayOfByte;
 begin
   SetLength(symbol.content_segs, 0);
   symbol.content_segs_count := 0;
@@ -2837,6 +2840,54 @@ begin
                            BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF]) then
     symbol.input_mode := symbol.input_mode or FAST_MODE;
 
+  pdf417_single_warn_eci := False;
+  if (base_mode = UNICODE_MODE)
+    and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417]) then
+  begin
+    pdf417_needs_unicode_convert := symbol.eci > 0;
+    if not pdf417_needs_unicode_convert then
+    begin
+      for i := 0 to _length - 1 do
+      begin
+        if local_source[i] > 127 then
+        begin
+          pdf417_needs_unicode_convert := True;
+          Break;
+        end;
+      end;
+    end;
+
+    if pdf417_needs_unicode_convert then
+    begin
+      pdf417_single_converted := False;
+      pdf_single_eci := symbol.eci;
+      if pdf417_seg_convert(symbol, local_source, _length, pdf_single_eci, pdf_retry_bytes, pdf_retry_len) then
+      begin
+        pdf417_single_converted := True;
+      end
+      else if pdf_single_eci = 0 then
+      begin
+        pdf_single_eci := qr_guess_best_eci_from_utf8(symbol, local_source, _length);
+        if (pdf_single_eci > 0) and (pdf_single_eci <> 3)
+          and pdf417_seg_convert(symbol, local_source, _length, pdf_single_eci, pdf_retry_bytes, pdf_retry_len) then
+        begin
+          symbol.eci := pdf_single_eci;
+          pdf417_single_warn_eci := True;
+          pdf417_single_converted := True;
+        end;
+      end;
+
+      if pdf417_single_converted then
+      begin
+        local_source := pdf_retry_bytes;
+        _length := pdf_retry_len;
+        symbol.input_mode := DATA_MODE;
+        if (original_input_mode and FAST_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or FAST_MODE;
+      end;
+    end;
+  end;
+
 //  if (symbol.input_mode = UNICODE_MODE) then
 //        strip_bom(local_source, &in_length);
 
@@ -2857,6 +2908,9 @@ begin
     else
 			error_number := reduced_charset(symbol, local_source, _length);
 	end;
+
+  if (error_number = 0) and pdf417_single_warn_eci then
+    error_number := ZWARN_USES_ECI;
 
   if (error_number = ZERROR_INVALID_DATA) and (base_mode = UNICODE_MODE)
     and (original_eci = 0) and supports_eci(symbol.symbology) then
