@@ -2584,9 +2584,9 @@ function pdf417_seg_convert(symbol: zint_symbol; const source: TArrayOfByte;
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   error_number, error_buffer, i, base_mode, content_eci, original_eci, original_input_mode, auto_eci,
-    dm_retry_len, pdf_retry_len, pdf_single_eci : Integer;
+    dm_retry_len, pdf_retry_len, pdf_single_eci, pdf417_saved_eci : Integer;
   pdf417_unicode_ascii_hint, pdf417_single_warn_eci, pdf417_needs_unicode_convert,
-    pdf417_single_converted : Boolean;
+    pdf417_single_converted, pdf417_restore_eci : Boolean;
   local_source, original_source, dm_retry_bytes, pdf_retry_bytes : TArrayOfByte;
 begin
   SetLength(symbol.content_segs, 0);
@@ -2595,6 +2595,8 @@ begin
   original_input_mode := symbol.input_mode;
 
   error_number := 0;
+  pdf417_restore_eci := False;
+  pdf417_saved_eci := 0;
 
   if _length = 0 then
     _length := ustrlen(source);
@@ -2877,6 +2879,13 @@ begin
         end;
       end;
 
+      if (symbol.eci <= 0) and ((original_input_mode and FAST_MODE) = 0) and (not pdf417_restore_eci) then
+      begin
+        pdf417_saved_eci := symbol.eci;
+        symbol.eci := 3;
+        pdf417_restore_eci := True;
+      end;
+
       if pdf417_single_converted then
       begin
         local_source := pdf_retry_bytes;
@@ -2911,6 +2920,9 @@ begin
 
   if (error_number = 0) and pdf417_single_warn_eci then
     error_number := ZWARN_USES_ECI;
+
+  if pdf417_restore_eci and (not pdf417_single_warn_eci) then
+    symbol.eci := pdf417_saved_eci;
 
   if (error_number = ZERROR_INVALID_DATA) and (base_mode = UNICODE_MODE)
     and (original_eci = 0) and supports_eci(symbol.symbology) then

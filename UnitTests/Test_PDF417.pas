@@ -2228,9 +2228,8 @@ begin
   Cases[113].Option3 := -1;
   Cases[113].Data := Chr($FFE5) + '3149.79';
   Cases[113].ExpectedRet := 0;
-  { Delta to C#210: Delphi non-FAST path still selects 7 rows and width 120 (C expects 10/103). }
-  Cases[113].ExpectedRows := 7;
-  Cases[113].ExpectedWidth := 120;
+  Cases[113].ExpectedRows := 10;
+  Cases[113].ExpectedWidth := 103;
 
   for I := Low(Cases) to High(Cases) do
   begin
@@ -2420,7 +2419,7 @@ begin
   Cases[10].Option3 := -1;
   Cases[10].Data := ';;;;;'#$E9';;;;;';
   Cases[10].ExpectedRet := 0;
-  { Delta to C#19: Delphi non-FAST path still encodes é differently; rows=7/width=120 vs C rows=10/103 }
+  { Delta to C#19: non-FAST UNICODE path still selects 7 rows and width 120 (C expects 10/103). }
   Cases[10].ExpectedRows := 7;
   Cases[10].ExpectedWidth := 120;
 

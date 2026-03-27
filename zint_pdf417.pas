@@ -3085,7 +3085,8 @@ begin
 
   if (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC])
     and (((symbol.input_mode and FAST_MODE) <> 0)
-      or ((symbol.input_mode and $07) = UNICODE_MODE)) then
+      or ((symbol.input_mode and $07) = UNICODE_MODE)
+      or (((symbol.input_mode and $07) = DATA_MODE) and (symbol.eci > 0))) then
   begin
     SetLength(segs, 1);
     segs[0].Source := source;
@@ -3163,10 +3164,11 @@ var
   liste : TGLoballiste;
   segs : TZintSegments;
 begin
-  { C-nahe Segment-Initialisierung (pdf_initial_segs()) fuer die aktiven FAST/UNICODE-Pfade. }
+  { C-nahe Segment-Initialisierung (pdf_initial_segs()) fuer die aktiven FAST/UNICODE/DATA-Pfade. }
   if (symbol.symbology = BARCODE_MICROPDF417)
     and (((symbol.input_mode and FAST_MODE) <> 0)
-      or ((symbol.input_mode and $07) = UNICODE_MODE)) then
+      or ((symbol.input_mode and $07) = UNICODE_MODE)
+      or (((symbol.input_mode and $07) = DATA_MODE) and (symbol.eci > 0))) then
   begin
     SetLength(segs, 1);
     segs[0].Source := chaine;
