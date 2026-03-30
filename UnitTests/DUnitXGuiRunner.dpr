@@ -11,6 +11,7 @@ uses
   DUnitX.Loggers.GUI.VCL,
   TestHelper_Zint,
   Test_CommonCore,
+  Test_Code16k,
   Test_Code1,
   Test_DMatrix,
   //Test_Code128,

@@ -46,6 +46,7 @@ uses
   Test_Postal,
   Test_Code,
   Test_CommonCore,
+  Test_Code16k,
   Test_Code1,
   Test_DMatrix,
   Test_2of5,

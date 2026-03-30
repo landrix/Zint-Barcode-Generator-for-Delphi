@@ -1035,7 +1035,9 @@ begin
       else
       begin
         if (source[sp] <= 127) then
+        begin
           next_mode := c1_look_ahead_test(source, _length, sp, current_mode, gs1);
+        end;
       end;
 
       if (next_mode <> C1_BYTE) then
