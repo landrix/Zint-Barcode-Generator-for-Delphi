@@ -25,7 +25,7 @@ type
     ExpectedErrTxt: String;
   end;
 
-  [TestFixture]
+  [TestFixture('ZTest_Code1')]
   TTestCodeOneInputFromC = class(TObject)
   published
     [Test]

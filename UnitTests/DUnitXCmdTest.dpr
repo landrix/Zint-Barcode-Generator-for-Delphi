@@ -47,6 +47,7 @@ uses
   Test_Code,
   Test_CommonCore,
   Test_Code16k,
+  Test_Code49,
   Test_Code1,
   Test_DMatrix,
   Test_2of5,

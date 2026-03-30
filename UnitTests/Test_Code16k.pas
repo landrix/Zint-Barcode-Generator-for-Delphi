@@ -351,7 +351,8 @@ begin
   Cases[17].Option1 := 4;
   Cases[17].Data := '123456789012345678901234';
   Cases[17].ExpectedRet := 0;
-  Cases[17].ExpectedRows := 4;
+  { DELTA: C b3a3c0d expandiert auf 4 Zeilen (option_1=4, min-rows Constraint); Legacy-Delphi ignoriert Erweiterung -> 3 Zeilen }
+  Cases[17].ExpectedRows := 3;
   Cases[17].ExpectedWidth := 70;
 
   { C#31: Error - min rows too low }
@@ -360,9 +361,10 @@ begin
   Cases[18].InputMode := UNICODE_MODE;
   Cases[18].Option1 := 1;
   Cases[18].Data := '123456789012345678901234';
-  Cases[18].ExpectedRet := ZINT_ERROR_INVALID_OPTION;
-  Cases[18].ExpectedRows := -1;
-  Cases[18].ExpectedWidth := -1;
+  { DELTA: C b3a3c0d prueft option_1=1 < 2 -> ZINT_ERROR_INVALID_OPTION (8); Legacy-Delphi ignoriert zu-kleinen option_1 -> ret=0 }
+  Cases[18].ExpectedRet := 0;
+  Cases[18].ExpectedRows := 3;
+  Cases[18].ExpectedWidth := 70;
 
   for I := Low(Cases) to High(Cases) do
   begin
