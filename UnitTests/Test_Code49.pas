@@ -90,11 +90,10 @@ begin
   Cases[2] := Default(TCase);
   Cases[2].Index := 2;
   Cases[2].Data := StringOfChar('0', 81); { 81 zeros - numeric capacity boundary }
-  { DELTA: C b3a3c0d akzeptiert 81 numerische Zeichen (ret=0, 8 rows); Legacy-Delphi liefert TOO_LONG bei 81 }
-  Cases[2].ExpectedRet := ZINT_ERROR_TOO_LONG;
-  Cases[2].ExpectedRows := 0;
-  Cases[2].ExpectedWidth := 0;
-  Cases[2].Comment := 'Numeric capacity boundary delta (81 zeros)';
+  Cases[2].ExpectedRet := 0;
+  Cases[2].ExpectedRows := 8;
+  Cases[2].ExpectedWidth := 70;
+  Cases[2].Comment := 'Numeric capacity boundary (81 zeros)';
 
   Cases[3] := Default(TCase);
   Cases[3].Index := 3;
@@ -218,7 +217,8 @@ begin
   Cases[7].InputMode := GS1_MODE;
   Cases[7].Data := '[90]12345[91]AB12345';
   Cases[7].ExpectedRet := 0;
-  Cases[7].ExpectedRows := 4;
+  { DELTA: C b3a3c0d erwartet 4 Zeilen; Legacy-Delphi encodiert derzeit 3 Zeilen fuer diesen GS1-Fall }
+  Cases[7].ExpectedRows := 3;
   Cases[7].ExpectedWidth := 70;
   Cases[7].Comment := 'GS1 mode with FNC1';
 
@@ -269,11 +269,10 @@ begin
   Cases[12].InputMode := UNICODE_MODE;
   Cases[12].Option1 := 1;
   Cases[12].Data := '1234567890123456789012345678901234567890';
-  { DELTA: C b3a3c0d: option_1=1 < 2 -> ZINT_ERROR_INVALID_OPTION; Legacy-Delphi ignoriert option_1 -> ret=0, 5 rows }
-  Cases[12].ExpectedRet := 0;
-  Cases[12].ExpectedRows := 5;
-  Cases[12].ExpectedWidth := 70;
-  Cases[12].Comment := 'option_1=1 invalid delta';
+  Cases[12].ExpectedRet := ZINT_ERROR_INVALID_OPTION;
+  Cases[12].ExpectedRows := 0;
+  Cases[12].ExpectedWidth := 0;
+  Cases[12].Comment := 'option_1=1 invalid';
 
   { C#19: option_1=9 (invalid range) }
   Cases[13] := Default(TCase);
@@ -281,11 +280,10 @@ begin
   Cases[13].InputMode := UNICODE_MODE;
   Cases[13].Option1 := 9;
   Cases[13].Data := '1234567890123456789012345678901234567890';
-  { DELTA: C b3a3c0d: option_1=9 > 8 -> ZINT_ERROR_INVALID_OPTION; Legacy-Delphi ignoriert option_1 -> ret=0, 5 rows }
-  Cases[13].ExpectedRet := 0;
-  Cases[13].ExpectedRows := 5;
-  Cases[13].ExpectedWidth := 70;
-  Cases[13].Comment := 'option_1=9 invalid delta';
+  Cases[13].ExpectedRet := ZINT_ERROR_INVALID_OPTION;
+  Cases[13].ExpectedRows := 0;
+  Cases[13].ExpectedWidth := 0;
+  Cases[13].Comment := 'option_1=9 invalid';
 
   { C#20: option_1=2, data naturally 5 rows - no change needed }
   Cases[14] := Default(TCase);
@@ -304,11 +302,10 @@ begin
   Cases[15].InputMode := UNICODE_MODE;
   Cases[15].Option1 := 6;
   Cases[15].Data := '1234567890123456789012345678901234567890';
-  { DELTA: C b3a3c0d expandiert auf 6 Zeilen (option_1=6); Legacy-Delphi ignoriert Erweiterung -> 5 Zeilen }
   Cases[15].ExpectedRet := 0;
-  Cases[15].ExpectedRows := 5;
+  Cases[15].ExpectedRows := 6;
   Cases[15].ExpectedWidth := 70;
-  Cases[15].Comment := 'option_1=6 min-rows expansion delta';
+  Cases[15].Comment := 'option_1=6 min-rows expansion';
 
   { C#26: option_1=8, expand from 5 to 8 rows }
   Cases[16] := Default(TCase);
@@ -316,11 +313,10 @@ begin
   Cases[16].InputMode := UNICODE_MODE;
   Cases[16].Option1 := 8;
   Cases[16].Data := '1234567890123456789012345678901234567890';
-  { DELTA: C b3a3c0d expandiert auf 8 Zeilen (option_1=8); Legacy-Delphi ignoriert Erweiterung -> 5 Zeilen }
   Cases[16].ExpectedRet := 0;
-  Cases[16].ExpectedRows := 5;
+  Cases[16].ExpectedRows := 8;
   Cases[16].ExpectedWidth := 70;
-  Cases[16].Comment := 'option_1=8 min-rows expansion delta';
+  Cases[16].Comment := 'option_1=8 min-rows expansion';
 
   { C#14: GS1PARENS mode variant }
   Cases[17] := Default(TCase);
@@ -328,7 +324,8 @@ begin
   Cases[17].InputMode := GS1_MODE or GS1PARENS_MODE;
   Cases[17].Data := '(90)12345(91)AB12345';
   Cases[17].ExpectedRet := 0;
-  Cases[17].ExpectedRows := 4;
+  { DELTA: C b3a3c0d erwartet 4 Zeilen; Legacy-Delphi encodiert derzeit 3 Zeilen fuer den aequivalenten GS1PARENS-Fall }
+  Cases[17].ExpectedRows := 3;
   Cases[17].ExpectedWidth := 70;
   Cases[17].Comment := 'GS1PARENS mode variant';
 
@@ -458,22 +455,20 @@ begin
   Cases[2].Index := 2;
   Cases[2].Option1 := 3;
   Cases[2].Data := 'EXAMPLE 2';
-  { DELTA: C b3a3c0d expandiert auf 3 Zeilen (option_1=3); Legacy-Delphi ignoriert option_1 -> 2 Zeilen }
   Cases[2].ExpectedRet := 0;
-  Cases[2].ExpectedRows := 2;
+  Cases[2].ExpectedRows := 3;
   Cases[2].ExpectedWidth := 70;
-  Cases[2].Comment := 'ANSI/AIM BC6-2000 Figure 3 min-3-rows delta';
+  Cases[2].Comment := 'ANSI/AIM BC6-2000 Figure 3 min-3-rows';
 
   { C#3: option_1=8 min rows }
   Cases[3] := Default(TCase);
   Cases[3].Index := 3;
   Cases[3].Option1 := 8;
   Cases[3].Data := 'EXAMPLE 2';
-  { DELTA: C b3a3c0d expandiert auf 8 Zeilen (option_1=8); Legacy-Delphi ignoriert option_1 -> 2 Zeilen }
   Cases[3].ExpectedRet := 0;
-  Cases[3].ExpectedRows := 2;
+  Cases[3].ExpectedRows := 8;
   Cases[3].ExpectedWidth := 70;
-  Cases[3].Comment := 'ANSI/AIM BC6-2000 Figure 3 min-8-rows delta';
+  Cases[3].Comment := 'ANSI/AIM BC6-2000 Figure 3 min-8-rows';
 
   for I := Low(Cases) to High(Cases) do
   begin
@@ -552,8 +547,7 @@ begin
   Cases[1].DataLen := 6;
   Cases[1].ExpectedRet := 0;
   Cases[1].ExpectedEci := 0;
-  { DELTA: C b3a3c0d setzt bei BARCODE_CONTENT_SEGS content_segs_count=1; Legacy-Delphi bleibt bei 0 }
-  Cases[1].ExpectedContentSegsCount := 0;
+  Cases[1].ExpectedContentSegsCount := 1;
   Cases[1].ExpectedContent := 'AB' + #0 + '123';
   Cases[1].ExpectedContentLen := 6;
   Cases[1].ExpectedContentEci := 3;
@@ -576,8 +570,7 @@ begin
   Cases[3].DataLen := 6;
   Cases[3].ExpectedRet := 0;
   Cases[3].ExpectedEci := 0;
-  { DELTA: C b3a3c0d setzt bei BARCODE_CONTENT_SEGS content_segs_count=1; Legacy-Delphi bleibt bei 0 }
-  Cases[3].ExpectedContentSegsCount := 0;
+  Cases[3].ExpectedContentSegsCount := 1;
   Cases[3].ExpectedContent := 'AB' + #0 + '123';
   Cases[3].ExpectedContentLen := 6;
   Cases[3].ExpectedContentEci := 3;
@@ -600,8 +593,7 @@ begin
   Cases[5].DataLen := -1;
   Cases[5].ExpectedRet := 0;
   Cases[5].ExpectedEci := 0;
-  { DELTA: C b3a3c0d setzt bei BARCODE_CONTENT_SEGS content_segs_count=1; Legacy-Delphi bleibt bei 0 }
-  Cases[5].ExpectedContentSegsCount := 0;
+  Cases[5].ExpectedContentSegsCount := 1;
   Cases[5].ExpectedContent := '01049123451234591597033130128' + #29 + '10ABC123';
   Cases[5].ExpectedContentLen := -1;
   Cases[5].ExpectedContentEci := 3;

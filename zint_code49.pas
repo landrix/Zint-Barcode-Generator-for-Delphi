@@ -1195,6 +1195,7 @@ var
   pad_count : Integer;
   pattern : TArrayOfChar;
   gs1 : Integer;
+	has_close_bracket : Boolean;
   block_count, c, block_remain, block_value : Integer;
   row_sum : Integer;
 begin
@@ -1206,7 +1207,7 @@ begin
     strcpy(symbol.errtxt, 'Input too long');
     result := ZERROR_TOO_LONG; exit;
   end;
-  if (symbol.input_mode = GS1_MODE) then gs1 := 1 else  gs1 := 0;
+	if ((symbol.input_mode and $07) = GS1_MODE) then gs1 := 1 else gs1 := 0;
 
   if (gs1 <> 0) then strcpy(intermediate, '*') else strcpy(intermediate, ''); { FNC1 }
 
@@ -1217,7 +1218,7 @@ begin
       strcpy(symbol.errtxt, 'Invalid characters in input data');
       result := ZERROR_INVALID_DATA; exit;
     end;
-    if (gs1 <> 0) and (source[i] = Ord('[')) then
+		if (gs1 <> 0) and ((source[i] = $1D) or (source[i] = Ord('['))) then
       concat(intermediate, '*') { FNC1 }
     else
       concat(intermediate, c49_table7[source[i]]);
@@ -1333,7 +1334,7 @@ begin
             Inc(i, 4);
           end;
         end;
-        if (i <= h) then
+				if (i < h) then
         begin
           { There is more to add }
           codewords[codeword_count] := 48; { Numeric Shift }
@@ -1398,6 +1399,28 @@ begin
       c_grid[rows][i] := 48; { Pad }
     Inc(rows);
   end;
+
+	if (symbol.option_1 >= 2) and (symbol.option_1 <= 8) then
+	begin
+		if (symbol.option_1 > rows) then
+		begin
+			for j := symbol.option_1 - rows downto 1 do
+			begin
+				for i := 0 to 6 do
+					c_grid[rows][i] := 48; { Pad }
+				Inc(rows);
+			end;
+		end;
+	end
+	else if (symbol.option_1 >= 1) then
+	begin
+		strcpy(symbol.errtxt, 'Minimum number of rows out of range (2 to 8)');
+		Result := ZERROR_INVALID_OPTION;
+		Exit;
+	end;
+
+	{ Feedback options }
+	symbol.option_1 := rows;
 
   { Add row count and mode character }
   c_grid[rows - 1][6] := (7 * (rows - 2)) + M;
@@ -1489,9 +1512,39 @@ begin
     expand(symbol, pattern);
   end;
 
-  symbol.whitespace_width := 10;
-  symbol.output_options := BARCODE_BIND;
-  symbol.border_width := 2;
+	symbol.whitespace_width := 10;
+	symbol.output_options := symbol.output_options or BARCODE_BIND;
+	if (symbol.border_width = 0) then
+		symbol.border_width := 1;
+
+	if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
+	begin
+		has_close_bracket := False;
+		for i := 0 to _length - 1 do
+		begin
+			if source[i] = Ord(']') then
+			begin
+				has_close_bracket := True;
+				Break;
+			end;
+		end;
+
+		SetLength(symbol.content_segs, 1);
+		SetLength(symbol.content_segs[0].Source, _length);
+		for i := 0 to _length - 1 do
+		begin
+			if (source[i] = Ord('[')) and (not has_close_bracket) then
+			begin
+				symbol.content_segs[0].Source[i] := $1D
+			end
+			else
+				symbol.content_segs[0].Source[i] := source[i];
+		end;
+		symbol.content_segs[0].Length := _length;
+		symbol.content_segs[0].ECI := 3;
+		symbol.content_segs[0].SourceMode := -1;
+		symbol.content_segs_count := 1;
+	end;
 
   result := 0; exit;
 end;
