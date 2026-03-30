@@ -42,9 +42,10 @@ Phase 4: API-Erweiterungen          ← Neue Felder, GS1, ECI
 | `zint_code.pas` | ✅ b3a3c0d | ✅ `Test_Code.pas` (87 Tests) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 |
 | `zint_2of5.pas` | ✅ b3a3c0d | ✅ `Test_2of5.pas` (81 Tests) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT; 1 dokumentiertes ESCAPE_MODE-Delta (errtxt-Position) |
 | `zint_code128.pas` | ✅ b3a3c0d | ✅ `Test_Code128.pas` (41 Tests) | Code128, Code128B, EAN-128/GS1-128, EAN-14, NVE-18, HIBC-128 (DAC-DM Algorithmus) |
+| `zint_aztec.pas` | 🟡 Legacy-Port + gezielte Paritaetsfixes | ✅ `Test_Aztec.pas` (5 Tests / C-Subsets aus `test_large`, `test_options`, `test_encode`, `test_fuzz`) | Neue Aztec-Fixture aktiv. Gefixt: `aztec_runes()` Laenge > 3 -> `ZERROR_TOO_LONG`, `READER_INIT + layers > 22` -> `ZERROR_INVALID_OPTION`. Dokumentierte Restdeltas: GS1+READER_INIT `input_mode`-Reset in `ZBarcode_Encode`, fehlender `FAST_MODE`, fehlende C-Warnings (`ZWARN_NONCOMPLIANT`) und encoderabhaengige Groessen-/Kapazitaetsabweichungen ggü. b3a3c0d. |
 | `zint_code1.pas` | 🟡 Teilport b3a3c0d | ✅ `Test_Code1.pas` (5 Tests / 167 C-Indizes) | Breite C-Testabdeckung aktiv (`test_input`, `test_large`, grosse `test_encode`-Subsets, `test_encode_segs`, `test_fuzz`). Wichtige Version-T-/C40-/TEXT-/GS1-Pfade wurden auf C-Paritaet gebracht; verbleibend sind dokumentierte Legacy-Deltas bei einzelnen Groessen-/Warn-/Overflow-Faellen. |
 
-**Gesamtstand (aktuell): 808 Tests, 808 bestanden, 0 fehlgeschlagen** ✅
+**Gesamtstand (aktuell): Aztec-Fixture aktiv und isoliert gruen; Full-Gate derzeit nicht als gruen verifiziert, da ein bestehender Nicht-Aztec-Blocker in `Test_Code1.TestEncodeSubset` (Stack-Overflow) den kompletten Lauf stoert.**
 
 Hinweis PDF417 test_encode odd-subset (Session 9):
 - `TestEncodeOddSubset3` (C#165-C#174) portiert, C-Escape-Strings (`\ooo`) werden im Test per lokalem Parser als Byte-Daten dekodiert.
@@ -217,7 +218,7 @@ Für jedes Modul, das sowohl in C als auch in Delphi existiert, den C-Diff nachz
 | `common.c` + `common.h` | `zint_common.pas` | in Arbeit |
 | `2of5.c` | `zint_2of5.pas` | b3a3c0d portiert + Tests gruen |
 | `auspost.c` | `zint_auspost.pas` | b3a3c0d portiert + Tests gruen |
-| `aztec.c` | `zint_aztec.pas` | Legacy-Port (nicht b3a3c0d-verifiziert) |
+| `aztec.c` | `zint_aztec.pas` | Legacy-Port mit aktivem Test-Port (`Test_Aztec.pas`) und gezielten Paritaetsfixes; nicht voll b3a3c0d-verifiziert |
 | `code.c` | `zint_code.pas` | b3a3c0d portiert + Tests gruen |
 | `code1.c` | `zint_code1.pas` | Teilport b3a3c0d: test_input/test_large/test_encode/test_encode_segs/test_fuzz aktiv (dokumentierte Deltas siehe oben) |
 | `code128.c` | `zint_code128.pas` | b3a3c0d portiert + Tests gruen |

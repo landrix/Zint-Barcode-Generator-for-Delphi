@@ -52,6 +52,8 @@ uses
   Test_Auspost,
    Test_QR,
    Test_PDF417
+  ,
+  Test_Aztec
   ;
 
 var

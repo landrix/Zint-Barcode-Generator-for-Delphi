@@ -19,6 +19,8 @@ uses
   Test_Plessey,
   Test_PZN,
   Test_PDF417
+  ,
+  Test_Aztec
   ;
 
 begin

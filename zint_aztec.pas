@@ -1280,7 +1280,7 @@ begin
   if ((reader <> 0) and (layers > 22)) then
   begin
     strcpy(symbol.errtxt, 'Data too long for reader initialisation symbol');
-    result := ZERROR_TOO_LONG; exit;
+     result := ZERROR_INVALID_OPTION; exit;
   end;
 
   data_blocks := adjusted_length div codeword_size;
@@ -1579,7 +1579,7 @@ begin
   if (_length > 3) then
   begin
     strcpy(symbol.errtxt, 'Input too large');
-    result := ZERROR_INVALID_DATA; exit;
+     result := ZERROR_TOO_LONG; exit;
   end;
 
   error_number := is_sane(NEON, source, _length);
