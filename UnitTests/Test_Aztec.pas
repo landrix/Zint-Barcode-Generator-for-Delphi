@@ -226,7 +226,7 @@ type
     Comment:      String;
   end;
 const
-  NCases = 17;
+  NCases = 22;
 var
   Symbol: TZintSymbol;
   Cases:  array[0..NCases - 1] of TCase;
@@ -398,6 +398,48 @@ begin
   Cases[16].Data         := '0001';
   Cases[16].ExpectedRet  := ZERROR_TOO_LONG;
   Cases[16].Comment      := 'AZRUNE length > 3; errtxt delta (C: Error 507:)';
+
+  { C#25: option_2=-2 (ungueltig) -> ZERROR_INVALID_OPTION }
+  Cases[17].Index        := 25;
+  Cases[17].Symbology    := BARCODE_AZTEC;
+  Cases[17].Option2      := -2;
+  Cases[17].Data         := '1234567890';
+  Cases[17].ExpectedRet  := ZERROR_INVALID_OPTION;
+  Cases[17].Comment      := 'Version -2 out-of-range; errtxt delta (C: Error 510:)';
+
+  { C#28: GS1PARENS_MODE gueltig -> 15x15 }
+  Cases[18].Index        := 28;
+  Cases[18].Symbology    := BARCODE_AZTEC;
+  Cases[18].InputMode    := GS1_MODE or GS1PARENS_MODE;
+  Cases[18].Data         := '(91)A';
+  Cases[18].ExpectedRet  := 0;
+  Cases[18].ExpectedRows := 15;
+  Cases[18].ExpectedWidth := 15;
+
+  { C#29: GS1PARENS_MODE malformed AI -> ZERROR_INVALID_DATA }
+  Cases[19].Index        := 29;
+  Cases[19].Symbology    := BARCODE_AZTEC;
+  Cases[19].InputMode    := GS1_MODE or GS1PARENS_MODE;
+  Cases[19].Data         := '(91)(';
+  Cases[19].ExpectedRet  := ZERROR_INVALID_DATA;
+  Cases[19].Comment      := 'Malformed AI in GS1PARENS input';
+
+  { C#38: READER_INIT + ECC=1 bleibt Compact 1 (15x15) }
+  Cases[20].Index        := 38;
+  Cases[20].Symbology    := BARCODE_AZTEC;
+  Cases[20].OutputOpts   := READER_INIT;
+  Cases[20].Option1      := 1;
+  Cases[20].Data         := 'A';
+  Cases[20].ExpectedRet  := 0;
+  Cases[20].ExpectedRows := 15;
+  Cases[20].ExpectedWidth := 15;
+
+  { C#50: HIBC_AZTEC ungueltiges Zeichen ';' -> ZERROR_INVALID_DATA }
+  Cases[21].Index        := 50;
+  Cases[21].Symbology    := BARCODE_HIBC_AZTEC;
+  Cases[21].Data         := '1234567890;';
+  Cases[21].ExpectedRet  := ZERROR_INVALID_DATA;
+  Cases[21].Comment      := 'HIBC invalid char ;';
 
   for I := Low(Cases) to High(Cases) do
   begin
