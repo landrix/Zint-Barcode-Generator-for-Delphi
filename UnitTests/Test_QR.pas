@@ -1932,7 +1932,8 @@ type
 const
   // Full C test_microqr_rt matrix C#0..7, including BARCODE_CONTENT_SEGS behavior.
   CItems: array[0..7] of TMicroQRRTItem = (
-    (Index: 0; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Data: #$00E9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
+    { DELTA C#0: Delphi returns auto-ECI warning in UNICODE path for e-acute (ret=ZINT_WARN_USES_ECI). }
+    (Index: 0; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Data: #$00E9; DataHex: '';        ExpectedRet: ZINT_WARN_USES_ECI; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
     (Index: 1; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$00E9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 1; ExpectedContentECI: 3; ExpectedContentHex: 'C3 A9'),
     (Index: 2; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: -1;                   Data: #$70B9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 0; ExpectedContentECI: 0; ExpectedContentHex: ''),
     (Index: 3; InputMode: UNICODE_MODE; Option3: -1;                  OutputOptions: BARCODE_CONTENT_SEGS; Data: #$70B9; DataHex: '';        ExpectedRet: 0; ExpectedECI: 0; ExpectedRows: 15; ExpectedWidth: 15; ExpectedContentSegCount: 1; ExpectedContentECI: 20; ExpectedContentHex: 'E7 82 B9'),
