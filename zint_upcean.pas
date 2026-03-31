@@ -233,9 +233,9 @@ var
 begin { EAN-2 and EAN-5 add-on codes }
   SetLength(parity,6);
 
-  { If an add-on then append with space }
-  if (mode <> 0) then
-    concat(dest, '9');
+  { If an add-on then append with gap (mode = gap width in modules, encoded as digit char) }
+  if mode > 0 then
+    concat(dest, Chr(Ord('0') + mode));
 
   { Start character }
   concat (dest, '112');
@@ -612,6 +612,9 @@ var
   writer, reader : Cardinal;
   latch, with_addon : Boolean;
   error_number, i : Integer;
+  check_digit : Char;
+  provided_check : Byte;
+  addon_gap : Integer;
 begin
   { splits string to parts before and after '+' parts }
   SetLength(first_part, 20);
@@ -710,6 +713,21 @@ begin
         Exit;
       end;
     BARCODE_EANX_CC:
+      begin
+      if (ustrlen(first_part) = 13) then
+      begin
+        provided_check := first_part[12];
+        first_part[12] := 0;
+        check_digit := ean_check(ArrayOfByteToArrayOfChar(first_part));
+        if (provided_check <> Ord(check_digit)) then
+        begin
+          strcpy(symbol.errtxt, 'Incorrect EAN check');
+          Result := ZERROR_INVALID_CHECK;
+          Exit;
+        end;
+        { Keep normalized 12-digit path for ean13() }
+      end;
+
       case (ustrlen(first_part)) of
       { Adds vertical separator bars according to ISO/IEC 24723 section 11.4 }
         7: begin
@@ -742,6 +760,7 @@ begin
             strcpy(symbol.errtxt, 'Invalid length EAN input');
             Result:=ZERROR_TOO_LONG;
             Exit;
+      end;
       end;
     BARCODE_UPCA:
       if (ustrlen(first_part) = 11) then
@@ -814,15 +833,19 @@ begin
         end;
 
   end;
+  { Set add-on gap: 9 for UPC-A variants, 7 for all others (EAN/ISBN/UPCE) }
+  addon_gap := 7;
+  if (symbol.symbology = BARCODE_UPCA) or (symbol.symbology = BARCODE_UPCA_CC) then
+    addon_gap := 9;
   case (ustrlen(second_part)) of
     0: begin end;
     2: begin
-      add_on(second_part, dest, 1);
+      add_on(second_part, dest, addon_gap);
       uconcat(symbol.text, '+');
       uconcat(symbol.text, second_part);
       end;
     5: begin
-      add_on(second_part, dest, 1);
+      add_on(second_part, dest, addon_gap);
       uconcat(symbol.text, '+');
       uconcat(symbol.text, second_part);
       end;
@@ -848,7 +871,10 @@ begin
             unset_module(symbol, symbol.rows - 1, i);
         end;
         unset_module(symbol, symbol.rows - 1, 0);
-        Inc(symbol.width, 2);
+        if ustrlen(second_part) = 0 then
+          Inc(symbol.width, 2)
+        else
+          Inc(symbol.width, 1);
       end;
   end;
 

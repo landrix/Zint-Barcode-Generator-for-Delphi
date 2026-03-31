@@ -315,10 +315,6 @@ begin
 
   for I := Low(Cases) to High(Cases) do
   begin
-    { DELTA: Legacy-CodeOne-Core kann bei Version-T-Langlaeufern (C#130..C#138) einen Stack-Overflow ausloesen.
-      Diese Faelle werden bis zur Core-Reparatur bewusst ausgelassen, um den Gate-Lauf stabil zu halten. }
-    if Cases[I].Index in [130..138] then
-      Continue;
 
     Symbol := TZintTestHelper.CreateSymbol(BARCODE_CODEONE);
     try
@@ -1564,8 +1560,6 @@ begin
   end;
 
   { C#139: "AAA\x80" x31 }
-  { DELTA: Legacy-CodeOne-Core kann in diesem Mischbyte-Fall ebenfalls Stack-Overflow ausloesen; bis zum Core-Fix deaktiviert. }
-  if False then
   begin
     SetLength(ByteData, 31);
     for I := 0 to 30 do

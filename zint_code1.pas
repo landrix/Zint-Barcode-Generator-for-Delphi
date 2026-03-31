@@ -1479,7 +1479,10 @@ begin
   if (symbol.option_2 = 10) then
   begin
     { Version T }
-    SetLength(data, 40); SetLength(ecc, 25);
+    { Buffer needs to hold encoded form of up to 90 bytes; worst case is ~91 codewords
+      (BYTE mode latch + 90 bytes). 128 is safe headroom to avoid out-of-bounds writes
+      inside c1_encode before the data_length > 38 guard triggers. }
+    SetLength(data, 128); SetLength(ecc, 25);
     SetLength(stream, 65);
 
     use_eci_escape := 0;

@@ -22,7 +22,8 @@ uses
   Test_PZN,
   Test_PDF417
   ,
-  Test_Aztec
+  Test_Aztec,
+  Test_Composite
   ;
 
 begin

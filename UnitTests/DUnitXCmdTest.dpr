@@ -55,7 +55,8 @@ uses
    Test_QR,
    Test_PDF417
   ,
-  Test_Aztec
+  Test_Aztec,
+  Test_Composite
   ;
 
 var

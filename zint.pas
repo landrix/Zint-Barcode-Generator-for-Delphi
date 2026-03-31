@@ -2906,6 +2906,15 @@ begin
 //    Exit(ZERROR_INVALID_OPTION);
 //  end;
 
+  { Restore GS1NOCHECK_MODE for composite CC symbologies that interrogate it
+    internally via gs1_verify. base_mode strips this flag since it only keeps
+    the 3-bit base. Scoped to CC composites only to avoid QR/DM regressions. }
+  if (symbol.symbology in [BARCODE_EANX_CC, BARCODE_EAN128_CC,
+        BARCODE_RSS14_CC, BARCODE_RSS_LTD_CC, BARCODE_RSS_EXP_CC,
+        BARCODE_UPCA_CC, BARCODE_UPCE_CC,
+        BARCODE_RSS14STACK_CC, BARCODE_RSS14_OMNI_CC, BARCODE_RSS_EXPSTACK_CC]) and
+      ((original_input_mode and GS1NOCHECK_MODE) <> 0) then
+    symbol.input_mode := symbol.input_mode or GS1NOCHECK_MODE;
 
 	case symbol.symbology of
 		BARCODE_QRCODE,

@@ -1571,12 +1571,22 @@ begin
     Inc(codewords_used, ecc_codewords);
     Inc(codewords_used, 3);
 
+    { Default option_3 to 928 when unset — matches C library.c: if(option_3 == 0) option_3 = 928 }
+    if symbol.option_3 = 0 then
+      symbol.option_3 := DEFAULTVALUE_OPTION_3;
     if (codewords_used > symbol.option_3) then
     begin
       result := ZERROR_TOO_LONG; exit;
     end;
     { *(cc_width) := 0.5 + sqrt((codewords_used) / 3); }
-    cc_width := (lin_width - 62) div 17;
+    if lin_width = 68 then
+      cc_width := 1
+    else
+    begin
+      cc_width := (lin_width - 52) div 17;
+      if cc_width < 1 then cc_width := 1;
+    end;
+    if cc_width > 30 then cc_width := 30;
     if ((codewords_used div cc_width) > 90) then
     begin
       { stop the symbol from becoming too high }
@@ -1757,12 +1767,22 @@ begin
     Inc(codewords_used, ecc_codewords);
     Inc(codewords_used, 3);
 
+    { Default option_3 to 928 when unset — matches C library.c: if(option_3 == 0) option_3 = 928 }
+    if symbol.option_3 = 0 then
+      symbol.option_3 := DEFAULTVALUE_OPTION_3;
     if (codewords_used > symbol.option_3) then
     begin
       result := ZERROR_TOO_LONG; exit;
     end;
     { *(cc_width) := 0.5 + sqrt((codewords_used) / 3); }
-    cc_width := (lin_width - 62) div 17;
+    if lin_width = 68 then
+      cc_width := 1
+    else
+    begin
+      cc_width := (lin_width - 52) div 17;
+      if cc_width < 1 then cc_width := 1;
+    end;
+    if cc_width > 30 then cc_width := 30;
     if ((codewords_used / cc_width) > 90) then
       { stop the symbol from becoming too high }
       cc_width := cc_width + 1;
@@ -1854,8 +1874,16 @@ var
   rs : Cardinal;
   bs : Cardinal;
   pri_len : Cardinal;
+  eanx_first_len, eanx_second_len, eanx_zfirst_len, eanx_zsecond_len, primary_norm_len : Integer;
+  eanx_with_addon : Boolean;
+  reduced_len, linear_content_len, merged_content_len : Integer;
+  linear_text_len, out_idx : Integer;
+  ch : Byte;
   reduced : TArrayOfChar;
+  reduced_for_content : TArrayOfChar;
   binary_string : TArrayOfChar;
+  linear_content : TArrayOfByte;
+  reduced_content : TArrayOfByte;
   linear : zint_symbol;
   top_shift, bottom_shift : Integer;
 begin
@@ -1866,6 +1894,48 @@ begin
 
   //error_number := 0;
   pri_len := strlen(symbol.primary);
+  eanx_first_len := 0;
+  eanx_second_len := 0;
+  eanx_zfirst_len := 0;
+  eanx_zsecond_len := 0;
+  primary_norm_len := Integer(pri_len);
+  eanx_with_addon := False;
+
+  if symbol.symbology = BARCODE_EANX_CC then
+  begin
+    for i := 0 to Integer(pri_len) - 1 do
+    begin
+      if symbol.primary[i] = '+' then
+      begin
+        eanx_with_addon := True;
+      end
+      else if not eanx_with_addon then
+      begin
+        Inc(eanx_first_len);
+      end
+      else
+      begin
+        Inc(eanx_second_len);
+      end;
+    end;
+
+    if (eanx_second_len <= 5) then eanx_zsecond_len := 5;
+    if (eanx_second_len <= 2) then eanx_zsecond_len := 2;
+    if (eanx_second_len = 0) then eanx_zsecond_len := 0;
+
+    if (eanx_first_len <= 12) then eanx_zfirst_len := 12;
+    if (eanx_first_len <= 7) then eanx_zfirst_len := 7;
+    if (eanx_second_len = 0) then
+    begin
+      if (eanx_first_len <= 5) then eanx_zfirst_len := 5;
+      if (eanx_first_len <= 2) then eanx_zfirst_len := 2;
+    end;
+
+    primary_norm_len := eanx_zfirst_len;
+    if eanx_zsecond_len > 0 then
+      Inc(primary_norm_len, 1 + eanx_zsecond_len); { + add-on separator }
+  end;
+
   if (pri_len = 0) then
   begin
     strcpy(symbol.errtxt, 'No primary (linear) message in 2D composite');
@@ -1882,6 +1952,7 @@ begin
   try
     error_number := gs1_verify(symbol, source, _length, reduced);
     if (error_number <> 0) then begin result := error_number; exit; end;
+    reduced_for_content := Copy(reduced);
 
     cc_mode := symbol.option_1;
 
@@ -1893,6 +1964,10 @@ begin
     end;
 
     linear.symbology := symbol.symbology;
+    linear.input_mode := symbol.input_mode;
+    linear.output_options := symbol.output_options;
+    linear.option_2 := symbol.option_2;
+    linear.option_3 := symbol.option_3;
 
     if (linear.symbology <> BARCODE_EAN128_CC) then
       { Set the 'component linkage' flag in the linear component }
@@ -1925,21 +2000,29 @@ begin
       { Determine width of 2D component according to ISO/IEC 24723 Table 1 }
       BARCODE_EANX_CC:
       begin
-        case pri_len of
-          7, { EAN-8 }
-          10, { EAN-8 + 2 }
-          13: { EAN-8 + 5 }
-            cc_width := 3;
-          12, { EAN-13 }
-          15, { EAN-13 + 2 }
-          18: { EAN-13 + 5 }
-            cc_width := 4;
+        if (primary_norm_len <= 7) then
+          cc_width := 3
+        else
+          case primary_norm_len of
+            10: { EAN-8 + 2 }
+              cc_width := 3;
+            13: { EAN-13 + CHK or EAN-8 + 5 }
+              if eanx_with_addon then
+                cc_width := 3
+              else
+                cc_width := 4;
+            12, { EAN-13 }
+            15, { EAN-13 + 2 }
+            16, { EAN-13 + CHK + 2 }
+            18, { EAN-13 + 5 }
+            19: { EAN-13 + CHK + 5 }
+              cc_width := 4;
           else //added for the case that the primary data is invalid
           begin
             concat(symbol.errtxt, 'Invalid primary data');
             result := ZERROR_INVALID_DATA; exit;
           end;
-        end;
+          end;
       end;
       BARCODE_EAN128_CC:    cc_width := 4;
       BARCODE_RSS14_CC:    cc_width := 4;
@@ -2006,14 +2089,17 @@ begin
       { Determine horizontal alignment (according to section 12.3) }
       BARCODE_EANX_CC:
       begin
-        case pri_len of
-          7, { EAN-8 }
-          10, { EAN-8 + 2 }
-          13: { EAN-8 + 5 }
-            bottom_shift := 13;
-          12, { EAN-13 }
-          15, { EAN-13 + 2 }
-          18: { EAN-13 + 5 }
+        case ustrlen(linear.text) of
+          8,  { EAN-8 }
+          11, { EAN-8 + 2 }
+          14: { EAN-8 + 5 }
+            if (cc_mode = 1) then
+              bottom_shift := 3
+            else
+              bottom_shift := 13;
+          13, { EAN-13 }
+          16, { EAN-13 + 2 }
+          19: { EAN-13 + 5 }
             bottom_shift := 2;
         end;
       end;
@@ -2078,6 +2164,60 @@ begin
 
     Inc(symbol.rows, linear.rows);
     ustrcpy(symbol.text, linear.text);
+
+    if ((symbol.output_options and BARCODE_CONTENT_SEGS) <> 0) then
+    begin
+      if (linear.content_segs_count > 0) and
+         (Length(linear.content_segs) > 0) and
+         (Length(linear.content_segs[0].Source) >= linear.content_segs[0].Length) then
+      begin
+        linear_content := Copy(linear.content_segs[0].Source, 0, linear.content_segs[0].Length);
+      end
+      else
+      begin
+        linear_text_len := ustrlen(linear.text);
+        SetLength(linear_content, linear_text_len);
+        out_idx := 0;
+        for i := 0 to linear_text_len - 1 do
+        begin
+          ch := linear.text[i];
+          if (ch <> Ord('(')) and (ch <> Ord(')')) and (ch <> Ord('+')) then
+          begin
+            linear_content[out_idx] := ch;
+            Inc(out_idx);
+          end;
+        end;
+        SetLength(linear_content, out_idx);
+      end;
+
+      linear_content_len := Length(linear_content);
+      reduced_len := strlen(reduced_for_content);
+      SetLength(reduced_content, reduced_len);
+      for i := 0 to reduced_len - 1 do
+      begin
+        if reduced_for_content[i] = '[' then
+          reduced_content[i] := $1D
+        else
+          reduced_content[i] := Ord(reduced_for_content[i]);
+      end;
+      merged_content_len := linear_content_len + 1 + reduced_len;
+
+      SetLength(symbol.content_segs, 1);
+      SetLength(symbol.content_segs[0].Source, merged_content_len);
+      if linear_content_len > 0 then
+        Move(linear_content[0], symbol.content_segs[0].Source[0], linear_content_len);
+      symbol.content_segs[0].Source[linear_content_len] := Ord('|');
+      if reduced_len > 0 then
+        Move(reduced_content[0], symbol.content_segs[0].Source[linear_content_len + 1], reduced_len);
+
+      symbol.content_segs[0].Length := merged_content_len;
+      if (linear.content_segs_count > 0) and (Length(linear.content_segs) > 0) then
+        symbol.content_segs[0].ECI := linear.content_segs[0].ECI
+      else
+        symbol.content_segs[0].ECI := 0;
+      symbol.content_segs[0].SourceMode := -1;
+      symbol.content_segs_count := 1;
+    end;
   finally
     linear.Free;
   end;
