@@ -9,12 +9,15 @@ Verbindliche Projektregeln, in dieser Reihenfolge lesen:
 3. **[docs/ports/README.md](docs/ports/README.md)** – aktueller Portierungsstand je Modul.
 4. **[docs/MIGRATION_PLAN.md](docs/MIGRATION_PLAN.md)** – Gesamtstrategie und Phasen.
 
-Die drei wichtigsten Regeln vorab:
+Die wichtigsten Regeln vorab:
 
 - Es ist **immer nur ein Arbeitsbranch offen**. Feature-Branches zweigen von `develop`
   ab, bleiben lokal und werden nach dem Review mit `--no-ff` zurückgemergt.
 - Eine Änderung ist erst fertig, wenn **beide** Gates grün sind:
   `scripts\gate-all.ps1` (Delphi Win32 + FPC).
+- **Kein Merge nach `develop` ohne Review durch Codex UND Fable 5** – auch nicht
+  für Infrastruktur- oder Doku-Branches. Auftragsvorlage:
+  [docs/REVIEW_PROMPT.md](docs/REVIEW_PROMPT.md).
 - Modulspezifischer Status und Deltas gehören nach `docs/ports/<modul>.md`,
   **nicht** in den MIGRATION_PLAN.
 

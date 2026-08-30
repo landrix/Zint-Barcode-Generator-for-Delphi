@@ -121,6 +121,17 @@ Ein Modul gilt als "ported + tests gruen", wenn:
 - Modul und Tests unter Delphi **und** FPC gruen sind.
 - Verbleibende Deltas explizit dokumentiert sind.
 
+## 10a) Review-Pflicht vor dem Merge
+
+Kein Merge nach `develop` ohne Review durch **Codex UND Fable 5**. Das gilt fuer
+jeden Branch, auch fuer reine Infrastruktur- und Doku-Branches.
+
+- Auftragsvorlage: [../docs/REVIEW_PROMPT.md](../docs/REVIEW_PROMPT.md)
+- Ablauf und Aufrufe: [../docs/PORTING_WORKFLOW.md](../docs/PORTING_WORKFLOW.md), Schritt 6
+- Beide Reviewer bekommen denselben Auftrag. Jeder Befund wird am Quelltext
+  nachgeprueft, dann umgesetzt oder mit Begruendung verworfen; verworfene
+  Befunde gehoeren in den Commit-Text.
+
 ## 11) Commit- und Aenderungsdisziplin
 
 - Kleine, thematisch saubere Aenderungen.

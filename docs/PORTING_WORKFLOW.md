@@ -78,25 +78,48 @@ Alle Aenderungen an den vier geteilten Dateien aus Abschnitt 1 kommen in **einen
 separaten, minimalen Commit am Branch-Ende**. Das macht einen Merge-Konflikt trivial
 aufloesbar, falls doch einmal parallel gearbeitet wurde.
 
-### Schritt 6 - Review
+### Schritt 6 - Review (Pflicht)
 
-Codex- und Fable-Review am lokalen Diff:
+> **Kein Merge nach `develop` ohne Review durch Codex UND Fable 5.**
+> Das gilt fuer jeden Branch, auch fuer reine Infrastruktur- und Doku-Branches.
+> Beide Reviewer bekommen denselben Auftrag, damit ihre Ergebnisse vergleichbar
+> sind; sie finden erfahrungsgemaess Unterschiedliches.
+
+Auftrag aus [REVIEW_PROMPT.md](REVIEW_PROMPT.md) erstellen, den Abschnitt
+"Schwerpunkte dieses Branches" ausfuellen, dann beide starten:
 
 ```powershell
-git diff develop...HEAD
+# Codex (CLI), read-only:
+Get-Content docs\REVIEW_PROMPT.md -Raw | codex exec --sandbox read-only -
 ```
+
+Fable 5 laeuft als Agent mit demselben Auftragstext und dem Hinweis, keine
+Dateien zu aendern.
+
+Danach:
+
+1. Jeden Befund am Quelltext **nachpruefen** - beide Reviewer irren gelegentlich
+   und widersprechen sich mitunter.
+2. Befunde umsetzen oder mit Begruendung verwerfen. Bewusst verworfene Befunde
+   gehoeren in den Commit-Text.
+3. Beide Gates erneut laufen lassen.
 
 Review-Checkliste siehe Abschnitt 5.
 
 ### Schritt 7 - Merge nach develop
 
+Voraussetzung: Schritt 6 ist erledigt und die Befunde sind abgearbeitet.
+
 ```powershell
 git checkout develop
 git merge --no-ff port/<barcode>
-scripts\gate-all.ps1
+scripts\gate-all.ps1          # develop muss NACH dem Merge gruen sein
 git push
 git branch -d port/<barcode>
 ```
+
+Im Merge-Commit festhalten: Gate-Zahlen, offene Deltas und dass beide Reviews
+gelaufen sind.
 
 Der Statuseintrag in `docs/ports/<modul>.md` wird im Feature-Branch gepflegt,
 die Uebersicht in `docs/ports/README.md` **erst beim Merge** auf develop.
@@ -276,10 +299,13 @@ ZAssert.IsFalse(cond, 'msg');
 
 ---
 
-## 5) Review-Checkliste (Codex / Fable)
+## 5) Review-Checkliste (Codex / Fable 5)
 
 Vor dem Merge nach develop pruefen:
 
+- [ ] **Review durch Codex gelaufen** (Auftrag aus `docs/REVIEW_PROMPT.md`)
+- [ ] **Review durch Fable 5 gelaufen** (derselbe Auftrag)
+- [ ] Jeder Befund nachgeprueft, umgesetzt oder mit Begruendung verworfen
 - [ ] Jeder Delphi-Fix hat eine benannte C-Referenz (Datei + Funktion + Testblock)
 - [ ] C-Indizes im Test sichtbar (`{ C#<n> }`)
 - [ ] Keine Assertion entfernt, nur um gruen zu werden
