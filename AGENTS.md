@@ -24,6 +24,9 @@ Die wichtigsten Regeln vorab:
   öffentliche Release-Linie und soll keinen deutschen Text tragen. Der heutige
   Stand von `main` erfüllt das noch nicht (Altbestand, u.a. `zint_qr_epc.pas`
   und die `.dproj`); die Regel greift beim ersten Release-Schnitt.
+- Die **C-Referenz bleibt auf `b3a3c0d` festgenagelt**, sie wird waehrend der
+  Portierung nicht auf einen neueren Upstream-Stand gezogen – Begruendung und
+  Ablauf fuer den spaeteren Wechsel in PORTING_WORKFLOW Abschnitt 2b.
 - Modulspezifischer Status und Deltas gehören nach `docs/ports/<modul>.md`,
   **nicht** in den MIGRATION_PLAN.
 

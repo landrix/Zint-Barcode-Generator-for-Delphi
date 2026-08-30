@@ -192,6 +192,59 @@ ist kein Anlass, eine Aussage zu glaetten, zu kuerzen oder zu beschoenigen.
 
 ---
 
+## 2b) C-Referenz aktualisieren
+
+Die C-Referenz ist auf **`b3a3c0d` (2026-03-13, Zint 2.16.0.9-dev)** festgenagelt.
+Sie liegt unter `Lib/zint-master-2026-03-13-b3a3c0d/` und ist nicht versioniert
+(`.gitignore`).
+
+> **Der Pin wird waehrend der Portierung nicht bewegt.** Der Wechsel auf einen
+> neueren Upstream-Stand ist ein eigener Vorgang mit eigenem Branch, fruehestens
+> nach dem ersten Release-Schnitt nach `main`.
+
+### Warum nicht laufend mitziehen
+
+**Die C-Indizes sind Positionen, keine Namen.** In den Testunits stehen rund 660
+`C#<n>`-Verweise. `C#6` ist der siebte Eintrag im `data[]`-Array des jeweiligen
+C-Testblocks. Fuegt Upstream einen Fall an Position 3 ein, verschieben sich alle
+folgenden - und zwar lautlos: kein Test wird rot, kein Gate schlaegt an, die
+Zuordnung stimmt nur nicht mehr. Das ist genau die Fehlerklasse, gegen die die
+Mindest-Testzahlen und die Reviews aufgestellt wurden, nur ohne Signal.
+
+**Der Pin steckt an rund 160 Stellen in etwa 65 Dateien** - Pfade, Statusangaben,
+Delta-Tabellen.
+
+**Der Port ist mittendrin.** Bei 8 fertigen, 10 teilweise portierten, 11
+Legacy- und 10 fehlenden Modulen wuerde ein Referenzwechsel den Zielzustand fuer
+alles Unfertige verschieben. Dokumentierte Deltas waeren danach weder bestaetigt
+noch widerlegt, sondern unklar - und der Port ueberbrueckt ohnehin schon rund
+neun Jahre (Delphi-Basis `3432bc9`, Zint ~2.4.x von 2016/17).
+
+Der Preis dafuer ist bekannt und wird bewusst bezahlt: Es kann sein, dass
+Verhalten nachportiert wird, das Upstream inzwischen korrigiert hat - denkbar
+etwa bei den `errtxt`-Formaten und der Warnklassifikation. Das ist der
+guenstigere der beiden Fehler. Ein fester Bezugspunkt erlaubt die Aussage "gruen
+gegen `b3a3c0d`"; ein wandernder erlaubt nur "gruen gegen irgendetwas".
+
+### Ablauf beim spaeteren Wechsel
+
+Eigener Branch `chore/c-reference-<neuer-commit>`:
+
+1. Neuen Snapshot **neben** den alten legen, beide gleichzeitig auf Platte.
+2. `diff -r` ueber `backend/*.c` und `backend/tests/test_*.c`, modulweise
+   auswerten - nicht als Gesamtdiff.
+3. Je betroffenem Modul in `docs/ports/<modul>.md` festhalten, welche C-Faelle
+   neu, entfernt oder **verschoben** sind.
+4. Indexverschiebungen in den Testunits nachziehen. Das ist die eigentliche
+   Arbeit, nicht der Ordnertausch.
+5. Pfadangaben und Versionsnennungen projektweit umstellen (siehe oben, rund
+   160 Fundstellen).
+6. Beide Gates, beide Reviews wie bei jedem anderen Branch.
+
+Erst danach den alten Snapshot entfernen.
+
+---
+
 ## 3) Gates
 
 Eine Aenderung ist erst fertig, wenn **beide** Gates gruen sind.
