@@ -4,6 +4,7 @@ param(
   [string]$Platform = "Win32",
   [string]$ProjectRelativePath = "UnitTests\DUnitXCmdTest.dproj",
   [string]$TestExeRelativePath = "",
+  [int]$MinTests = 827,
   [switch]$SkipRun
 )
 
@@ -72,19 +73,38 @@ try {
 
   # Feed Enter to keep compatibility with console test runners that prompt.
   $testOutput = cmd /c "echo.|`"$exe`" 2>&1"
+  $runExit = $LASTEXITCODE
   $testOutput | ForEach-Object { Write-Host $_ }
 
-  $failedLine = $testOutput | Select-String -Pattern 'Tests Failed\s*:\s*(\d+)' | Select-Object -First 1
+  $foundLine   = $testOutput | Select-String -Pattern 'Tests Found\s*:\s*(\d+)'   | Select-Object -First 1
+  $failedLine  = $testOutput | Select-String -Pattern 'Tests Failed\s*:\s*(\d+)'  | Select-Object -First 1
   $erroredLine = $testOutput | Select-String -Pattern 'Tests Errored\s*:\s*(\d+)' | Select-Object -First 1
-  $failedCount = if ($failedLine) { [int]([regex]::Match($failedLine.Line, '(\d+)').Value) } else { 0 }
-  $erroredCount = if ($erroredLine) { [int]([regex]::Match($erroredLine.Line, '(\d+)').Value) } else { 0 }
+
+  # Eine fehlende Zusammenfassung darf nicht als "null Fehler" durchgehen: stuerzt
+  # die Test-Exe vor der Summary ab, gaebe es sonst kein einziges Fehlersignal.
+  if (-not $foundLine -or -not $failedLine -or -not $erroredLine) {
+    throw ("Test summary not found in runner output (exit code {0}). The test executable probably crashed before finishing." -f $runExit)
+  }
+
+  $foundCount   = [int]([regex]::Match($foundLine.Line,   '(\d+)').Value)
+  $failedCount  = [int]([regex]::Match($failedLine.Line,  '(\d+)').Value)
+  $erroredCount = [int]([regex]::Match($erroredLine.Line, '(\d+)').Value)
 
   if (($failedCount -gt 0) -or ($erroredCount -gt 0)) {
     throw "Test execution failed."
   }
 
-  if ($LASTEXITCODE -ne 0) {
-    Write-Warning ("Test runner exited with code {0} although summary is green (known post-run AV caveat)." -f $LASTEXITCODE)
+  # Verschwundene Tests sind ein Fehler, auch wenn kein einzelner fehlschlaegt.
+  # Genau so blieb unbemerkt, dass DUnitX vier Fixtures still uebersprungen hat
+  # (siehe docs/PORTING_WORKFLOW.md).
+  if ($foundCount -lt $MinTests) {
+    throw ("Only {0} tests found, expected at least {1}. Tests have disappeared - check fixture registration. (If the reduction is intended, adjust -MinTests.)" -f $foundCount, $MinTests)
+  }
+
+  Write-Host ("Delphi: {0} tests, {1} failed, {2} errored (expected at least {3})." -f $foundCount, $failedCount, $erroredCount, $MinTests)
+
+  if ($runExit -ne 0) {
+    Write-Warning ("Test runner exited with code {0} although summary is green (known post-run AV caveat)." -f $runExit)
   }
 }
 finally {

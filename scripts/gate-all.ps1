@@ -58,6 +58,13 @@ foreach ($k in $results.Keys) {
   Write-Host ("{0,-28} {1}" -f $k, $results[$k]) -ForegroundColor $color
 }
 
+# Kein ausgefuehrtes Gate ist kein Erfolg. Ohne diese Pruefung meldete
+# "gate-all.ps1 -SkipDelphi -SkipFpc" mit Exitcode 0 "Alle Gates gruen".
+if ($results.Count -eq 0) {
+  Write-Host ""
+  throw "Kein Gate ausgefuehrt - nichts geprueft."
+}
+
 if ($results.Values -contains "ROT") {
   Write-Host ""
   throw "Mindestens ein Gate ist rot."

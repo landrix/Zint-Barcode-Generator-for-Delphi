@@ -183,8 +183,15 @@ end;
 class procedure ZAssert.AreEqual(const AExpected, AActual: Single; const AMessage: string);
 begin
   {$IFDEF FPC}
-  { Delta 0 = exakter Vergleich, entspricht dem generischen Comparer in DUnitX. }
-  TAssert.AssertEquals(AMessage, AExpected, AActual, 0);
+  { fpcunit prueft ueber Abs(Expected - Actual) <= Delta. Bei zwei gleichen
+    unendlichen Werten ergibt die Differenz NaN, und NaN <= 0 ist False - der
+    Vergleich schluege fehl, waehrend der generische Comparer von DUnitX ihn
+    bestehen laesst. Deshalb vorab auf Bitgleichheit pruefen; erst danach der
+    numerische Vergleich mit Delta 0 (exakt, wie unter Delphi). }
+  if AExpected = AActual then
+    TAssert.AssertTrue(AMessage, True)
+  else
+    TAssert.AssertEquals(AMessage, AExpected, AActual, 0);
   {$ELSE}
   Assert.AreEqual<Single>(AExpected, AActual, AMessage);
   {$ENDIF}

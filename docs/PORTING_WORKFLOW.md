@@ -115,6 +115,16 @@ Eine Aenderung ist erst fertig, wenn **beide** Gates gruen sind.
 | Beides | `scripts\gate-all.ps1` | | |
 | QR-Schnellcheck | `UnitTests\run_qr_regression.bat` | Delphi | Win32 |
 
+### Mindest-Testzahl
+
+Beide Vollgates kennen einen Parameter `-MinTests` (Delphi 827, FPC 848) und
+schlagen fehl, wenn weniger Tests laufen - auch dann, wenn kein einzelner Test
+rot ist. Ohne diese Schranke bleibt ein Gate gruen, wenn eine Fixture still aus
+der Registrierung faellt; genau so blieb der DUnitX-Fall unten lange unsichtbar.
+
+**Wer Tests hinzufuegt, setzt die Zahl hoch.** Wer sie bewusst verringert,
+begruendet das im Commit und setzt sie herunter.
+
 Das Linux-Gate ist **nur ein Compile-Gate**: FPC 3.2.2 kennt den Modeswitch
 `prefixedattributes` nicht und kann die Testfixtures daher nicht uebersetzen.
 Es sichert Plattformunabhaengigkeit des Cores ab, nicht das Testverhalten.
@@ -162,14 +172,33 @@ Was **ausgeschlossen** werden konnte:
   `Test_Code` (310 Tests weniger) fehlt Telepen weiterhin.
 
 Unter FPC laufen dieselben Fixtures vollstaendig: fpcunit fuehrt 848 Tests aus,
-Delphi 826 (`826 - QR 9 - PDF417 17 = 800`, Differenz zu 848 sind exakt die 48
+das NUnit-Ergebnis von Delphi enthaelt 826 `test-case`-Eintraege
+(`826 - QR 9 - PDF417 17 = 800`, Differenz zu 848 sind exakt die 48
 Telepen-Tests). **Das FPC-Gate ist derzeit der strengere der beiden Runner.**
+
+> Zu den beiden Delphi-Zahlen: die Konsolenzusammenfassung meldet `Tests Found: 827`,
+> das NUnit-XML enthaelt 826 `test-case`-Eintraege. Die Differenz von 1 ist nicht
+> aufgeklaert und fuer die obige Rechnung ohne Belang; beide Zahlen sind bewusst
+> so genannt, wie das jeweilige Ausgabeformat sie liefert.
 
 Offen bleibt die Ursache im Fixture-Baum-Aufbau von DUnitX
 (`Lib/dunitx/Source/DUnitX.FixtureProvider.pas`, `Execute` / `GenerateTests`).
 Solange das nicht geklaert ist, gilt: **eine gruene Delphi-Suite ist kein Beleg
-dafuer, dass alle vorhandenen Tests gelaufen sind.** Die Zahl im Gate
-(`Tests Found`) mit der Zahl der Fixtures abgleichen, wenn Zweifel bestehen.
+dafuer, dass alle vorhandenen Tests gelaufen sind.**
+
+**Bearbeitung:** Die Ursachensuche wird nicht als eigenes Infrastrukturthema
+weiterverfolgt, sondern im jeweiligen Barcode-Branch erledigt, wo sie ohnehin
+auffaellt:
+
+| Branch | Aufgabe |
+|---|---|
+| `port/telepen` | `TTestTelepen`, `TTestTelepenNum` - 48 Tests, laufen unter Delphi gar nicht |
+| `port/qr` | `TTestRMQR`, `TTestUPNQR`, sowie 9 von 12 Methoden in `TTestQR` |
+
+Wer zuerst drankommt, klaert die Ursache und traegt sie hier nach; der jeweils
+andere Branch profitiert davon. Bis dahin greift als Absicherung die
+Mindest-Testzahl der Gates (`-MinTests`, siehe Abschnitt 3): sie schlaegt an,
+sobald weitere Tests still verschwinden.
 
 ---
 
