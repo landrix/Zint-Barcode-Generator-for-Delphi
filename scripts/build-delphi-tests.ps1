@@ -4,7 +4,8 @@ param(
   [string]$Platform = "Win32",
   [string]$ProjectRelativePath = "UnitTests\DUnitXCmdTest.dproj",
   [string]$TestExeRelativePath = "",
-  [int]$MinTests = 827,
+  [int]$MinTests = 881,
+  [int]$MaxIgnored = 0,
   [switch]$SkipRun
 )
 
@@ -77,16 +78,20 @@ try {
   $testOutput | ForEach-Object { Write-Host $_ }
 
   $foundLine   = $testOutput | Select-String -Pattern 'Tests Found\s*:\s*(\d+)'   | Select-Object -First 1
+  $passedLine  = $testOutput | Select-String -Pattern 'Tests Passed\s*:\s*(\d+)'  | Select-Object -First 1
+  $ignoredLine = $testOutput | Select-String -Pattern 'Tests Ignored\s*:\s*(\d+)' | Select-Object -First 1
   $failedLine  = $testOutput | Select-String -Pattern 'Tests Failed\s*:\s*(\d+)'  | Select-Object -First 1
   $erroredLine = $testOutput | Select-String -Pattern 'Tests Errored\s*:\s*(\d+)' | Select-Object -First 1
 
   # Eine fehlende Zusammenfassung darf nicht als "null Fehler" durchgehen: stuerzt
   # die Test-Exe vor der Summary ab, gaebe es sonst kein einziges Fehlersignal.
-  if (-not $foundLine -or -not $failedLine -or -not $erroredLine) {
-    throw ("Test summary not found in runner output (exit code {0}). The test executable probably crashed before finishing." -f $runExit)
+  if (-not $foundLine -or -not $passedLine -or -not $ignoredLine -or -not $failedLine -or -not $erroredLine) {
+    throw ("Test summary not found or incomplete in runner output (exit code {0}). The test executable probably crashed before finishing." -f $runExit)
   }
 
   $foundCount   = [int]([regex]::Match($foundLine.Line,   '(\d+)').Value)
+  $passedCount  = [int]([regex]::Match($passedLine.Line,  '(\d+)').Value)
+  $ignoredCount = [int]([regex]::Match($ignoredLine.Line, '(\d+)').Value)
   $failedCount  = [int]([regex]::Match($failedLine.Line,  '(\d+)').Value)
   $erroredCount = [int]([regex]::Match($erroredLine.Line, '(\d+)').Value)
 
@@ -94,17 +99,32 @@ try {
     throw "Test execution failed."
   }
 
-  # Verschwundene Tests sind ein Fehler, auch wenn kein einzelner fehlschlaegt.
-  # Genau so blieb unbemerkt, dass DUnitX vier Fixtures still uebersprungen hat
-  # (siehe docs/PORTING_WORKFLOW.md).
-  if ($foundCount -lt $MinTests) {
-    throw ("Only {0} tests found, expected at least {1}. Tests have disappeared - check fixture registration. (If the reduction is intended, adjust -MinTests.)" -f $foundCount, $MinTests)
+  # "Found" heisst nur "entdeckt". Ignorierte Tests zaehlen mit, laufen aber nicht.
+  # Gemessen wird daher an den tatsaechlich ausgefuehrten Tests - sonst genuegte
+  # ein [Ignore], um das Gate gruen zu halten, ohne dass etwas geprueft wird.
+  # Das FPC-Gate misst aus demselben Grund an "Number of run tests".
+  $executedCount = $passedCount + $failedCount + $erroredCount
+
+  # Der Ausweg muss echt sein: die Meldung darf nicht auf eine Moeglichkeit
+  # verweisen, die es im Code nicht gibt. Wer bewusst ignoriert, hebt
+  # -MaxIgnored an und senkt -MinTests - beides sichtbar im Aufruf.
+  if ($ignoredCount -gt $MaxIgnored) {
+    throw ("{0} test(s) were ignored (allowed: {1}). Ignored tests do not verify anything - remove the [Ignore], or document the reason and raise -MaxIgnored together with lowering -MinTests." -f $ignoredCount, $MaxIgnored)
   }
 
-  Write-Host ("Delphi: {0} tests, {1} failed, {2} errored (expected at least {3})." -f $foundCount, $failedCount, $erroredCount, $MinTests)
+  if ($executedCount -lt $MinTests) {
+    throw ("Only {0} tests executed (found {1}, ignored {2}), expected at least {3}. Tests have disappeared - check fixture registration. (If the reduction is intended, adjust -MinTests.)" -f $executedCount, $foundCount, $ignoredCount, $MinTests)
+  }
 
+  Write-Host ("Delphi: {0} executed, {1} passed, {2} failed, {3} errored, {4} ignored (expected at least {5} executed)." -f $executedCount, $passedCount, $failedCount, $erroredCount, $ignoredCount, $MinTests)
+
+  # Frueher wurde ein Nonzero-Exitcode hier nur als "known post-run AV caveat"
+  # gewarnt. Dieser AV (Runtime error 216) stammte von TTestQR, das den Lauf
+  # vorzeitig abbrach und dabei rund 60 Tests verschluckte - darunter die
+  # gesamte Telepen-Suite. Seit TTestQR stillgelegt ist, endet der Runner mit
+  # Exitcode 0. Ein Nonzero-Exitcode ist daher wieder ein echtes Fehlersignal.
   if ($runExit -ne 0) {
-    Write-Warning ("Test runner exited with code {0} although summary is green (known post-run AV caveat)." -f $runExit)
+    throw ("Test runner exited with code {0} although the summary looks green. That indicates a crash during or after the run - do not ignore it (see docs/PORTING_WORKFLOW.md, section 3)." -f $runExit)
   }
 }
 finally {

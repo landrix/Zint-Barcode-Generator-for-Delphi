@@ -33,6 +33,7 @@ Gemeinsame Hilfsfunktionen
 
 | C-Index | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
 |---|---|---|---|---|
+| n/a (`z_set_height`) | Jeder Encoder setzt am Ende `symbol.height`, je nach `COMPLIANT_HEIGHT` unterschiedlich | Funktion nicht portiert, `symbol.height` bleibt 0 | Der Port kennt kein `z_set_height`; Hoehe entsteht erst beim Rendern aus `row_height` | Als eigenen Vorgang portieren, siehe [library.md](library.md), Abschnitt Querschnittsdeltas |
 | | | | | |
 
 ## Offene Deltas FPC vs Delphi

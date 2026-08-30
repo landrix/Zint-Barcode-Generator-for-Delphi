@@ -32,7 +32,7 @@
 param(
   [string]$FpcRoot  = "D:\bin\fpc\fpcupdeluxe",
   [string]$Target   = "aarch64-win64",
-  [int]$MinTests    = 848,
+  [int]$MinTests    = 849,
   [switch]$SkipRun,
   [switch]$Wsl
 )
