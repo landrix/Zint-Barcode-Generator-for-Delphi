@@ -3036,7 +3036,14 @@ begin
 
 	error_tag(symbol.errtxt, error_number);
 
-  if (error_number > 0) and (error_number <= 5) then
+  { C: library.c:1276. Absolutes Minimum, falls der Encoder keine Hoehe
+    gesetzt hat. Betrifft die Symbologien, die in C selbst kein
+    z_set_height rufen - etwa plessey.c und die C25-Varianten in 2of5.c. }
+  if error_number < ZERROR_TOO_LONG then
+  begin
+    if symbol.height < 0.5 then
+      set_height(symbol, 0.0, 50.0, 0.0, 1);
+  end;
 
   symbol.input_mode := original_input_mode;
 

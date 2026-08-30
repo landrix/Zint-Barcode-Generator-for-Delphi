@@ -657,7 +657,11 @@ begin
     end
     else
     begin
-      if error_number = 0 then { Eine Warnung aus gs1_verify nicht ueberschreiben }
+      { C: keine Warnung aus zint_gs1_verify ueberschreiben. Im Port kann der
+        Fall derzeit nicht eintreten - jede Rueckgabe <> 0 fuehrt oben zum
+        Ausstieg, und Warnung 843 (code128.c:615) ist nicht portiert. Die
+        Verzweigung bleibt trotzdem, damit sie stimmt, sobald 843 dazukommt. }
+      if error_number = 0 then
         error_number := set_height(symbol, 5.70866156, 64.1414108, 0.0, 0)
       else
         set_height(symbol, 5.70866156, 64.1414108, 0.0, 1);

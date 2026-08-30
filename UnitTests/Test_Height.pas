@@ -38,15 +38,22 @@ type
       const AHeight: Single; const AData: String; ARet: Integer;
       const AExpHeight: Single; AExpRows, AExpWidth: Integer);
   published
+    [Test] procedure Height_CODE11;
+    [Test] procedure Height_C25MATRIX;
     [Test] procedure Height_C25INTER;
+    [Test] procedure Height_C25IATA;
+    [Test] procedure Height_C25LOGIC;
+    [Test] procedure Height_C25IND;
     [Test] procedure Height_CODE39;
     [Test] procedure Height_EXCODE39;
     [Test] procedure Height_EAN128;
     [Test] procedure Height_DPLEIT;
     [Test] procedure Height_DPIDENT;
     [Test] procedure Height_CODE93;
+    [Test] procedure Height_FLAT;
     [Test] procedure Height_TELEPEN;
     [Test] procedure Height_POSTNET;
+    [Test] procedure Height_MSI_PLESSEY;
     [Test] procedure Height_FIM;
     [Test] procedure Height_LOGMARS;
     [Test] procedure Height_PHARMA;
@@ -59,9 +66,12 @@ type
     [Test] procedure Height_AUSREDIRECT;
     [Test] procedure Height_RM4SCC;
     [Test] procedure Height_EAN14;
+    [Test] procedure Height_VIN;
     [Test] procedure Height_NVE18;
     [Test] procedure Height_JAPANPOST;
+    [Test] procedure Height_KOREAPOST;
     [Test] procedure Height_PLANET;
+    [Test] procedure Height_PLESSEY;
     [Test] procedure Height_TELEPEN_NUM;
     [Test] procedure Height_ITF14;
     [Test] procedure Height_KIX;
@@ -101,6 +111,22 @@ begin
     sym.Free;
   end;
 end;
+procedure TTestHeight.Height_CODE11;
+begin
+  CheckCase(0, BARCODE_CODE11, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 108);
+  CheckCase(1, BARCODE_CODE11, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 108);
+  CheckCase(2, BARCODE_CODE11, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 108);
+  CheckCase(3, BARCODE_CODE11, -1, -1, 10.0, '1234567890', 0, 10.0, 1, 108);
+end;
+
+procedure TTestHeight.Height_C25MATRIX;
+begin
+  CheckCase(4, BARCODE_C25MATRIX, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 117);
+  CheckCase(5, BARCODE_C25MATRIX, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 117);
+  CheckCase(6, BARCODE_C25MATRIX, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 117);
+  CheckCase(7, BARCODE_C25MATRIX, -1, -1, 11.0, '1234567890', 0, 11.0, 1, 117);
+end;
+
 procedure TTestHeight.Height_C25INTER;
 begin
   CheckCase(8, BARCODE_C25INTER, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 99);
@@ -109,6 +135,27 @@ begin
   CheckCase(11, BARCODE_C25INTER, COMPLIANT_HEIGHT, -1, 15.5, '1234567890', 0, 15.5, 1, 99);
   CheckCase(12, BARCODE_C25INTER, COMPLIANT_HEIGHT, -1, 17.5, '12345678901', ZWARN_NONCOMPLIANT, 17.5, 1, 117);
   CheckCase(13, BARCODE_C25INTER, COMPLIANT_HEIGHT, -1, 17.75, '12345678901', 0, 17.75, 1, 117);
+end;
+
+procedure TTestHeight.Height_C25IATA;
+begin
+  CheckCase(14, BARCODE_C25IATA, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 149);
+  CheckCase(15, BARCODE_C25IATA, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 149);
+  CheckCase(16, BARCODE_C25IATA, -1, -1, 30.0, '1234567890', 0, 30.0, 1, 149);
+end;
+
+procedure TTestHeight.Height_C25LOGIC;
+begin
+  CheckCase(17, BARCODE_C25LOGIC, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 109);
+  CheckCase(18, BARCODE_C25LOGIC, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 109);
+  CheckCase(19, BARCODE_C25LOGIC, -1, -1, 41.0, '1234567890', 0, 41.0, 1, 109);
+end;
+
+procedure TTestHeight.Height_C25IND;
+begin
+  CheckCase(20, BARCODE_C25IND, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 159);
+  CheckCase(21, BARCODE_C25IND, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 159);
+  CheckCase(22, BARCODE_C25IND, -1, -1, 21.0, '1234567890', 0, 21.0, 1, 159);
 end;
 
 procedure TTestHeight.Height_CODE39;
@@ -163,6 +210,13 @@ begin
   CheckCase(96, BARCODE_CODE93, COMPLIANT_HEIGHT, -1, 22.1, '1234567890', 0, 22.1, 1, 127);
 end;
 
+procedure TTestHeight.Height_FLAT;
+begin
+  CheckCase(97, BARCODE_FLAT, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 90);
+  CheckCase(98, BARCODE_FLAT, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 90);
+  CheckCase(99, BARCODE_FLAT, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 90);
+end;
+
 procedure TTestHeight.Height_TELEPEN;
 begin
   CheckCase(112, BARCODE_TELEPEN, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 208);
@@ -182,6 +236,13 @@ begin
   CheckCase(136, BARCODE_POSTNET, COMPLIANT_HEIGHT, -1, 9.1, '12345678901', ZWARN_NONCOMPLIANT, 9.1000004, 2, 123);
   CheckCase(137, BARCODE_POSTNET, -1, -1, 20.0, '12345678901', 0, 20.0, 2, 123);
   CheckCase(138, BARCODE_POSTNET, COMPLIANT_HEIGHT, -1, 20.0, '12345678901', ZWARN_NONCOMPLIANT, 20.0, 2, 123);
+end;
+
+procedure TTestHeight.Height_MSI_PLESSEY;
+begin
+  CheckCase(139, BARCODE_MSI_PLESSEY, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 127);
+  CheckCase(140, BARCODE_MSI_PLESSEY, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 127);
+  CheckCase(141, BARCODE_MSI_PLESSEY, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 127);
 end;
 
 procedure TTestHeight.Height_FIM;
@@ -302,6 +363,13 @@ begin
   CheckCase(243, BARCODE_EAN14, COMPLIANT_HEIGHT, -1, 5.8, '1234567890123', 0, 5.8000002, 1, 134);
 end;
 
+procedure TTestHeight.Height_VIN;
+begin
+  CheckCase(244, BARCODE_VIN, -1, -1, 1.0, '12345678701234567', 0, 1.0, 1, 246);
+  CheckCase(245, BARCODE_VIN, COMPLIANT_HEIGHT, -1, 1.0, '12345678701234567', 0, 1.0, 1, 246);
+  CheckCase(246, BARCODE_VIN, -1, -1, 4.0, '12345678701234567', 0, 4.0, 1, 246);
+end;
+
 procedure TTestHeight.Height_NVE18;
 begin
   CheckCase(263, BARCODE_NVE18, -1, -1, 1.0, '12345678901234567', 0, 1.0, 1, 156);
@@ -325,6 +393,13 @@ begin
   CheckCase(277, BARCODE_JAPANPOST, COMPLIANT_HEIGHT, -1, 16.0, '1234567890', ZWARN_NONCOMPLIANT, 15.999999, 3, 133);
 end;
 
+procedure TTestHeight.Height_KOREAPOST;
+begin
+  CheckCase(278, BARCODE_KOREAPOST, -1, -1, 1.0, '123456', 0, 1.0, 1, 167);
+  CheckCase(279, BARCODE_KOREAPOST, COMPLIANT_HEIGHT, -1, 1.0, '123456', 0, 1.0, 1, 167);
+  CheckCase(280, BARCODE_KOREAPOST, -1, -1, 4.0, '123456', 0, 4.0, 1, 167);
+end;
+
 procedure TTestHeight.Height_PLANET;
 begin
   CheckCase(301, BARCODE_PLANET, -1, -1, -1.0, '12345678901', 0, 12.0, 2, 123);
@@ -338,6 +413,13 @@ begin
   CheckCase(309, BARCODE_PLANET, COMPLIANT_HEIGHT, -1, 9.1, '12345678901', ZWARN_NONCOMPLIANT, 9.1000004, 2, 123);
   CheckCase(310, BARCODE_PLANET, -1, -1, 24.0, '12345678901', 0, 24.0, 2, 123);
   CheckCase(311, BARCODE_PLANET, COMPLIANT_HEIGHT, -1, 24.0, '12345678901', ZWARN_NONCOMPLIANT, 24.0, 2, 123);
+end;
+
+procedure TTestHeight.Height_PLESSEY;
+begin
+  CheckCase(328, BARCODE_PLESSEY, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 227);
+  CheckCase(329, BARCODE_PLESSEY, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 227);
+  CheckCase(330, BARCODE_PLESSEY, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 227);
 end;
 
 procedure TTestHeight.Height_TELEPEN_NUM;

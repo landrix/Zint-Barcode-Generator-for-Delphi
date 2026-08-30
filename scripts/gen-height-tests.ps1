@@ -33,10 +33,16 @@ $Wanted = @(
   'HIBC_39', 'CODE93', 'PHARMA', 'PHARMA_TWO', 'CODE32', 'PZN', 'POSTNET',
   'PLANET', 'CEPNET', 'RM4SCC', 'KIX', 'DAFT', 'JAPANPOST', 'AUSPOST',
   'AUSREPLY', 'AUSROUTE', 'AUSREDIRECT', 'FIM', 'TELEPEN', 'TELEPEN_NUM',
-  'GS1_128', 'EAN128', 'EAN14', 'NVE18'
+  'GS1_128', 'EAN128', 'EAN14', 'NVE18',
+  # Diese rufen in C selbst kein z_set_height; ihre Hoehe kommt allein aus
+  # dem Auffangzweig in library.c:1276. Die Faelle halten fest, dass eine
+  # vorgegebene Hoehe unangetastet bleibt.
+  'C25STANDARD', 'C25IATA', 'C25LOGIC', 'C25IND', 'CODE11', 'PLESSEY',
+  'MSI_PLESSEY', 'VIN', 'FLAT', 'KOREAPOST'
 )
-# Upstream hat EAN128 in GS1_128 umbenannt; der Port fuehrt noch den alten Namen.
-$Alias = @{ 'GS1_128' = 'EAN128' }
+# Upstream hat EAN128 in GS1_128 umbenannt und C25MATRIX in C25STANDARD;
+# der Port fuehrt beide alten Namen.
+$Alias = @{ 'GS1_128' = 'EAN128'; 'C25STANDARD' = 'C25MATRIX' }
 
 # Nur PHARMA_TWO erreicht im Port den HEIGHTPERROW_MODE-Zweig von set_height:
 # zwei Zeilen ohne vorgegebene row_height. Alles andere in test_height_per_row
@@ -83,15 +89,28 @@ $table = Get-Table -Text $src -FuncName 'test_height'
 $rows = @()
 $skippedComposite = 0
 $skippedOther = @()
+# Index jeder bewusst uebersprungenen Zeile, damit die Gegenprobe unten
+# zwischen "absichtlich weggelassen" und "vom Ausdruck verfehlt" trennen kann.
+$skippedIdx = @{}
 foreach ($m in [regex]::Matches($table, $rowRe)) {
   $sym = $m.Groups['sym'].Value
   if ($Wanted -notcontains $sym) { continue }
-  if ($m.Groups['cc'].Value) { $skippedComposite++; continue }
+  if ($m.Groups['cc'].Value) {
+    $skippedComposite++
+    $skippedIdx[[int]$m.Groups['i'].Value] = $true
+    continue
+  }
   $ret = $m.Groups['ret'].Value
   $opts = $m.Groups['opts'].Value
-  if (-not $RetMap.ContainsKey($ret)) { $skippedOther += "C#$($m.Groups['i'].Value) ret=$ret"; continue }
+  if (-not $RetMap.ContainsKey($ret)) {
+    $skippedOther += "C#$($m.Groups['i'].Value) ret=$ret"
+    $skippedIdx[[int]$m.Groups['i'].Value] = $true
+    continue
+  }
   if ($opts -ne '-1' -and $opts -ne 'COMPLIANT_HEIGHT') {
-    $skippedOther += "C#$($m.Groups['i'].Value) opts=$opts"; continue
+    $skippedOther += "C#$($m.Groups['i'].Value) opts=$opts"
+    $skippedIdx[[int]$m.Groups['i'].Value] = $true
+    continue
   }
   $name = $sym
   if ($Alias.ContainsKey($sym)) { $name = $Alias[$sym] }
@@ -111,16 +130,15 @@ if ($rows.Count -eq 0) { throw 'keine Zeilen aus test_height erkannt' }
 
 # Gegenprobe: keine Zeile darf still durchfallen, weil der Ausdruck sie
 # nicht trifft. Genau so entsteht sonst eine Luecke, die niemand sieht.
+# Bewusst uebersprungene Zeilen stehen in $skippedIdx und zaehlen nicht.
 $matchedIdx = @{}
 foreach ($r in $rows) { $matchedIdx[$r.Index] = $true }
 foreach ($line in ($table -split "`n")) {
   if ($line -match '/\*\s*(?<i>\d+)\*/\s*\{\s*BARCODE_(?<sym>\w+)\s*,') {
     $i = [int]$Matches['i']
-    if (($Wanted -contains $Matches['sym']) -and -not $matchedIdx.ContainsKey($i)) {
-      $known = $skippedOther -join ', '
-      if ($skippedComposite -eq 0 -and -not $known) {
-        throw "test_height C#$i wurde vom Ausdruck nicht erfasst: $($line.Trim())"
-      }
+    if (($Wanted -contains $Matches['sym']) -and -not $matchedIdx.ContainsKey($i) -and
+        -not $skippedIdx.ContainsKey($i)) {
+      throw "test_height C#$i wurde vom Ausdruck nicht erfasst: $($line.Trim())"
     }
   }
 }

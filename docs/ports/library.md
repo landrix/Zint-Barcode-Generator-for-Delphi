@@ -71,8 +71,13 @@ drei vorbei.
 
 **Behoben in `chore/set-height`.** Portiert sind `set_height` und `stripf` in
 `zint_common.pas`, `usps_set_height` und `daft_set_height` in
-`zint_postal.pas` sowie die Aufrufstellen in 2of5, auspost, code, code128,
-medical, postal und telepen. `height` und `row_height` sind dabei von `Integer`
+`zint_postal.pas`, der Auffangzweig aus `library.c:1276` am Ende von
+`ZBarcode_Encode` sowie die Aufrufstellen in 2of5, auspost, code, code128,
+medical, postal und telepen.
+
+Der Auffangzweig ist leicht zu uebersehen und deshalb eigens erwaehnt: einige
+Symbologien rufen in C ueberhaupt kein `z_set_height` - `plessey.c` und die
+C25-Varianten in `2of5.c` -, ihre Hoehe von 50 entsteht allein dort. `height` und `row_height` sind dabei von `Integer`
 auf `Single` gewechselt - die konformen Postal-Hoehen 3.225/2.15 sind als
 Integer nicht darstellbar.
 

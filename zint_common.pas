@@ -275,10 +275,9 @@ begin
       end;
     end;
 
-    for i := 0 to rows - 1 do
-      if symbol.row_height[i] = 0 then
-        symbol.row_height[i] := row_height;
-
+    { C schreibt row_height hier nicht zurueck. Der Port tat es einmal und
+      nahm dem Renderer damit die streckbaren Zeilen: FetchRowInfos zaehlt
+      Zeilen mit row_height = 0 als LargeBars (zint.pas). }
     symbol.height := stripf(row_height * zero_count + fixed_height);
   end
   else

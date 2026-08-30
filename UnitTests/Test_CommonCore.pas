@@ -34,6 +34,8 @@ type
     procedure TestFroundupThreshold;
     [Test]
     procedure TestSetHeight;
+    [Test]
+    procedure TestEncodeHeightFallback;
   private
     procedure SetHeightCase(ACIndex, ARows: Integer; const ARowHeights: array of Single;
       const AHeight, AMinRowHeight, ADefaultHeight, AMaxHeight: Single;
@@ -193,6 +195,34 @@ begin
                  W + '247: Height not compliant with standards (too small)');
   SetHeightCase(13,  1, [],           40.02, 10,       40, 40.01, 0, ZWARN_NONCOMPLIANT, 40.02,
                  W + '248: Height not compliant with standards (maximum 40.01)');
+end;
+
+
+{ C: library.c:1276. Wer keine Hoehe vorgibt und eine Symbologie waehlt, die
+  in C selbst kein z_set_height ruft, bekommt am Ende von ZBarcode_Encode 50.
+  Die C-Tabelle test_height deckt das nicht ab: dort ist immer eine Hoehe
+  gesetzt. Ohne diesen Test bliebe der Auffangzweig ungeprueft. }
+procedure TTestCommonCore.TestEncodeHeightFallback;
+
+  procedure Check(ASymbology: Integer; const AData: String; const AName: String);
+  var
+    sym: TZintSymbol;
+  begin
+    sym := TZintTestHelper.CreateSymbol(ASymbology);
+    try
+      ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, AData),
+        AName + ' ret (' + TZintTestHelper.GetErrTxt(sym) + ')');
+      ZAssert.AreEqual(Single(50), sym.height, AName + ' height');
+    finally
+      sym.Free;
+    end;
+  end;
+
+begin
+  { Diese drei rufen in C kein z_set_height - ihre Hoehe kommt nur von dort. }
+  Check(BARCODE_PLESSEY, '1234567890', 'PLESSEY');
+  Check(BARCODE_C25MATRIX, '1234567890', 'C25MATRIX');
+  Check(BARCODE_CODE11, '1234567890', 'CODE11');
 end;
 
 
