@@ -16,7 +16,6 @@ Deltas | ALT = Legacy-Port, nicht gegen b3a3c0d verifiziert | FEHLT = nicht port
 | [2of5](2of5.md) | C25Standard/Inter/IATA/Logic/Ind, ITF14, DPLEIT, DPIDENT | `zint_2of5.pas` | `Test_2of5.pas` |
 | [auspost](auspost.md) | Australia Post | `zint_auspost.pas` | `Test_Auspost.pas` |
 | [code](code.md) | Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39 | `zint_code.pas` | `Test_Code.pas` |
-| [code128](code128.md) | Code128, Code128B, GS1-128, EAN-14, NVE-18, HIBC-128 | `zint_code128.pas` | `Test_Code128.pas` |
 | [medical](medical.md) | Pharmacode, Code32, PZN | `zint_medical.pas` | `Test_Medical.pas` |
 | [plessey](plessey.md) | Plessey, MSI Plessey | `zint_plessey.pas` | `Test_Plessey.pas` |
 | [postal](postal.md) | PostNet, Planet, RM4SCC, KIX, CEPNet, FIM | `zint_postal.pas` | `Test_Postal.pas` |
@@ -28,6 +27,7 @@ Deltas | ALT = Legacy-Port, nicht gegen b3a3c0d verifiziert | FEHLT = nicht port
 |---|---|---|---|
 | [aztec](aztec.md) | Aztec Code + Aztec Runes | `zint_aztec.pas` | `Test_Aztec.pas` |
 | [code1](code1.md) | Code One | `zint_code1.pas` | `Test_Code1.pas` |
+| [code128](code128.md) | Code128, Code128B, GS1-128, EAN-14, NVE-18, HIBC-128 | `zint_code128.pas` | `Test_Code128.pas` |
 | [code16k](code16k.md) | Code 16K | `zint_code16k.pas` | `Test_Code16k.pas` |
 | [code49](code49.md) | Code 49 | `zint_code49.pas` | `Test_Code49.pas` |
 | [common](common.md) | Gemeinsame Hilfsfunktionen | `zint_common.pas` | `Test_CommonCore.pas` |

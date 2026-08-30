@@ -144,6 +144,17 @@ jeden Branch, auch fuer reine Infrastruktur- und Doku-Branches.
 - Details: [../docs/PORTING_WORKFLOW.md](../docs/PORTING_WORKFLOW.md),
   Abschnitt 3a.
 
+## 10c) Assertions-Abgleich
+
+- `scripts/check-c-assertions.ps1` prueft, ob jedes `symbol->`-Feld, das die
+  C-Testdatei assertiert, in der Testunit ueberhaupt in einer Assertion
+  **vorkommt**. Nicht, ob es richtig geprueft wird. Laeuft in `gate-all.ps1`
+  mit.
+- Beim Portieren eines Testfalls gilt: die Assertionsreihenfolge
+  `ret` -> `errtxt` -> `rows`/`width` ist das **Minimum**, nicht die Liste. Was
+  der C-Fall sonst prueft, wird mitportiert oder begruendet ausgelassen.
+- Ausnahmen mit Grund in `scripts/check-c-assertions-ignore.txt`.
+
 ## 11) Commit- und Aenderungsdisziplin
 
 - Kleine, thematisch saubere Aenderungen.
