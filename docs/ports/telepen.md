@@ -39,7 +39,7 @@ Telepen, Telepen Numeric
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| | | | |
+| **Alle 48 Tests laufen im Delphi-Gesamtlauf nicht** | 0 von 48 ausgefuehrt | 48 von 48 gruen | DUnitX ueberspringt die Fixtures `TTestTelepen` und `TTestTelepenNum` stillschweigend, obwohl sie registriert sind und vollstaendige RTTI haben. Isoliert (`scripts\isolate-win32-av.ps1 -Units Test_Telepen`) laufen alle 48 gruen. Vorbestehend, nicht durch die Dual-Gate-Umstellung verursacht. Analyse: docs/PORTING_WORKFLOW.md, Abschnitt "DUnitX fuehrt vier registrierte Fixtures nicht aus". |
 
 ## Notizen
 

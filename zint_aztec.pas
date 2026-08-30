@@ -340,7 +340,7 @@ begin
   { Lookup input string in encoding table }
   map_length := 0;
 
-  for i := 0 to src_len - 1 do
+  for i := 0 to Integer(src_len) - 1 do
   begin
     if (gs1 <> 0) and (i = 0) then
     begin

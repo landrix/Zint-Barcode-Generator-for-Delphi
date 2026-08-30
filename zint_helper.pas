@@ -42,21 +42,27 @@ uses
 function StrToArrayOfByte(const AString: String): TArrayOfByte;
 var
   Len : NativeInt;
+  {$IFDEF FPC}i : NativeInt;{$ENDIF}
 begin
-  Len := AString.Length;
+  Len := Length(AString);
 
+  {$IFDEF FPC}
+  { FPC: String ist AnsiString, Char ist 1 Byte - byteweise kopieren.
+    Der frueher hier stehende Pointer-Cast auf ein dynamisches Array mit
+    anschliessendem SetLength war unter FPC nicht gueltig. }
+  SetLength(Result, Len + 1);
+  for i := 0 to Len - 1 do
+    Result[i] := Byte(AString[i + 1]);
+  {$ELSE}
   if Len > 0 then
-    {$IFNDEF FPC}
     {$if CompilerVersion >= 30}
     Result := TEncoding.ANSI.GetBytes(AString);
     {$else}
     Result := @RawByteString(AString)[1];
     {$endif}
-    {$ELSE}
-    Result := @RawByteString(AString)[1];
-    {$ENDIF}
 
   SetLength(Result, Len + 1); //For terminal #0
+  {$ENDIF}
   Result[len] := 0;
 end;
 
@@ -74,11 +80,15 @@ end;
 
 function StrToArrayOfChar(const AString: String): TArrayOfChar;
 var
-  len : NativeInt;
+  len, i : NativeInt;
 begin
-  len := AString.Length;
+  len := Length(AString);
   SetLength(Result, len + 1);
-  AString.CopyTo(0, Result[0], 0, len);
+  { Elementweise statt AString.CopyTo: der TStringHelper ist Delphi-spezifisch
+    und kopiert unter FPC nichts. Char-Breite ist auf beiden Compilern gleich
+    wie das jeweilige String-Element, die Kopie ist daher verlustfrei. }
+  for i := 0 to len - 1 do
+    Result[i] := AString[i + 1];
   Result[len] := #0;
 end;
 

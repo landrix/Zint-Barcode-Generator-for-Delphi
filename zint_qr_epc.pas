@@ -6,8 +6,8 @@ interface
 //https://github.com/mtgrosser/girocode
 
 uses
-  System.SysUtils,System.Classes,System.Types,System.StrUtils
-  ,Vcl.Graphics
+  SysUtils,Classes,Types,StrUtils
+  ,{$IFDEF FPC}Graphics{$ELSE}Vcl.Graphics{$ENDIF}
   ,zint,zint_render_wmf, zint_render_canvas, zint_render_svg,zint_helper,zint_qr
   ;
 

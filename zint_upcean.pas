@@ -371,7 +371,7 @@ end;
 
 function isbn13_check(const source : TArrayOfChar) : Char; { For ISBN(13) only }
 var
-  i, weight, sum, check, h: Cardinal;
+  i, weight, sum, check, h: Integer;
 begin
   sum := 0;
   weight := 1;
@@ -391,7 +391,7 @@ end;
 
 function isbn_check(const source : TArrayOfChar) : Char; { For ISBN(10) and SBN only }
 var
-  i, weight, sum, check, h: Cardinal;
+  i, weight, sum, check, h: Integer;
   check_char : Char;
 begin
   sum := 0;

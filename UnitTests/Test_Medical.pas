@@ -1,5 +1,7 @@
 unit Test_Medical;
 
+{$I zint_test.inc}
+
 {
   DUnitX-Tests fuer zint_medical.pas
   Testdaten aus test_medical.c (Zint commit b3a3c0d, 2026-03-13)
@@ -10,16 +12,18 @@ unit Test_Medical;
 interface
 
 uses
-  DUnitX.TestFramework,
-  System.SysUtils,
+  {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
+  TestFramework_Zint,
+  SysUtils,
   TestHelper_Zint,
   zint;
 
 type
   [TestFixture]
-  TTestPharmaOne = class
+  TTestPharmaOne = class(TZintFixture)
   public
     { test_large }
+  published
     [Test] procedure Large_Max_OK;
     [Test] procedure Large_TooLong;
 
@@ -41,9 +45,10 @@ type
   end;
 
   [TestFixture]
-  TTestPharmaTwo = class
+  TTestPharmaTwo = class(TZintFixture)
   public
     { test_large }
+  published
     [Test] procedure Large_Max_OK;
     [Test] procedure Large_TooLong;
 
@@ -66,9 +71,10 @@ type
   end;
 
   [TestFixture]
-  TTestCode32 = class
+  TTestCode32 = class(TZintFixture)
   public
     { test_large }
+  published
     [Test] procedure Large_Max_OK;
     [Test] procedure Large_TooLong;
 
@@ -93,8 +99,9 @@ type
   end;
 
   [TestFixture]
-  TTestMedicalHRTContentSegsFromC = class
+  TTestMedicalHRTContentSegsFromC = class(TZintFixture)
   public
+  published
     [Test] procedure HRT_ContentSegs_FromC;
   end;
 
@@ -111,9 +118,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '131070');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(78, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(78, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -128,8 +135,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 7));
-    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
-    Assert.AreEqual('Error 350: Input length 7 too long (maximum 6)',
+    ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    ZAssert.AreEqual('Error 350: Input length 7 too long (maximum 6)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -145,9 +152,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '131070');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(78, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(78, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -162,8 +169,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '131071');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 352: Input value ''131071'' out of range (3 to 131070)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 352: Input value ''131071'' out of range (3 to 131070)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -179,9 +186,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '3');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(4, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(4, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -196,8 +203,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '2');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 352: Input value ''2'' out of range (3 to 131070)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 352: Input value ''2'' out of range (3 to 131070)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -213,8 +220,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '12A');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 351: Invalid character at position 3 in input (digits only)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 351: Invalid character at position 3 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -230,8 +237,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '1310700');
-    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
-    Assert.AreEqual('Error 350: Input length 7 too long (maximum 6)',
+    ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    ZAssert.AreEqual('Error 350: Input length 7 too long (maximum 6)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -247,8 +254,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '1');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 352: Input value ''1'' out of range (3 to 131070)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 352: Input value ''1'' out of range (3 to 131070)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -264,8 +271,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '123456');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'hrt');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual('', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -280,10 +287,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '131070');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(78, sym.width, 'width');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(78, sym.width, 'width');
+    ZAssert.AreEqual(
       '111001110011100111001110011100111001110011100111001110011100111001110011100111',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally
@@ -300,10 +307,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA);
   try
     ret := TZintTestHelper.EncodeData(sym, '123456');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(58, sym.width, 'width');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(58, sym.width, 'width');
+    ZAssert.AreEqual(
       '1110011100111001001001001110010010011100100100100100100111',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally
@@ -322,9 +329,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '64570080');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(2, sym.rows, 'rows');
-    Assert.AreEqual(31, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(2, sym.rows, 'rows');
+    ZAssert.AreEqual(31, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -339,8 +346,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 9));
-    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
-    Assert.AreEqual('Error 354: Input length 9 too long (maximum 8)',
+    ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    ZAssert.AreEqual('Error 354: Input length 9 too long (maximum 8)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -356,9 +363,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '64570080');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(2, sym.rows, 'rows');
-    Assert.AreEqual(31, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(2, sym.rows, 'rows');
+    ZAssert.AreEqual(31, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -373,8 +380,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '64570081');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 353: Input value ''64570081'' out of range (4 to 64570080)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 353: Input value ''64570081'' out of range (4 to 64570080)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -390,8 +397,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '064570080');
-    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
-    Assert.AreEqual('Error 354: Input length 9 too long (maximum 8)',
+    ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    ZAssert.AreEqual('Error 354: Input length 9 too long (maximum 8)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -407,9 +414,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '4');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(2, sym.rows, 'rows');
-    Assert.AreEqual(3, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(2, sym.rows, 'rows');
+    ZAssert.AreEqual(3, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -424,8 +431,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '3');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 353: Input value ''3'' out of range (4 to 64570080)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 353: Input value ''3'' out of range (4 to 64570080)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -441,8 +448,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '2');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 353: Input value ''2'' out of range (4 to 64570080)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 353: Input value ''2'' out of range (4 to 64570080)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -458,8 +465,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '1');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 353: Input value ''1'' out of range (4 to 64570080)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 353: Input value ''1'' out of range (4 to 64570080)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -475,8 +482,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '123A');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 355: Invalid character at position 4 in input (digits only)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 355: Invalid character at position 4 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -492,8 +499,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '123456');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual('', TZintTestHelper.GetText(sym), 'hrt');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual('', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -508,10 +515,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '64570080');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(2, sym.rows, 'rows');
-    Assert.AreEqual(31, sym.width, 'width');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(2, sym.rows, 'rows');
+    ZAssert.AreEqual(31, sym.width, 'width');
+    ZAssert.AreEqual(
       '1010101010101010101010101010101' + #10 +
       '1010101010101010101010101010101',
       TZintTestHelper.ModulesDump(sym), 'modules');
@@ -529,10 +536,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PHARMA_TWO);
   try
     ret := TZintTestHelper.EncodeData(sym, '29876543');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(2, sym.rows, 'rows');
-    Assert.AreEqual(31, sym.width, 'width');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(2, sym.rows, 'rows');
+    ZAssert.AreEqual(31, sym.width, 'width');
+    ZAssert.AreEqual(
       '0010100010001010001010001000101' + #10 +
       '1000101010100000100000101010000',
       TZintTestHelper.ModulesDump(sym), 'modules');
@@ -552,9 +559,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 8));
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -569,8 +576,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 9));
-    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
-    Assert.AreEqual('Error 360: Input length 9 too long (maximum 8)',
+    ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    ZAssert.AreEqual('Error 360: Input length 9 too long (maximum 8)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -586,9 +593,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '12345678');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -603,9 +610,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '9');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -620,9 +627,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '0');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -637,8 +644,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '123456789');
-    Assert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
-    Assert.AreEqual('Error 360: Input length 9 too long (maximum 8)',
+    ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
+    ZAssert.AreEqual('Error 360: Input length 9 too long (maximum 8)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -654,8 +661,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, 'A');
-    Assert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
-    Assert.AreEqual('Error 361: Invalid character at position 1 in input (digits only)',
+    ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
+    ZAssert.AreEqual('Error 361: Invalid character at position 1 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym), 'errtxt');
   finally
     sym.Free;
@@ -671,9 +678,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '99999999');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
   finally
     sym.Free;
   end;
@@ -688,8 +695,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '123456');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual('A001234564', TZintTestHelper.GetText(sym), 'hrt');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual('A001234564', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -704,8 +711,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '12345678');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -721,8 +728,8 @@ begin
   try
     sym.option_2 := 1;
     ret := TZintTestHelper.EncodeData(sym, '12345678');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -738,8 +745,8 @@ begin
   try
     sym.option_2 := 2;
     ret := TZintTestHelper.EncodeData(sym, '12345678');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual('A123456788', TZintTestHelper.GetText(sym), 'hrt');
   finally
     sym.Free;
   end;
@@ -754,10 +761,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_CODE32);
   try
     ret := TZintTestHelper.EncodeData(sym, '34567890');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(
       '1001011011010101101001011010110010110101011011010010101100101101011010010101101010101100110100101101101',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally
@@ -775,11 +782,11 @@ begin
   try
     sym.option_2 := 1;
     ret := TZintTestHelper.EncodeData(sym, '34567890');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
-    Assert.AreEqual(1, sym.option_2, 'option_2 restored');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(1, sym.option_2, 'option_2 restored');
+    ZAssert.AreEqual(
       '1001011011010101101001011010110010110101011011010010101100101101011010010101101010101100110100101101101',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally
@@ -797,11 +804,11 @@ begin
   try
     sym.option_2 := 2;
     ret := TZintTestHelper.EncodeData(sym, '34567890');
-    Assert.AreEqual(ZINT_OK, ret, 'ret');
-    Assert.AreEqual(1, sym.rows, 'rows');
-    Assert.AreEqual(103, sym.width, 'width');
-    Assert.AreEqual(2, sym.option_2, 'option_2 restored');
-    Assert.AreEqual(
+    ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    ZAssert.AreEqual(1, sym.rows, 'rows');
+    ZAssert.AreEqual(103, sym.width, 'width');
+    ZAssert.AreEqual(2, sym.option_2, 'option_2 restored');
+    ZAssert.AreEqual(
       '1001011011010101101001011010110010110101011011010010101100101101011010010101101010101100110100101101101',
       TZintTestHelper.ModulesDump(sym), 'modules');
   finally
@@ -841,14 +848,14 @@ begin
       sym.output_options := BARCODE_CONTENT_SEGS;
 
       ret := TZintTestHelper.EncodeData(sym, String(Items[i].Data));
-      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
-      Assert.AreEqual(String(Items[i].ExpectedText), TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+      ZAssert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+      ZAssert.AreEqual(String(Items[i].ExpectedText), TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
 
       expected_content_len := Length(Items[i].ExpectedContent);
-      Assert.AreEqual(1, sym.content_segs_count, Format('C#%d content_segs_count', [Items[i].Index]));
-      Assert.AreEqual(expected_content_len, sym.content_segs[0].Length, Format('C#%d content length', [Items[i].Index]));
+      ZAssert.AreEqual(1, sym.content_segs_count, Format('C#%d content_segs_count', [Items[i].Index]));
+      ZAssert.AreEqual(expected_content_len, sym.content_segs[0].Length, Format('C#%d content length', [Items[i].Index]));
       for j := 1 to expected_content_len do
-        Assert.AreEqual(Ord(Items[i].ExpectedContent[j]), sym.content_segs[0].Source[j - 1],
+        ZAssert.AreEqual(Ord(Items[i].ExpectedContent[j]), sym.content_segs[0].Source[j - 1],
           Format('C#%d content[%d]', [Items[i].Index, j - 1]));
     finally
       sym.Free;
@@ -857,9 +864,9 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TTestPharmaOne);
-  TDUnitX.RegisterTestFixture(TTestPharmaTwo);
-  TDUnitX.RegisterTestFixture(TTestCode32);
-  TDUnitX.RegisterTestFixture(TTestMedicalHRTContentSegsFromC);
+  ZRegisterFixture(TTestPharmaOne);
+  ZRegisterFixture(TTestPharmaTwo);
+  ZRegisterFixture(TTestCode32);
+  ZRegisterFixture(TTestMedicalHRTContentSegsFromC);
 
 end.

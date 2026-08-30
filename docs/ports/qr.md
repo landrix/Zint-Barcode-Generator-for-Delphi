@@ -39,7 +39,8 @@ QR Code, MicroQR, rMQR, UPNQR
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| | | | |
+| `TTestRMQR` (9 Tests), `TTestUPNQR` (3), sowie 9 von 12 Methoden in `TTestQR` | im Gesamtlauf **nicht ausgefuehrt** | n/a (Unit noch nicht im FPC-Gate) | DUnitX ueberspringt sie stillschweigend trotz Registrierung und vollstaendiger RTTI. Von 30 Testmethoden der Unit laufen nur 9. Analyse: docs/PORTING_WORKFLOW.md, Abschnitt "DUnitX fuehrt vier registrierte Fixtures nicht aus". |
+| **Gesamte Unit laeuft nicht im FPC-Gate** | von 30 Testmethoden laufen nur 9 (siehe Zeile darueber) | nicht uebersetzbar | `Test_QR.pas` enthaelt 304 Zeichenliterale > `#$00FF` (z.B. `#$0416`) in typisierten Konstanten-Arrays. Unter FPC ist `String` eine AnsiString: *Unicodechar/string constants cannot be converted to ansi/shortstring at compile-time*. Loesung: betroffene Record-Felder von `String` auf `UnicodeString` umstellen (unter Delphi verhaltensgleich) samt Helper-Signaturen. Danach in `UnitTests/fpc/ZintTests.lpr` wieder eintragen. |
 
 ## Notizen
 

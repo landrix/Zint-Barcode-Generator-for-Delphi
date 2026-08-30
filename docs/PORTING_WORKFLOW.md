@@ -115,9 +115,90 @@ Eine Aenderung ist erst fertig, wenn **beide** Gates gruen sind.
 | Beides | `scripts\gate-all.ps1` | | |
 | QR-Schnellcheck | `UnitTests\run_qr_regression.bat` | Delphi | Win32 |
 
-Das Linux-Gate ist **nur ein Compile-Gate**: FPC 3.2.2 kann keine Custom Attributes,
-kann die Testfixtures also nicht ausfuehren. Es sichert Plattformunabhaengigkeit
-des Cores ab, nicht das Testverhalten.
+### Mindest-Testzahl
+
+Beide Vollgates kennen einen Parameter `-MinTests` (Delphi 827, FPC 848) und
+schlagen fehl, wenn weniger Tests laufen - auch dann, wenn kein einzelner Test
+rot ist. Ohne diese Schranke bleibt ein Gate gruen, wenn eine Fixture still aus
+der Registrierung faellt; genau so blieb der DUnitX-Fall unten lange unsichtbar.
+
+**Wer Tests hinzufuegt, setzt die Zahl hoch.** Wer sie bewusst verringert,
+begruendet das im Commit und setzt sie herunter.
+
+Das Linux-Gate ist **nur ein Compile-Gate**: FPC 3.2.2 kennt den Modeswitch
+`prefixedattributes` nicht und kann die Testfixtures daher nicht uebersetzen.
+Es sichert Plattformunabhaengigkeit des Cores ab, nicht das Testverhalten.
+
+### Bekannte Einschraenkungen der Gates
+
+Stand 2026-08-30. Diese Punkte sind offen und sollen im jeweils passenden
+Barcode-Branch abgearbeitet werden, nicht in der Infrastruktur.
+
+| Punkt | Stand |
+|---|---|
+| `Test_QR` und `Test_PDF417` laufen nicht im FPC-Gate | 304 bzw. 48 Zeichenliterale > `#$00FF` lassen sich unter FPC nicht in `AnsiString` legen. Siehe `docs/ports/qr.md` und `docs/ports/pdf417.md`. |
+| `Test_DMatrix` C#20 im FPC-Lauf uebersprungen | FPC liefert 14 statt 12 rows. Siehe `docs/ports/dmatrix.md`. |
+| **DUnitX ueberspringt 4 Fixtures stillschweigend** | Siehe naechster Abschnitt. Betrifft rund 60 Tests. |
+
+### DUnitX fuehrt vier registrierte Fixtures nicht aus
+
+Untersucht am 2026-08-30. **Der Befund besteht unabhaengig von der Dual-Gate-Umstellung**
+und war im Testlauf davor identisch.
+
+Betroffen sind:
+
+| Fixture | Unit | Eigene Testmethoden | Im Lauf |
+|---|---|---|---|
+| `TTestTelepen` | `Test_Telepen` | 23 | **0** |
+| `TTestTelepenNum` | `Test_Telepen` | 25 | **0** |
+| `TTestRMQR` | `Test_QR` | 9 | **0** |
+| `TTestUPNQR` | `Test_QR` | 3 | **0** |
+| `TTestQR` | `Test_QR` | 12 | nur die ersten **3** |
+
+`Test_Telepen` taucht im NUnit-Ergebnis gar nicht auf: der Lauf kennt 17 statt 18
+Namespaces und 47 statt 51 Fixtures.
+
+Was **ausgeschlossen** werden konnte:
+
+- **Registrierung.** Alle 51 Fixtures stehen in `TDUnitX.RegisteredFixtures`,
+  inklusive beider Telepen-Klassen.
+- **Fehlende RTTI.** `TRttiContext.GetType(...).GetMethods` liefert fuer
+  `TTestTelepen` alle 23, fuer `TTestQR` alle 12 und fuer `TTestRMQR` alle 9
+  eigenen Methoden.
+- **Die Unit selbst.** Isoliert ueber `scripts\isolate-win32-av.ps1 -Units Test_Telepen`
+  laufen alle 48 Telepen-Tests gruen durch.
+- **Reihenfolge in der uses-Liste.** Test_Telepen ans Ende verschoben: unveraendert.
+- **Projektgroesse / RTTI-Kapazitaet.** Auch nach Entfernen von `Test_Code128` und
+  `Test_Code` (310 Tests weniger) fehlt Telepen weiterhin.
+
+Unter FPC laufen dieselben Fixtures vollstaendig: fpcunit fuehrt 848 Tests aus,
+das NUnit-Ergebnis von Delphi enthaelt 826 `test-case`-Eintraege
+(`826 - QR 9 - PDF417 17 = 800`, Differenz zu 848 sind exakt die 48
+Telepen-Tests). **Das FPC-Gate ist derzeit der strengere der beiden Runner.**
+
+> Zu den beiden Delphi-Zahlen: die Konsolenzusammenfassung meldet `Tests Found: 827`,
+> das NUnit-XML enthaelt 826 `test-case`-Eintraege. Die Differenz von 1 ist nicht
+> aufgeklaert und fuer die obige Rechnung ohne Belang; beide Zahlen sind bewusst
+> so genannt, wie das jeweilige Ausgabeformat sie liefert.
+
+Offen bleibt die Ursache im Fixture-Baum-Aufbau von DUnitX
+(`Lib/dunitx/Source/DUnitX.FixtureProvider.pas`, `Execute` / `GenerateTests`).
+Solange das nicht geklaert ist, gilt: **eine gruene Delphi-Suite ist kein Beleg
+dafuer, dass alle vorhandenen Tests gelaufen sind.**
+
+**Bearbeitung:** Die Ursachensuche wird nicht als eigenes Infrastrukturthema
+weiterverfolgt, sondern im jeweiligen Barcode-Branch erledigt, wo sie ohnehin
+auffaellt:
+
+| Branch | Aufgabe |
+|---|---|
+| `port/telepen` | `TTestTelepen`, `TTestTelepenNum` - 48 Tests, laufen unter Delphi gar nicht |
+| `port/qr` | `TTestRMQR`, `TTestUPNQR`, sowie 9 von 12 Methoden in `TTestQR` |
+
+Wer zuerst drankommt, klaert die Ursache und traegt sie hier nach; der jeweils
+andere Branch profitiert davon. Bis dahin greift als Absicherung die
+Mindest-Testzahl der Gates (`-MinTests`, siehe Abschnitt 3): sie schlaegt an,
+sobald weitere Tests still verschwinden.
 
 ---
 

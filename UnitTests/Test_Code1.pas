@@ -1,9 +1,12 @@
 unit Test_Code1;
 
+{$I zint_test.inc}
+
 interface
 
 uses
-  DUnitX.TestFramework,
+  {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
+  TestFramework_Zint,
   TestHelper_Zint,
   zint,
   zint_common;
@@ -26,7 +29,7 @@ type
   end;
 
   [TestFixture('ZTest_Code1')]
-  TTestCodeOneInputFromC = class(TObject)
+  TTestCodeOneInputFromC = class(TZintFixture)
   published
     [Test]
     procedure TestInputAndLargeSubset;
@@ -43,7 +46,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  SysUtils;
 
 procedure TTestCodeOneInputFromC.TestInputAndLargeSubset;
 const
@@ -328,13 +331,13 @@ begin
 
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
-      Assert.AreEqual<Integer>(Cases[I].ExpectedOption2, Symbol.option_2, Format('C#%d option_2', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedOption2, Symbol.option_2, Format('C#%d option_2', [Cases[I].Index]));
       if Cases[I].ExpectedRows <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
-      Assert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -520,14 +523,14 @@ begin
 
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
-      Assert.AreEqual<Integer>(Cases[I].ExpectedOption2, Symbol.option_2, Format('C#%d option_2', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedOption2, Symbol.option_2, Format('C#%d option_2', [Cases[I].Index]));
       if Cases[I].ExpectedRows <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
       if Cases[I].ExpectedErrTxt <> '' then
-        Assert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -541,10 +544,10 @@ begin
     try
       TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODEONE, 0, -1, 10, -1, -1);
       Ret := TZintTestHelper.EncodeData(Symbol, NullData, 38);
-      Assert.AreEqual<Integer>(0, Ret, 'C#22 ret');
-      Assert.AreEqual<Integer>(10, Symbol.option_2, 'C#22 option_2');
-      Assert.AreEqual<Integer>(16, Symbol.rows, 'C#22 rows');
-      Assert.AreEqual<Integer>(49, Symbol.width, 'C#22 width');
+      ZAssert.AreEqual(0, Ret, 'C#22 ret');
+      ZAssert.AreEqual(10, Symbol.option_2, 'C#22 option_2');
+      ZAssert.AreEqual(16, Symbol.rows, 'C#22 rows');
+      ZAssert.AreEqual(49, Symbol.width, 'C#22 width');
     finally
       Symbol.Free;
     end;
@@ -1548,12 +1551,12 @@ begin
         Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
       end;
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
-      Assert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
       if Cases[I].ExpectedRows <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -1572,9 +1575,9 @@ begin
     try
       TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODEONE, 0, -1, 10, -1, -1);
       Ret := TZintTestHelper.EncodeData(Symbol, ByteData, Length(ByteData));
-      Assert.AreEqual<Integer>(0, Ret, 'C#139 ret');
-      Assert.AreEqual<Integer>(16, Symbol.rows, 'C#139 rows');
-      Assert.AreEqual<Integer>(49, Symbol.width, 'C#139 width');
+      ZAssert.AreEqual(0, Ret, 'C#139 ret');
+      ZAssert.AreEqual(16, Symbol.rows, 'C#139 rows');
+      ZAssert.AreEqual(49, Symbol.width, 'C#139 width');
     finally
       Symbol.Free;
     end;
@@ -1593,8 +1596,8 @@ begin
     try
       TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODEONE, 0, -1, 10, -1, -1);
       Ret := TZintTestHelper.EncodeData(Symbol, ByteData, Length(ByteData));
-      Assert.AreEqual<Integer>(ZERROR_TOO_LONG, Ret, 'C#140 ret');
-      Assert.AreEqual('Error 516: Input too long for Version T, requires 40 codewords (maximum 38)',
+      ZAssert.AreEqual(ZERROR_TOO_LONG, Ret, 'C#140 ret');
+      ZAssert.AreEqual('Error 516: Input too long for Version T, requires 40 codewords (maximum 38)',
         TZintTestHelper.GetErrTxt(Symbol), 'C#140 errtxt');
     finally
       Symbol.Free;
@@ -1819,12 +1822,12 @@ begin
 
       Ret := ZBarcode_Encode_Segs(Symbol, Segments);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
-      Assert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedErrTxt, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
       if Cases[I].ExpectedRows <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth <> 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -1952,7 +1955,7 @@ begin
 
       Ret := TZintTestHelper.EncodeData(Symbol, Payload, EffectiveLen);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -1960,6 +1963,6 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TTestCodeOneInputFromC);
+  ZRegisterFixture(TTestCodeOneInputFromC);
 
 end.
