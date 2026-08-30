@@ -1,11 +1,15 @@
 # Copilot Instructions - C nach Delphi Portierung (Zint)
 
-Diese Datei definiert verbindliche Arbeitsregeln fuer AI-Agents im Repository.
+Diese Datei definiert die **fachlichen** Arbeitsregeln fuer AI-Agents im Repository.
+Branch-Modell, Gates und Merge-Regeln stehen in [../docs/PORTING_WORKFLOW.md](../docs/PORTING_WORKFLOW.md)
+und sind ebenso verbindlich.
 Ziel ist eine reproduzierbare, sichere und nachvollziehbare Portierung von Zint C nach Delphi inklusive vollstaendiger Testportierung.
 
 ## 1) Zielbild
 
 - Delphi-Implementierung soll funktional moeglichst 1:1 zum C-Referenzstand passen.
+- Der Code muss unter **Delphi Studio 37.0 und Free Pascal 3.3.1** uebersetzen und
+  in beiden Faellen dieselben Testergebnisse liefern.
 - Testbasis kommt primaer aus den offiziellen C-Testdateien.
 - Aenderungen werden nur dann im Delphi-Code gemacht, wenn sie durch C-Referenz, Spezifikation oder Tests begruendet sind.
 - Die Suite muss nach jeder inhaltlichen Aenderung in einem verifizierbaren Zustand bleiben.
@@ -33,6 +37,12 @@ Ziel ist eine reproduzierbare, sichere und nachvollziehbare Portierung von Zint 
 - `errtxt` als Char-Array behandeln, Nullterminierung beachten.
 - UTF-8/ECI/Shift-JIS-Pfade immer explizit testen (Unicode, DATA_MODE, GS1_MODE).
 - Grenzwerte nie raten: aus C-Defines oder C-Tests uebernehmen.
+- **FPC:** `Char` ist dort `AnsiChar` (1 Byte), unter Delphi `WideChar` (2 Byte).
+  `TArrayOfChar`, `errtxt` und `text` verhalten sich deshalb unterschiedlich.
+- **FPC:** keine Delphi-Unit-Namespaces (`System.SysUtils` bricht). Immer `SysUtils`.
+- **FPC:** keine `Cardinal`-Zaehlschleifen (`for i := 0 to n-1` mit `n: Cardinal` und
+  `n = 0` laeuft auf 4294967295 Iterationen; auf ARM64 sofort `EBusError`).
+  Details siehe [../docs/PORTING_WORKFLOW.md](../docs/PORTING_WORKFLOW.md) Abschnitt 4.
 
 ## 5) Testportierung aus C (verbindlicher Ablauf)
 
@@ -51,7 +61,7 @@ Ziel ist eine reproduzierbare, sichere und nachvollziehbare Portierung von Zint 
 - Standardfall: Erwartung = C-Referenz.
 - Falls Delphi bewusst abweicht (fehlende API/Feature), dann:
 	- Delta im Test direkt kommentieren (kurz, praezise).
-	- Delta zusaetzlich in `MIGRATION_PLAN.md` oder README festhalten.
+	- Delta zusaetzlich in `docs/ports/<modul>.md` festhalten (nicht im MIGRATION_PLAN).
 	- Keine irrefuehrenden "gruenen" Werte ohne Delta-Hinweis.
 
 Beispiele fuer typische Delta-Gruende:
@@ -81,11 +91,18 @@ Fuer jedes Portierungsthema in dieser Reihenfolge arbeiten:
 ## 9) Build- und Testregeln
 
 - Nach jeder relevanten Codeaenderung mindestens den betroffenen Testblock ausfuehren.
-- Vor Abschluss immer Full Win32 DUnitX laufen lassen.
+- Vor Abschluss **beide** Vollgates laufen lassen: Delphi (Win32) und FPC.
 - Empfohlener Standardlauf:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\gate-all.ps1
+```
+
+- Einzeln:
+
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-delphi-tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-fpc-tests.ps1
 ```
 
 - QR-spezifisch zusaetzlich schnelle Gate-Ausfuehrung nutzen:
@@ -101,6 +118,7 @@ Ein Modul gilt als "ported + tests gruen", wenn:
 - Kernfunktionen gegen C-Testdaten abgedeckt sind.
 - Return-Codes/errtxt/Dimensionen stabil sind.
 - Keine bekannten Abstuerze/Heap-Probleme mehr offen sind.
+- Modul und Tests unter Delphi **und** FPC gruen sind.
 - Verbleibende Deltas explizit dokumentiert sind.
 
 ## 11) Commit- und Aenderungsdisziplin
@@ -144,7 +162,7 @@ Ablauf:
 3. Gap-Analyse erstellen: `test_large`, `test_input`, `test_encode`, `test_hrt`, `test_fuzz`.
 4. Fehlende Delphi-Tests ergaenzen (zuerst failend, dann fixen).
 5. Relevanten Testblock + Full Win32 DUnitX laufen lassen.
-6. Deltas in Tests und `MIGRATION_PLAN.md` dokumentieren.
+6. Deltas in Tests und `docs/ports/<modul>.md` dokumentieren.
 
 Pflicht-Output:
 - "Gefundene Luecken"
@@ -191,7 +209,7 @@ Ziel:
 
 Ablauf:
 1. Delta in Test direkt kommentieren (kurz, praezise).
-2. Delta in `MIGRATION_PLAN.md` oder README nachziehen.
+2. Delta in `docs/ports/<modul>.md` nachziehen.
 3. Formulierung ohne Beschoenigung: was fehlt, was ist bewusst anders, was ist naechster Schritt.
 
 Pflicht-Output:
@@ -218,8 +236,8 @@ Ziel:
 - Vollstaendige Abnahme vor Abschluss.
 
 Ablauf:
-1. `powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\build-delphi-tests.ps1`
-2. Ergebnis exakt berichten: Found/Passed/Failed/Errored.
+1. `powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\gate-all.ps1`
+2. Ergebnis exakt berichten, **je Compiler getrennt**: Found/Passed/Failed/Errored.
 3. Bei Fehlschlag kein Abschluss ohne transparente Restpunkte.
 
 Pflicht-Output:
