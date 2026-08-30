@@ -43,9 +43,10 @@ Kern-API, Dispatch, TZintSymbol
 
 ## Querschnittsdeltas (betreffen jedes Modul)
 
-Beide gefunden im Codex-Review von `port/telepen` am 2026-08-30. Sie stehen
-hier und nicht bei einem einzelnen Barcode, weil sie den gesamten Port
-betreffen. Der erste ist inzwischen erledigt.
+Sie stehen hier und nicht bei einem einzelnen Barcode, weil sie den gesamten
+Port betreffen. Die ersten beiden stammen aus dem Codex-Review von
+`port/telepen` am 2026-08-30, die beiden mittleren aus dem Review von
+`chore/set-height` am selben Tag. Erledigt ist bisher nur der erste.
 
 ### `symbol.height` wurde nie gesetzt (erledigt 2026-08-30)
 
@@ -96,6 +97,53 @@ jeweils im Portierungsvorgang des Moduls an, nicht mehr als Querschnittsthema.
 
 **Was bleibt.** Fuer jedes Modul gilt weiter: eine leere Delta-Tabelle heisst
 "keine getesteten Deltas", nicht "keine Deltas".
+
+### errtxt bekommt zwei Praefixe (offen)
+
+C baut den Meldungstext in zwei Schritten: der Encoder schreibt `247: Height
+not compliant with standards (too small)`, und `error_tag` (`library.c:251`)
+stellt genau einmal `Warning ` bzw. `Error ` voran. Oeffentlich steht am Ende
+`Warning 247: ...`.
+
+Der Port macht beides doppelt. Die Module schreiben den vollen Text
+(`'Warning 247: ...'`, `'Error 486: ...'`), und `error_tag` (`zint.pas`)
+stellt zusaetzlich das aeltere `warning: ` bzw. `error: ` voran. Oeffentlich
+steht damit:
+
+```
+warning: Warning 247: Height not compliant with standards (too small)
+```
+
+Das betrifft **jede** Meldung des Ports, nicht nur die Hoehenwarnungen, und
+stammt aus dem Legacy-Stand. In den Tests ist es unsichtbar, weil
+`TZintTestHelper.GetErrTxt` das aeussere Praefix abschneidet - ausdruecklich,
+damit die portierten C-Erwartungswerte passen.
+
+Die Aufloesung ist mechanisch, aber breit: die Module duerften nur noch
+`247: ...` schreiben, und `error_tag` muesste `Warning `/`Error ` voranstellen
+statt `warning: `/`error: `. Das beruehrt jeden Encoder und jede Testunit und
+gehoert deshalb in einen eigenen Vorgang, nicht in einen Barcode-Branch.
+Gefunden im Codex-Review von `chore/set-height` am 2026-08-30.
+
+### `input_mode` verliert die oberen Bits (teilweise offen)
+
+`ZBarcode_Encode` weist `symbol.input_mode` an vier Stellen vollstaendig neu
+zu - einmal `base_mode` vor der Kodierung, dann in den Wiederholungspfaden
+fuer PDF417, Data Matrix und ECI. Jede dieser Zuweisungen loescht alles
+oberhalb der 3-Bit-Basis. C tut das nie; nur ein ungueltiger Basismodus wird
+komplett auf `DATA_MODE` gesetzt (`library.c:977`).
+
+Der Port faengt einzelne Flags danach wieder ein: `FAST_MODE` und
+`GS1NOCHECK_MODE` seit laengerem, `HEIGHTPERROW_MODE` seit
+`chore/set-height` an allen vier Stellen. Nicht wiederhergestellt werden
+`ESCAPE_MODE`, `GS1PARENS_MODE`, `EXTRA_ESCAPE_MODE` und
+`GS1SYNTAXENGINE_MODE`; `FAST_MODE` fehlt in den letzten drei Zuweisungen.
+
+Praktische Folge heute: keine bekannte - die betroffenen Flags werden vor
+diesen Stellen ausgewertet oder gehoeren zu Modulen, die ohnehin nicht auf
+`b3a3c0d` stehen. Die saubere Loesung ist, die oberen Bits gar nicht erst zu
+verwerfen, statt sie einzeln nachzureichen. Gefunden im Codex-Review von
+`chore/set-height` am 2026-08-30.
 
 ### `TZintSymbol` hat kein `text_length`
 

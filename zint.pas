@@ -2820,7 +2820,10 @@ begin
   { C loescht die oberen input_mode-Bits nie (library.c:977 setzt nur bei
     ungueltigem Basismodus zurueck), base_mode oben schon. HEIGHTPERROW_MODE
     wird erst spaet in set_height gelesen und muss die Zuweisung ueberleben,
-    sonst wird height als Gesamthoehe statt als Zeilenhoehe verstanden. }
+    sonst wird height als Gesamthoehe statt als Zeilenhoehe verstanden.
+    Dasselbe steht noch dreimal weiter unten, wo input_mode erneut
+    vollstaendig zugewiesen wird. Fuer die anderen oberen Flags gilt das
+    nicht - siehe docs/ports/library.md, Querschnittsdeltas. }
   if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
     symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
 
@@ -2875,6 +2878,8 @@ begin
         symbol.input_mode := DATA_MODE;
         if (original_input_mode and FAST_MODE) <> 0 then
           symbol.input_mode := symbol.input_mode or FAST_MODE;
+        if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
       end;
     end;
   end;
@@ -2926,12 +2931,16 @@ begin
       begin
         symbol.eci := auto_eci;
         symbol.input_mode := DATA_MODE;
+        if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
         error_number := reduced_charset(symbol, dm_retry_bytes, dm_retry_len);
       end
       else
       begin
         symbol.eci := auto_eci;
         symbol.input_mode := base_mode;
+        if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
         case symbol.symbology of
           BARCODE_QRCODE,
           BARCODE_MICROQR,

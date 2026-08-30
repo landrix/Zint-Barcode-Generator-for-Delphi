@@ -200,8 +200,9 @@ end;
 
 { C: library.c:1276. Wer keine Hoehe vorgibt und eine Symbologie waehlt, die
   in C selbst kein z_set_height ruft, bekommt am Ende von ZBarcode_Encode 50.
-  Die C-Tabelle test_height deckt das nicht ab: dort ist immer eine Hoehe
-  gesetzt. Ohne diesen Test bliebe der Auffangzweig ungeprueft. }
+  Die C-Tabelle test_height deckt das nicht ab: fuer diese drei Symbologien
+  ist dort durchweg eine Hoehe gesetzt. Ohne diesen Test bliebe der
+  Auffangzweig ungeprueft. }
 procedure TTestCommonCore.TestEncodeHeightFallback;
 
   procedure Check(ASymbology: Integer; const AData: String; const AName: String);

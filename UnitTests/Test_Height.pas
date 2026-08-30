@@ -47,6 +47,7 @@ type
     [Test] procedure Height_CODE39;
     [Test] procedure Height_EXCODE39;
     [Test] procedure Height_EAN128;
+    [Test] procedure Height_CODE128;
     [Test] procedure Height_DPLEIT;
     [Test] procedure Height_DPIDENT;
     [Test] procedure Height_CODE93;
@@ -60,6 +61,7 @@ type
     [Test] procedure Height_PZN;
     [Test] procedure Height_PHARMA_TWO;
     [Test] procedure Height_CEPNET;
+    [Test] procedure Height_CODE128B;
     [Test] procedure Height_AUSPOST;
     [Test] procedure Height_AUSREPLY;
     [Test] procedure Height_AUSROUTE;
@@ -76,6 +78,7 @@ type
     [Test] procedure Height_ITF14;
     [Test] procedure Height_KIX;
     [Test] procedure Height_DAFT;
+    [Test] procedure Height_HIBC_128;
     [Test] procedure Height_HIBC_39;
     [Test] procedure Height_CODE32;
 
@@ -184,6 +187,14 @@ begin
   CheckCase(54, BARCODE_EAN128, COMPLIANT_HEIGHT, -1, 5.7, '[01]12345678901231', ZWARN_NONCOMPLIANT, 5.6999998, 1, 134);
   CheckCase(55, BARCODE_EAN128, COMPLIANT_HEIGHT, -1, 5.725, '[01]12345678901231', 0, 5.7249999, 1, 134);
   CheckCase(56, BARCODE_EAN128, -1, -1, 50.0, '[01]12345678901231', 0, 50.0, 1, 134);
+end;
+
+procedure TTestHeight.Height_CODE128;
+begin
+  CheckCase(62, BARCODE_CODE128, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 90);
+  CheckCase(63, BARCODE_CODE128, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 90);
+  CheckCase(64, BARCODE_CODE128, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 90);
+  CheckCase(65, BARCODE_CODE128, -1, -1, 7.0, '1234567890', 0, 7.0, 1, 90);
 end;
 
 procedure TTestHeight.Height_DPLEIT;
@@ -304,6 +315,13 @@ begin
   CheckCase(176, BARCODE_CEPNET, COMPLIANT_HEIGHT, -1, 9.1, '12345678', ZWARN_NONCOMPLIANT, 9.1000004, 2, 93);
   CheckCase(177, BARCODE_CEPNET, -1, -1, 20.0, '12345678', 0, 20.0, 2, 93);
   CheckCase(178, BARCODE_CEPNET, COMPLIANT_HEIGHT, -1, 20.0, '12345678', ZWARN_NONCOMPLIANT, 20.0, 2, 93);
+end;
+
+procedure TTestHeight.Height_CODE128B;
+begin
+  CheckCase(203, BARCODE_CODE128B, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 145);
+  CheckCase(204, BARCODE_CODE128B, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 145);
+  CheckCase(205, BARCODE_CODE128B, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 145);
 end;
 
 procedure TTestHeight.Height_AUSPOST;
@@ -464,6 +482,13 @@ begin
   CheckCase(357, BARCODE_DAFT, COMPLIANT_HEIGHT, -1, 16.0, 'DAFTDAFTDAFTDAFT', 0, 16.0, 3, 31);
 end;
 
+procedure TTestHeight.Height_HIBC_128;
+begin
+  CheckCase(363, BARCODE_HIBC_128, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 123);
+  CheckCase(364, BARCODE_HIBC_128, COMPLIANT_HEIGHT, -1, 1.0, '1234567890', 0, 1.0, 1, 123);
+  CheckCase(365, BARCODE_HIBC_128, -1, -1, 4.0, '1234567890', 0, 4.0, 1, 123);
+end;
+
 procedure TTestHeight.Height_HIBC_39;
 begin
   CheckCase(366, BARCODE_HIBC_39, -1, -1, 1.0, '1234567890', 0, 1.0, 1, 223);
@@ -483,10 +508,10 @@ end;
 procedure TTestHeight.HeightPerRow_PHARMA_TWO;
 begin
   CheckCase(62, BARCODE_PHARMA_TWO, -1, -1, -1.0, '1234', 0, 10.0, 2, 13);
-  CheckCase(63, BARCODE_PHARMA_TWO, -1, HEIGHTPERROW_MODE, 0.5, '1234', 0, 1.0, 2, 13);
-  CheckCase(64, BARCODE_PHARMA_TWO, -1, HEIGHTPERROW_MODE, 2.1, '1234', 0, 4.1999998, 2, 13);
-  CheckCase(65, BARCODE_PHARMA_TWO, -1, HEIGHTPERROW_MODE, 2.2, '1234', 0, 4.4000001, 2, 13);
-  CheckCase(66, BARCODE_PHARMA_TWO, -1, HEIGHTPERROW_MODE, 2.25, '1234', 0, 4.5, 2, 13);
+  CheckCase(63, BARCODE_PHARMA_TWO, -1, DATA_MODE or HEIGHTPERROW_MODE, 0.5, '1234', 0, 1.0, 2, 13);
+  CheckCase(64, BARCODE_PHARMA_TWO, -1, DATA_MODE or HEIGHTPERROW_MODE, 2.1, '1234', 0, 4.1999998, 2, 13);
+  CheckCase(65, BARCODE_PHARMA_TWO, -1, DATA_MODE or HEIGHTPERROW_MODE, 2.2, '1234', 0, 4.4000001, 2, 13);
+  CheckCase(66, BARCODE_PHARMA_TWO, -1, DATA_MODE or HEIGHTPERROW_MODE, 2.25, '1234', 0, 4.5, 2, 13);
 end;
 
 initialization

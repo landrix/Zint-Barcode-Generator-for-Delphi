@@ -25,7 +25,7 @@ code128.c	c128_set_priority	ported	c128_set_priority
 code128.c	c128_set_values	ported	c128_set_values
 code128.c	zint_code128	partial	code_128	EXTRA_ESCAPE_MODE (code128.c:396) fehlt, siehe code128.md
 code128.c	zint_gs1_128	ported	ean_128	Einzeiler-Wrapper um zint_gs1_128_cc (partial); Upstream hat EAN-128 in GS1-128 umbenannt
-code128.c	zint_gs1_128_cc	partial	gs1_128_cc	EXTRA_ESCAPE_MODE und GS1PARENS_MODE fehlen modulweit, siehe code128.md
+code128.c	zint_gs1_128_cc	partial	gs1_128_cc	EXTRA_ESCAPE_MODE, GS1PARENS_MODE und die GS1-Warnungsbehandlung samt Warnung 843 fehlen, siehe code128.md
 code128_based.c	nve18_or_ean14	partial	nve18_or_ean14	GS1PARENS_MODE wird nicht ausgewertet, siehe code128.md
 code128_based.c	zint_dpd	missing		LUECKE: kein Pascal-Gegenstueck. Siehe code128.md
 code128_based.c	zint_ean14	ported	ean_14	Wrapper um nve18_or_ean14 (partial); die Luecke liegt dort

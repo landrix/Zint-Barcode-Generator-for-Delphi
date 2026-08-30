@@ -38,11 +38,13 @@ $Wanted = @(
   # dem Auffangzweig in library.c:1276. Die Faelle halten fest, dass eine
   # vorgegebene Hoehe unangetastet bleibt.
   'C25STANDARD', 'C25IATA', 'C25LOGIC', 'C25IND', 'CODE11', 'PLESSEY',
-  'MSI_PLESSEY', 'VIN', 'FLAT', 'KOREAPOST'
+  'MSI_PLESSEY', 'VIN', 'FLAT', 'KOREAPOST', 'CODE128', 'CODE128AB',
+  'HIBC_128'
 )
 # Upstream hat EAN128 in GS1_128 umbenannt und C25MATRIX in C25STANDARD;
 # der Port fuehrt beide alten Namen.
-$Alias = @{ 'GS1_128' = 'EAN128'; 'C25STANDARD' = 'C25MATRIX' }
+$Alias = @{ 'GS1_128' = 'EAN128'; 'C25STANDARD' = 'C25MATRIX'
+            'CODE128AB' = 'CODE128B' }
 
 # Nur PHARMA_TWO erreicht im Port den HEIGHTPERROW_MODE-Zweig von set_height:
 # zwei Zeilen ohne vorgegebene row_height. Alles andere in test_height_per_row
@@ -178,6 +180,18 @@ foreach ($m in [regex]::Matches($prTable, $prRe)) {
 }
 if ($prRows.Count -eq 0) { throw 'keine Zeilen aus test_height_per_row erkannt' }
 
+# Gegenprobe wie oben, damit auch hier keine Zeile still verschwindet.
+$prMatchedIdx = @{}
+foreach ($r in $prRows) { $prMatchedIdx[$r.Index] = $true }
+foreach ($line in ($prTable -split "`n")) {
+  if ($line -match '/\*\s*(?<i>\d+)\*/\s*\{\s*BARCODE_(?<sym>\w+)\s*,') {
+    if (($WantedPerRow -contains $Matches['sym']) -and
+        -not $prMatchedIdx.ContainsKey([int]$Matches['i'])) {
+      throw "test_height_per_row C#$($Matches['i']) wurde vom Ausdruck nicht erfasst: $($line.Trim())"
+    }
+  }
+}
+
 # --- Ausgabe ----------------------------------------------------------------
 $order = @()
 foreach ($r in $rows) { if ($order -notcontains $r.Sym) { $order += $r.Sym } }
@@ -283,7 +297,9 @@ foreach ($sym in $prOrder) {
   $out.Add("procedure TTestHeight.HeightPerRow_$sym;")
   $out.Add('begin')
   foreach ($r in ($prRows | Where-Object { $_.Sym -eq $sym })) {
-    $mode = if ($r.Mode -eq '-1') { '-1' } else { 'HEIGHTPERROW_MODE' }
+    # C uebergibt exakt diesen input_mode an testUtilSetSymbol, also mit
+    # Basismodus DATA - nicht UNICODE wie in der ersten Tabelle.
+    $mode = if ($r.Mode -eq '-1') { '-1' } else { 'DATA_MODE or HEIGHTPERROW_MODE' }
     $out.Add(("  CheckCase({0}, BARCODE_{1}, -1, {2}, {3}, {4}, {5}, {6}, {7}, {8});" -f
       $r.Index, $sym, $mode, (ConvertTo-PasFloat $r.H), (ConvertTo-PasString $r.Data),
       $r.Ret, (ConvertTo-PasFloat $r.ExpH), $r.ExpR, $r.ExpW))
