@@ -120,6 +120,13 @@ begin
 
   expand(symbol, dest);
 
+  { C: telepen.c, z_set_height. Standardhoehe 32 mit COMPLIANT_HEIGHT
+    (26pt bei X 0.01125"), sonst 50. }
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    set_height(symbol, 0.0, 32.0, 0.0, 1)
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
+
   { Set HRT (Human Readable Text) }
   for i := 0 to src_len - 1 do
   begin
@@ -228,6 +235,13 @@ begin
   concat(dest, TeleTable[Ord('z')]);
 
   expand(symbol, dest);
+
+  { C: telepen.c, z_set_height. Standardhoehe 32 mit COMPLIANT_HEIGHT
+    (26pt bei X 0.01125"), sonst 50. }
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    set_height(symbol, 0.0, 32.0, 0.0, 1)
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
 
   { Set HRT }
   for i := 0 to temp_length - 1 do

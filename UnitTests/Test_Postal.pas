@@ -28,6 +28,11 @@ type
     [Test] procedure Large_Flat_129_TooLong;
     [Test] procedure Large_PostNet_11_OK;
     [Test] procedure Large_PostNet_12_Warn;
+    { Hoehe: test_postal.c test_input, symbol->height wird dort mitgeprueft.
+      Die Assertion fehlte im Port, weil z_set_height nicht portiert war. }
+    [Test] procedure Input_PostNet_Height_Default;
+    [Test] procedure Input_PostNet_Height_Given;
+    [Test] procedure Input_PostNet_Height_Compliant;
     [Test] procedure Large_PostNet_39_TooLong;
     [Test] procedure Large_CEPNet_8_OK;
     [Test] procedure Large_CEPNet_7_Warn;
@@ -201,6 +206,53 @@ begin
     ZAssert.AreEqual(2, sym.rows);
     ZAssert.AreEqual(133, sym.width);
     ZAssert.AreEqual('Warning 479: Input length 12 is not standard (should be 5, 9 or 11 digits)', TZintTestHelper.GetErrTxt(sym));
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_PostNet_Height_Default;
+{ C: test_input C#2 - POSTNET "12345", ohne Hoehenvorgabe -> height 12 }
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    ZAssert.AreEqual(2, sym.rows);
+    ZAssert.AreEqual(63, sym.width);
+    ZAssert.AreEqual(Single(12), sym.height, 'height');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_PostNet_Height_Given;
+{ C: test_input C#10 - POSTNET "12345" mit height 0.9 -> height 1.
+  0.9 * 0.5 = 0.45 liegt unter dem absoluten Minimum 0.5, deshalb wird die
+  halbe Balkenhoehe auf 0.5 gesetzt und die volle daraus zurueckgerechnet. }
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    sym.height := 0.9;
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    ZAssert.AreEqual(2, sym.rows);
+    ZAssert.AreEqual(63, sym.width);
+    ZAssert.AreEqual(Single(1), sym.height, 'height');
+  finally sym.Free; end;
+end;
+
+procedure TTestPostal.Input_PostNet_Height_Compliant;
+{ Nicht aus einem C-Fall, sondern aus usps_set_height (postal.c:104) selbst:
+  mit COMPLIANT_HEIGHT setzt C row_height auf 3.2249999 / 2.1500001, die
+  Summe 5.375 liegt im konformen Bereich 4.6 bis 9.0, also keine Warnung.
+  Ohne diesen Fall wuerde der COMPLIANT_HEIGHT-Zweig von keinem Test
+  beruehrt. }
+var sym: TZintSymbol;
+begin
+  sym := TZintTestHelper.CreateSymbol(BARCODE_POSTNET);
+  try
+    sym.output_options := sym.output_options or COMPLIANT_HEIGHT;
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    ZAssert.AreEqual(Single(3.2249999), sym.row_height[0], 'row_height[0]');
+    ZAssert.AreEqual(Single(2.1500001), sym.row_height[1], 'row_height[1]');
+    ZAssert.AreEqual(Single(5.375), sym.height, 'height');
   finally sym.Free; end;
 end;
 

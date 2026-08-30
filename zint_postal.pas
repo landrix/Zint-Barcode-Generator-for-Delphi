@@ -69,6 +69,60 @@ const JapanTable : array[0..18] of String = ('114', '132', '312', '123', '141', 
 
 { Handles the PostNet system used for Zip codes in the US }
 { Also handles Brazilian CEPNet }
+{ C: usps_set_height, postal.c:92.
+
+  USPS DMM 300 (Jan 2006, akt. 2011) 708.4.2.5, Balkenteilung als X
+  (1" / 43) ~ 0.023". Halbe Balkenhoehe 0.05" +- 0.01, volle 0.125" +- 0.01;
+  daraus die konformen Grenzen 4.6 bis 9.0. CEPNet nutzt dieselben Werte
+  (Guia Tecnico 26.05.2021, 3.3.2), dort ohne Altlast-Zweig. }
+function usps_set_height(symbol : zint_symbol; const no_errtxt : Integer) : Integer;
+var
+  error_number : Integer;
+  h_ratio : Single;
+begin
+  error_number := 0;
+
+  if ((symbol.output_options and COMPLIANT_HEIGHT) <> 0) or
+     (symbol.symbology = BARCODE_CEPNET) then
+  begin
+    symbol.row_height[0] := 3.2249999; { 0.075 * 43 }
+    symbol.row_height[1] := 2.1500001; { 0.05 * 43 }
+  end
+  else
+  begin
+    symbol.row_height[0] := 6.0;
+    symbol.row_height[1] := 6.0;
+  end;
+
+  if symbol.height <> 0 then
+  begin
+    { Verhaeltnis des halben Balkens, 0.4 }
+    h_ratio := symbol.row_height[1] / (symbol.row_height[0] + symbol.row_height[1]);
+    symbol.row_height[1] := stripf(symbol.height * h_ratio);
+    if symbol.row_height[1] < 0.5 then
+    begin
+      { Absolutes Minimum }
+      symbol.row_height[1] := 0.5;
+      symbol.row_height[0] := stripf(0.5 / h_ratio - 0.5); { 0.75 }
+    end
+    else
+      symbol.row_height[0] := stripf(symbol.height - symbol.row_height[1]);
+  end;
+  symbol.height := stripf(symbol.row_height[0] + symbol.row_height[1]);
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    if (symbol.height < 4.6) or (symbol.height > 9.0) then
+    begin
+      error_number := ZWARN_NONCOMPLIANT;
+      if no_errtxt = 0 then
+        strcpy(symbol.errtxt, 'Warning 498: Height not compliant with standards');
+    end;
+  end;
+
+  Result := error_number;
+end;
+
 function postnet(symbol : zint_symbol; const source : TArrayOfByte; var dest : TArrayOfChar; _length : Integer) : Integer;
 var
   i, sum, check_digit : Integer;
@@ -131,12 +185,14 @@ end;
 { Puts PostNet barcodes into the pattern matrix }
 function post_plot(symbol : zint_symbol; const source : TArrayOfByte; _length : Integer) : Integer;
 var
+  warn_number : Integer;
   height_pattern : TArrayOfChar;
   loopey, h : Integer;
   writer : Integer;
   error_number : Integer;
   sum, check_digit, i : Integer;
 begin
+  warn_number := 0;
   SetLength(height_pattern, 256);
 
   error_number := postnet(symbol, source, height_pattern, _length);
@@ -154,8 +210,8 @@ begin
     set_module(symbol, 1, writer);
     Inc(writer, 2);
   end;
-  symbol.row_height[0] := 6;
-  symbol.row_height[1] := 6;
+  { C: postal.c:214 bzw. :287 - warn_number = usps_set_height(symbol, error_number) }
+  warn_number := usps_set_height(symbol, error_number);
   symbol.rows := 2;
   symbol.width := writer - 1;
 
@@ -177,7 +233,11 @@ begin
     symbol.content_segs_count := 1;
   end;
 
-  result := error_number;
+  { C: return error_number ? error_number : warn_number }
+  if error_number <> 0 then
+    result := error_number
+  else
+    result := warn_number;
 end;
 
 { Handles the PLANET system used for item tracking in the US }
@@ -232,12 +292,14 @@ end;
 { Puts PLANET barcodes into the pattern matrix }
 function planet_plot(symbol : zint_symbol; const source : TArrayOfByte; _length : Integer) : Integer;
 var
+  warn_number : Integer;
   height_pattern : TArrayOfChar;
   loopey, h : Integer;
   writer : Integer;
   error_number : Integer;
   sum, check_digit, i : Integer;
 begin
+  warn_number := 0;
   SetLength(height_pattern, 256);
 
   error_number := planet(symbol, source, height_pattern, _length);
@@ -255,8 +317,8 @@ begin
     set_module(symbol, 1, writer);
     Inc(writer, 2);
   end;
-  symbol.row_height[0] := 6;
-  symbol.row_height[1] := 6;
+  { C: postal.c:214 bzw. :287 - warn_number = usps_set_height(symbol, error_number) }
+  warn_number := usps_set_height(symbol, error_number);
   symbol.rows := 2;
   symbol.width := writer - 1;
 
@@ -278,7 +340,11 @@ begin
     symbol.content_segs_count := 1;
   end;
 
-  result := error_number;
+  { C: return error_number ? error_number : warn_number }
+  if error_number <> 0 then
+    result := error_number
+  else
+    result := warn_number;
 end;
 
 { Korean Postal Authority }
