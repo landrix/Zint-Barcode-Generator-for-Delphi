@@ -128,7 +128,48 @@ Barcode-Branch abgearbeitet werden, nicht in der Infrastruktur.
 |---|---|
 | `Test_QR` und `Test_PDF417` laufen nicht im FPC-Gate | 304 bzw. 48 Zeichenliterale > `#$00FF` lassen sich unter FPC nicht in `AnsiString` legen. Siehe `docs/ports/qr.md` und `docs/ports/pdf417.md`. |
 | `Test_DMatrix` C#20 im FPC-Lauf uebersprungen | FPC liefert 14 statt 12 rows. Siehe `docs/ports/dmatrix.md`. |
-| Delphi fuehrt weniger Tests aus als FPC | Im Bestand stehen 895 `[Test]`-Methoden. FPC fuehrt 848 aus, also alle ausser den 47 in QR/PDF417. DUnitX meldet dagegen nur 827 gefundene Tests. Die Differenz von 68 Methoden ist **ungeklaert**: entweder zaehlt DUnitX anders, oder es fuehrt 68 vorhandene Tests stillschweigend nicht aus. Das ist vor der naechsten Portierungsrunde zu klaeren, weil davon abhaengt, ob der Delphi-Stand so gruen ist wie er aussieht. |
+| **DUnitX ueberspringt 4 Fixtures stillschweigend** | Siehe naechster Abschnitt. Betrifft rund 60 Tests. |
+
+### DUnitX fuehrt vier registrierte Fixtures nicht aus
+
+Untersucht am 2026-08-30. **Der Befund besteht unabhaengig von der Dual-Gate-Umstellung**
+und war im Testlauf davor identisch.
+
+Betroffen sind:
+
+| Fixture | Unit | Eigene Testmethoden | Im Lauf |
+|---|---|---|---|
+| `TTestTelepen` | `Test_Telepen` | 23 | **0** |
+| `TTestTelepenNum` | `Test_Telepen` | 25 | **0** |
+| `TTestRMQR` | `Test_QR` | 9 | **0** |
+| `TTestUPNQR` | `Test_QR` | 3 | **0** |
+| `TTestQR` | `Test_QR` | 12 | nur die ersten **3** |
+
+`Test_Telepen` taucht im NUnit-Ergebnis gar nicht auf: der Lauf kennt 17 statt 18
+Namespaces und 47 statt 51 Fixtures.
+
+Was **ausgeschlossen** werden konnte:
+
+- **Registrierung.** Alle 51 Fixtures stehen in `TDUnitX.RegisteredFixtures`,
+  inklusive beider Telepen-Klassen.
+- **Fehlende RTTI.** `TRttiContext.GetType(...).GetMethods` liefert fuer
+  `TTestTelepen` alle 23, fuer `TTestQR` alle 12 und fuer `TTestRMQR` alle 9
+  eigenen Methoden.
+- **Die Unit selbst.** Isoliert ueber `scripts\isolate-win32-av.ps1 -Units Test_Telepen`
+  laufen alle 48 Telepen-Tests gruen durch.
+- **Reihenfolge in der uses-Liste.** Test_Telepen ans Ende verschoben: unveraendert.
+- **Projektgroesse / RTTI-Kapazitaet.** Auch nach Entfernen von `Test_Code128` und
+  `Test_Code` (310 Tests weniger) fehlt Telepen weiterhin.
+
+Unter FPC laufen dieselben Fixtures vollstaendig: fpcunit fuehrt 848 Tests aus,
+Delphi 826 (`826 - QR 9 - PDF417 17 = 800`, Differenz zu 848 sind exakt die 48
+Telepen-Tests). **Das FPC-Gate ist derzeit der strengere der beiden Runner.**
+
+Offen bleibt die Ursache im Fixture-Baum-Aufbau von DUnitX
+(`Lib/dunitx/Source/DUnitX.FixtureProvider.pas`, `Execute` / `GenerateTests`).
+Solange das nicht geklaert ist, gilt: **eine gruene Delphi-Suite ist kein Beleg
+dafuer, dass alle vorhandenen Tests gelaufen sind.** Die Zahl im Gate
+(`Tests Found`) mit der Zahl der Fixtures abgleichen, wenn Zweifel bestehen.
 
 ---
 
