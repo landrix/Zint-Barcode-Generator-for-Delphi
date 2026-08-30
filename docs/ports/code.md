@@ -35,6 +35,24 @@ Code11, C39, EC39, LOGMARS, C93, VIN, HIBC_39
 |---|---|---|---|---|
 | | | | | |
 
+## Portierungsluecken (Funktionsinventar)
+
+Alle Eintraege stammen aus dem Funktionsinventar
+(`docs/ports/_functions.tsv`), nicht aus einem Testlauf: C-Funktionen, zu denen
+es im Port keine oder nur eine unvollstaendige Entsprechung gibt. Kein Test
+faellt darueber, weil die portierten C-Testsuiten die Hoehe nicht pruefen.
+
+| C-Funktion | Status | Fehlt im Port |
+|---|---|---|
+| `zint_code39` (`code.c:198-211`) | partial | Hoehenlogik |
+| `zint_code93` (`code.c:404-407`) | partial | Hoehenlogik |
+
+Gemeinsame Ursache: der Port kennt kein `z_set_height`. Portweite Beschreibung
+in [library.md](library.md), Abschnitt *Querschnittsdeltas*.
+
+`zint_code11` (`code11.c`) und `zint_excode39`/`zint_vin` sind vollstaendig
+portiert und enthalten in C keine Hoehenlogik.
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |

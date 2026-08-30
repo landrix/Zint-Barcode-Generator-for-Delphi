@@ -4,26 +4,38 @@ c_datei	c_funktion	status	pascal	bemerkung
 2of5.c	zint_c25ind	ported	industrial_two_of_five
 2of5.c	zint_c25logic	ported	logic_two_of_five
 2of5.c	zint_c25standard	ported	matrix_two_of_five	C ruft c25_common mit is_matrix=1
+2of5inter.c	zint_c25_inter_common	partial	c25_inter_common	Hoehenlogik fehlt, siehe 2of5.md
+2of5inter.c	zint_c25inter	ported	interleaved_two_of_five
+2of5inter_based.c	c25_dp_check_digit	inline	dpleit, dpident	Einzeiler itoc((10 - count mod 10) mod 10); der Port rechnet ihn in beiden Routinen direkt aus
+2of5inter_based.c	zint_dpident	partial	dpident	Hoehenlogik fehlt, siehe 2of5.md
+2of5inter_based.c	zint_dpleit	partial	dpleit	Hoehenlogik fehlt, siehe 2of5.md
+2of5inter_based.c	zint_itf14	partial	itf14	Hoehenlogik fehlt, siehe 2of5.md
 auspost.c	aus_convert_pattern	ported	convert_pattern	Praefix aus_ ist eine spaetere Upstream-Umbenennung
 auspost.c	aus_rs_error	ported	rs_error	dito
-auspost.c	zint_auspost	ported	australia_post
-code.c	zint_code39	ported	c39
-code.c	zint_code93	ported	c93
+auspost.c	zint_auspost	partial	australia_post	Hoehenlogik fehlt, siehe auspost.md
+code.c	zint_code39	partial	c39	Hoehenlogik fehlt, siehe code.md
+code.c	zint_code93	partial	c93	Hoehenlogik fehlt, siehe code.md
 code.c	zint_excode39	ported	ec39
 code.c	zint_vin	ported	vin
+code11.c	zint_code11	ported	code_11
 code128.c	c128_cost	ported	c128_cost
 code128.c	c128_cost_ab	ported	c128_cost_ab
 code128.c	c128_expand	ported	c128_expand
 code128.c	c128_set_priority	ported	c128_set_priority
 code128.c	c128_set_values	ported	c128_set_values
-code128.c	zint_code128	ported	code_128
+code128.c	zint_code128	partial	code_128	EXTRA_ESCAPE_MODE (code128.c:396) fehlt, siehe code128.md
 code128.c	zint_gs1_128	ported	ean_128	Upstream hat EAN-128 in GS1-128 umbenannt
-code128.c	zint_gs1_128_cc	ported	gs1_128_cc
+code128.c	zint_gs1_128_cc	partial	gs1_128_cc	Hoehenlogik fehlt, siehe code128.md
+code128_based.c	nve18_or_ean14	ported	nve18_or_ean14
+code128_based.c	zint_dpd	missing		LUECKE: kein Pascal-Gegenstueck. Siehe code128.md
+code128_based.c	zint_ean14	ported	ean_14
+code128_based.c	zint_nve18	ported	nve_18
+code128_based.c	zint_upu_s10	missing		LUECKE: kein Pascal-Gegenstueck. Siehe code128.md
 medical.c	pharma_two_calc	ported	pharma_two_calc
-medical.c	zint_code32	ported	code32
-medical.c	zint_pharma	ported	pharma_one
-medical.c	zint_pharma_two	ported	pharma_two
-medical.c	zint_pzn	ported	pzn
+medical.c	zint_code32	partial	code32	Hoehenlogik fehlt, siehe medical.md
+medical.c	zint_pharma	partial	pharma_one	Hoehenlogik fehlt, siehe medical.md
+medical.c	zint_pharma_two	partial	pharma_two	Hoehenlogik fehlt, siehe medical.md
+medical.c	zint_pzn	partial	pzn	Hoehenlogik fehlt, siehe medical.md
 plessey.c	msi_check_digit_mod10	ported	msi_check_digit_mod10
 plessey.c	msi_check_digit_mod11	ported	msi_check_digit_mod11
 plessey.c	msi_plessey_nomod	inline	msi_handle	C hat die fuenf Varianten in eigene Funktionen ausgelagert und schaltet per switch; der Port entscheidet inline ueber check_option 0..6
@@ -33,19 +45,19 @@ plessey.c	msi_plessey_mod11	inline	msi_handle	siehe msi_plessey_nomod
 plessey.c	msi_plessey_mod1110	inline	msi_handle	siehe msi_plessey_nomod
 plessey.c	zint_msi_plessey	ported	msi_handle
 plessey.c	zint_plessey	ported	plessey
-postal.c	planet_enc	ported	planet
-postal.c	postnet_enc	ported	postnet
-postal.c	rm4scc_enc	ported	rm4scc
-postal.c	usps_set_height	partial	post_plot, planet_plot	LUECKE: der Port setzt row_height fest auf 6/6 (zint_postal.pas:157). C unterscheidet COMPLIANT_HEIGHT bzw. CEPNET (3.225/2.15) und rechnet zusaetzlich ein Halbbalken-Verhaeltnis, wenn symbol.height gesetzt ist. Siehe postal.md
-postal.c	zint_daft	ported	daft_code
-postal.c	zint_daft_set_height	missing		LUECKE: keine Entsprechung im Port. Siehe postal.md
-postal.c	zint_fim	ported	fim
+postal.c	planet_enc	ported	planet	Encoder-Helfer; die content_segs-Behandlung liegt im Port eine Ebene hoeher in planet_plot
+postal.c	postnet_enc	ported	postnet	dito, content_segs in post_plot
+postal.c	rm4scc_enc	ported	rm4scc	dito, content_segs in royal_plot
+postal.c	usps_set_height	partial	post_plot, planet_plot	LUECKE: Port setzt row_height fest auf 6/6, siehe postal.md
+postal.c	zint_daft	partial	daft_code	Hoehenlogik fehlt, siehe postal.md
+postal.c	zint_daft_set_height	missing		LUECKE: kein Pascal-Gegenstueck; betrifft DAFT, RM4SCC, KIX, Japan Post und Australia Post. Siehe postal.md
+postal.c	zint_fim	partial	fim	Hoehenlogik fehlt, siehe postal.md
 postal.c	zint_flat	ported	flattermarken
-postal.c	zint_japanpost	ported	japan_post
-postal.c	zint_kix	ported	kix_code
+postal.c	zint_japanpost	partial	japan_post	Hoehenlogik fehlt, siehe postal.md
+postal.c	zint_kix	partial	kix_code	Hoehenlogik fehlt, siehe postal.md
 postal.c	zint_koreapost	ported	korea_post
-postal.c	zint_planet	ported	planet_plot
-postal.c	zint_postnet	ported	post_plot
-postal.c	zint_rm4scc	ported	royal_plot
-telepen.c	zint_telepen	ported	telepen
-telepen.c	zint_telepen_num	ported	telepen_num
+postal.c	zint_planet	ported	planet_plot	Hoehe kommt in C aus usps_set_height, dort als eigene Luecke gefuehrt
+postal.c	zint_postnet	ported	post_plot	dito
+postal.c	zint_rm4scc	partial	royal_plot	Hoehenlogik fehlt, siehe postal.md
+telepen.c	zint_telepen	partial	telepen	Hoehenlogik fehlt, siehe telepen.md
+telepen.c	zint_telepen_num	partial	telepen_num	Hoehenlogik fehlt, siehe telepen.md

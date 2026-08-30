@@ -360,13 +360,21 @@ Delta-Eintrag), `n/a` (ausserhalb des Portierungsumfangs).
 
 Das Skript schlaegt an, wenn
 
+- eine C-Datei aus `backend/` **keinem Modul zugeordnet** ist und auch nicht in
+  der Ausnahmeliste des Skripts steht (Rendering, Dateiformate, CLI). Genau so
+  blieben `zint_dpd` und `zint_upu_s10` unbemerkt: `code128_based.c` gehoerte
+  zu keinem Modul. `c_datei` in `_modules.tsv` darf mehrere Dateien
+  kommagetrennt aufzaehlen.
 - ein Modul mit Status `done` eine unklassifizierte C-Funktion hat,
 - eine Zeile eine Pascal-Routine nennt, die es in der Unit nicht gibt,
+- eine Zeile mit Status `partial` oder `missing` **in `docs/ports/<modul>.md`
+  nicht vorkommt** - eine Luecke, die nur im Inventar steht, liest niemand,
 - eine Zeile auf eine C-Funktion zeigt, die es nicht mehr gibt (veraltet nach
   einem Referenzwechsel, siehe Abschnitt 2b).
 
-Module ohne Status `done` werden nur gezaehlt, nicht bemaengelt - das Inventar
-wird modulweise gefuellt, nicht in einem Zug.
+Nur die Pruefung auf unklassifizierte Funktionen gilt allein fuer `done`-Module
+- das Inventar wird modulweise gefuellt, nicht in einem Zug. Alle uebrigen
+Pruefungen gelten fuer jedes Modul.
 
 > **Ein Modul darf erst auf `done` gesetzt werden, wenn sein Inventar
 > vollstaendig ist.** Vorher heisst `done` nur "die portierten C-Testfaelle sind

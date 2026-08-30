@@ -35,6 +35,20 @@ Australia Post
 |---|---|---|---|---|
 | | | | | |
 
+## Portierungsluecken (Funktionsinventar)
+
+Alle Eintraege stammen aus dem Funktionsinventar
+(`docs/ports/_functions.tsv`), nicht aus einem Testlauf: C-Funktionen, zu denen
+es im Port keine oder nur eine unvollstaendige Entsprechung gibt. Kein Test
+faellt darueber, weil die portierten C-Testsuiten die Hoehe nicht pruefen.
+
+| C-Funktion | Status | Fehlt im Port |
+|---|---|---|
+| `zint_auspost` (`auspost.c:263-280`) | partial | C setzt bei `COMPLIANT_HEIGHT` `row_height` 3.7/2.6 und ruft `zint_daft_set_height(7.0, 14.0)`, was auch eine Grenzwarnung erzeugen kann. `zint_auspost.pas:265-267` setzt fest 3/2/3 |
+
+Portweite Beschreibung in [library.md](library.md), Abschnitt
+*Querschnittsdeltas*; `zint_daft_set_height` selbst siehe [postal.md](postal.md).
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |

@@ -35,6 +35,23 @@ Pharmacode, Code32, PZN
 |---|---|---|---|---|
 | | | | | |
 
+## Portierungsluecken (Funktionsinventar)
+
+Alle Eintraege stammen aus dem Funktionsinventar
+(`docs/ports/_functions.tsv`), nicht aus einem Testlauf: C-Funktionen, zu denen
+es im Port keine oder nur eine unvollstaendige Entsprechung gibt. Kein Test
+faellt darueber, weil die portierten C-Testsuiten die Hoehe nicht pruefen.
+
+| C-Funktion | Status | Fehlt im Port |
+|---|---|---|
+| `zint_pharma` (`medical.c:97-99`) | partial | Hoehenlogik |
+| `zint_pharma_two` (`medical.c:188-190`) | partial | Hoehenlogik |
+| `zint_code32` (`medical.c:280-282`) | partial | Hoehenlogik |
+| `zint_pzn` (`medical.c:365-369`) | partial | Hoehenlogik |
+
+Gemeinsame Ursache: der Port kennt kein `z_set_height`. Portweite Beschreibung
+in [library.md](library.md), Abschnitt *Querschnittsdeltas*.
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |
