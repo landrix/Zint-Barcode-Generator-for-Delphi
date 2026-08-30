@@ -35,6 +35,35 @@ Code128, Code128B, GS1-128, EAN-14, NVE-18, HIBC-128
 |---|---|---|---|---|
 | | | | | |
 
+## Portierungsstand: von done auf partial zurueckgestuft (2026-08-30)
+
+Der Modulstatus stand auf `done`. Das ist nicht haltbar, gemessen gegen
+`test_code128.c`:
+
+| | |
+|---|---|
+| C-Testfaelle | 462 |
+| Delphi-Testmethoden | 163 (35 %) |
+| Faelle mit Fehlerpruefung | 33 |
+| Faelle mit `errtxt`-Pruefung | **0** |
+
+Zum Vergleich: telepen 100 %, auspost 99 %, postal 89 %, 2of5 82 %, code 74 %,
+plessey 67 %, medical 53 %. code128 ist das einzige der acht Module, das
+`symbol.errtxt` **nirgends** prueft, obwohl `test_code128.c` es an vier Stellen
+assertiert (`:137`, `:139`, `:451`, `:704`) - gefunden von
+`scripts/check-c-assertions.ps1`.
+
+Dazu kommen zwei ganze C-Bloecke fuer Symbologien, die es im Port nicht gibt:
+`test_dpd_input` (32 Faelle) und `test_upu_s10_input` (30), siehe die
+Inventar-Tabelle unten.
+
+Offen fuer einen kuenftigen `port/code128`-Branch:
+
+- `errtxt`-Assertionen fuer die 33 Fehlerfaelle nachziehen, mit den C-Texten
+- die fehlenden Faelle aus `test_input` (153), `test_hrt` (70), `test_large` (41)
+  und `test_encode` (53 - davon 7 portiert) durchzaehlen und portieren
+- `EXTRA_ESCAPE_MODE`, `GS1PARENS_MODE`, DPD und UPU S10 (Inventar-Tabelle)
+
 ## Portierungsluecken (Funktionsinventar)
 
 Alle Eintraege stammen aus dem Funktionsinventar

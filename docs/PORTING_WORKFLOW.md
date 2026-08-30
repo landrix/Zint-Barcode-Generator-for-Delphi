@@ -269,6 +269,7 @@ Eine Aenderung ist erst fertig, wenn **beide** Gates gruen sind.
 | Gate | Kommando | Compiler | Plattform |
 |---|---|---|---|
 | C-Funktionsinventar | `scripts\check-c-inventory.ps1` | - | statisch, Sekunden |
+| C-Assertions | `scripts\check-c-assertions.ps1` | - | statisch, Sekunden |
 | Delphi-Vollgate | `scripts\build-delphi-tests.ps1` | Delphi Studio 37.0 | Win32 Debug |
 | FPC-Vollgate | `scripts\build-fpc-tests.ps1` | FPC 3.3.1 | aarch64-win64 |
 | FPC-Compile-Gate (Linux) | `scripts\build-fpc-tests.ps1 -Wsl` | FPC 3.2.2 | aarch64-linux |
@@ -398,6 +399,52 @@ entsteht. Stattdessen muss ein Aufrufer den lueckenhaften Helfer in seiner
 Bemerkung nennen; das Skript prueft das ueber den C-Quelltext. Die Luecke steht
 damit genau einmal in der Zaehlung und ist trotzdem von jeder Aufrufstelle aus
 auffindbar.
+
+### Zwei Fragen, zwei Werkzeuge
+
+`check-c-inventory.ps1` fragt: **haben wir allen C-Code portiert?**
+`check-c-assertions.ps1` fragt: **haben wir alle C-Pruefungen portiert?**
+
+Das sind verschiedene Fehler. Das Inventar fand, dass `z_set_height` im Port
+nicht existiert. Der Assertions-Abgleich findet, dass `test_postal.c`
+`symbol->height` zehnmal assertiert, waehrend `Test_Postal.pas` bei 116
+Testmethoden keine einzige Hoehen-Assertion hat - die Faelle wurden portiert,
+die Pruefung weggelassen.
+
+Er sammelt je C-Testdatei die assertierten `symbol->`-Felder ein - nur die
+geprueften Argumente, nicht den Meldungstext, sonst gaelte jedes in einer
+Fehlermeldung erwaehnte `errtxt` als geprueft - und sucht das zugehoerige
+Pascal-Pendant in der Testunit. Fehlt es, ist das ein Befund. Fuer Module mit
+Status `done` ist es ein Fehler, sonst eine Meldung. Begruendete Ausnahmen:
+`scripts/check-c-assertions-ignore.txt`.
+
+Was er **nicht** leistet: er prueft nicht, ob eine vorhandene Assertion richtig
+ist oder dieselben Faelle abdeckt wie C. Er findet Felder, die niemand prueft.
+
+### Was `done` heisst - und was nicht
+
+`done` heisst bisher "die portierten C-Testfaelle sind gruen" und, seit dem
+Inventar, "jede C-Funktion ist klassifiziert". Es heisst **nicht** "alle C-Faelle
+sind portiert". Gemessen am 2026-08-30, Delphi-Testmethoden gegen C-Testfaelle:
+
+| Modul | C-Faelle | Delphi | Abdeckung |
+|---|---|---|---|
+| telepen | 49 | 49 | 100 % |
+| auspost | 82 | 81 | 99 % |
+| postal | 131 | 116 | 89 % |
+| 2of5 | 128 | 105 | 82 % |
+| code | 198 | 147 | 74 % |
+| plessey | 113 | 76 | 67 % |
+| medical | 78 | 41 | 53 % |
+
+`code128` stand ebenfalls auf `done` und ist zurueckgestuft worden: 163 von 462
+Faellen (35 %), keine einzige `errtxt`-Pruefung, und zwei Symbologien des Moduls
+sind gar nicht portiert. Siehe [ports/code128.md](ports/code128.md).
+
+Die Zahl ist kein Gueltigkeitskriterium - ein Modul kann mit 60 % vollstaendig
+richtig sein, wenn die uebrigen Faelle Varianten desselben Pfades sind. Sie
+gehoert aber in die Entscheidung, ob ein Modul `done` genannt wird, und sie
+sollte beim Schliessen eines Barcode-Branches bewusst benannt werden.
 
 ### Blinde Flecken sind nicht immer geerbt
 

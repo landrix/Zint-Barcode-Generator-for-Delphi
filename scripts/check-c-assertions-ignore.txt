@@ -1,0 +1,30 @@
+# Exceptions for scripts/check-c-assertions.ps1 - one "modul:feld" per line.
+#
+# Only for fields the port genuinely cannot check, or where the omission is a
+# deliberate, documented decision. Never to silence an assertion that simply
+# has not been ported yet - that would make the check worthless.
+#
+# Every entry needs a reason in a comment above it.
+
+# TZintSymbol has no text_length field: text is a NUL-terminated TArrayOfByte
+# (zint.pas:388), the test helper reads up to the first NUL. C compares the HRT
+# by length with memcmp. Cross-cutting delta, described in
+# docs/ports/library.md, section Querschnittsdeltas. Every module inherits it.
+2of5:text_length
+auspost:text_length
+code:text_length
+code128:text_length
+composite:text_length
+common:text_length
+medical:text_length
+plessey:text_length
+postal:text_length
+telepen:text_length
+
+# symbol.height cannot be checked before z_set_height is ported: the port never
+# sets it (docs/ports/library.md), and height/row_height are Integer while C
+# has float - the compliant postal heights 3.225/2.15 are not representable at
+# all. Both entries go away with the set-height branch, and the assertions from
+# test_postal.c and test_code128.c get ported with it.
+code128:height
+postal:height
