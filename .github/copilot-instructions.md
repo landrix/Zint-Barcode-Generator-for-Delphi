@@ -146,9 +146,10 @@ jeden Branch, auch fuer reine Infrastruktur- und Doku-Branches.
 
 ## 10c) Assertions-Abgleich
 
-- `scripts/check-c-assertions.ps1` prueft, ob die Testunit jedes
-  `symbol->`-Feld prueft, das die C-Testdatei assertiert. Laeuft in
-  `gate-all.ps1` mit.
+- `scripts/check-c-assertions.ps1` prueft, ob jedes `symbol->`-Feld, das die
+  C-Testdatei assertiert, in der Testunit ueberhaupt in einer Assertion
+  **vorkommt**. Nicht, ob es richtig geprueft wird. Laeuft in `gate-all.ps1`
+  mit.
 - Beim Portieren eines Testfalls gilt: die Assertionsreihenfolge
   `ret` -> `errtxt` -> `rows`/`width` ist das **Minimum**, nicht die Liste. Was
   der C-Fall sonst prueft, wird mitportiert oder begruendet ausgelassen.

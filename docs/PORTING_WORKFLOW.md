@@ -407,9 +407,10 @@ auffindbar.
 
 Das sind verschiedene Fehler. Das Inventar fand, dass `z_set_height` im Port
 nicht existiert. Der Assertions-Abgleich findet, dass `test_postal.c`
-`symbol->height` zehnmal assertiert, waehrend `Test_Postal.pas` bei 116
-Testmethoden keine einzige Hoehen-Assertion hat - die Faelle wurden portiert,
-die Pruefung weggelassen.
+`symbol->height` in drei Testbloecken assertiert - je Fall einmal, also ueber
+viele Faelle hinweg -, waehrend `Test_Postal.pas` bei 116 Testmethoden keine
+einzige Hoehen-Assertion hat. Die Faelle wurden portiert, die Pruefung
+weggelassen.
 
 Er sammelt je C-Testdatei die assertierten `symbol->`-Felder ein - nur die
 geprueften Argumente, nicht den Meldungstext, sonst gaelte jedes in einer
@@ -418,8 +419,17 @@ Pascal-Pendant in der Testunit. Fehlt es, ist das ein Befund. Fuer Module mit
 Status `done` ist es ein Fehler, sonst eine Meldung. Begruendete Ausnahmen:
 `scripts/check-c-assertions-ignore.txt`.
 
-Was er **nicht** leistet: er prueft nicht, ob eine vorhandene Assertion richtig
-ist oder dieselben Faelle abdeckt wie C. Er findet Felder, die niemand prueft.
+Was er **nicht** leistet, und das ist mehr, als es zunaechst aussieht:
+
+- Er prueft nicht, ob eine vorhandene Assertion richtig ist oder dieselben
+  Faelle abdeckt wie C. Ein einziger Treffer deckt die ganze Testunit ab.
+- Er sieht nur, was in C als `symbol->feld` in einem Assert-Argument steht.
+  **Was C ueber einen Helfer prueft, ist unsichtbar** - das Modulmuster laeuft
+  ueber `testUtilModulesCmp(symbol, ...)`, der Rueckgabewert ueber `ret`. Fuer
+  das Modulmuster erkennt das Skript den Helfer inzwischen und verlangt
+  `ModulesDump`; fuer alles andere gilt die Grenze weiter.
+- Er findet Felder, die in keiner Assertion **vorkommen**. Ob die Assertion
+  das Feld dann auch sinnvoll prueft, sagt er nicht.
 
 ### Was `done` heisst - und was nicht
 

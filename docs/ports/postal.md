@@ -36,8 +36,8 @@ Funktionsinventar (`docs/ports/_functions.tsv`): C-Funktionen, zu denen es im
 Port keine oder nur eine unvollstaendige Entsprechung gibt.
 
 **Hier ist es kein geerbter blinder Fleck.** `test_postal.c` prueft
-`symbol->height` sehr wohl - zehnmal, in `test_input` (4), `test_koreapost` (3)
-und `test_japanpost` (3). `UnitTests/Test_Postal.pas` hat bei 116
+`symbol->height` sehr wohl - in drei Testbloecken (`postal.c` Zeilen 150, 203
+und 396 der Testdatei), jeweils einmal je Testfall der Schleife. `UnitTests/Test_Postal.pas` hat bei 116
 Testmethoden **keine einzige Hoehen-Assertion**: die Faelle wurden portiert, die
 Assertion dabei weggelassen. Waere sie mitportiert worden, waere die Luecke beim
 ersten Lauf aufgefallen. Nachzuholen, wenn die Hoehenlogik portiert wird.

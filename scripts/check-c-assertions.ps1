@@ -4,8 +4,9 @@
   Why this exists: check-c-inventory.ps1 answers "did we port all the code".
   This answers the neighbouring question "did we port all the checks". They are
   different failures. The inventory found that the port has no z_set_height;
-  this script finds that test_postal.c asserts symbol->height ten times while
-  Test_Postal.pas has 116 test methods and not one height assertion. The cases
+  this script finds that test_postal.c asserts symbol->height in three test
+  blocks - once per case - while Test_Postal.pas has 116 test methods and not
+  one height assertion. The cases
   were ported and the assertion was left out - had it come along, the gap would
   have shown on the first run.
 
@@ -88,6 +89,51 @@ try {
   # Only the checked arguments count. Everything from the first string literal
   # on is the failure message: test_telepen.c prints symbol->errtxt in almost
   # every message, which would otherwise read as "errtxt is checked".
+  # Befund aus dem Review: die blosse Anwesenheit eines Tokens in der Datei ist
+  # keine Pruefung. Jede Testunit *setzt* option_1..3, eci, input_mode und
+  # symbology - fuer diese Felder waere die Suche sonst wirkungslos. Gesucht
+  # wird deshalb nur im Text der Assertionen.
+  #
+  # Anweisungsweise, nicht zeilenweise: die Testunits schreiben Assertionen
+  # regelmaessig ueber mehrere Zeilen, der gepruefte Ausdruck steht dann erst
+  # in der zweiten oder dritten. Ein Zeilenfilter verliert genau ihn.
+  #
+  # Vorher werden Pascal-Stringliterale entfernt. Sonst beendet ein ';' in
+  # Testdaten wie 'ABC1234.;$' die Anweisung zu frueh - und ein Wort in einer
+  # Meldung koennte als Pruefung durchgehen.
+  function Get-AssertionText {
+    param([string]$Unit)
+
+    # Anweisungsweise, nicht zeilenweise: die Testunits schreiben Assertionen
+    # regelmaessig ueber mehrere Zeilen, der gepruefte Ausdruck steht dann erst
+    # in der zweiten oder dritten. Ein Zeilenfilter verliert genau ihn.
+    #
+    # Gescannt statt per Regex gestrippt: ein globales Entfernen der
+    # Stringliterale verschluckt ganze Bereiche, sobald ein Apostroph in einem
+    # Kommentar steht ("don't"), und mit ihnen die Assertionen darin. Der
+    # Scanner kennt den String-Zustand und beendet eine Anweisung nur an einem
+    # Semikolon ausserhalb eines Strings.
+    $sb = New-Object System.Text.StringBuilder
+    $i = 0
+    $n = $Unit.Length
+    while ($i -lt $n) {
+      $hit = $Unit.IndexOf("ZAssert.", $i, [StringComparison]::OrdinalIgnoreCase)
+      if ($hit -lt 0) { break }
+      $j = $hit
+      $inString = $false
+      while ($j -lt $n) {
+        $ch = $Unit[$j]
+        if ($ch -eq "'") { $inString = -not $inString }
+        elseif ($ch -eq ';' -and -not $inString) { break }
+        $j++
+      }
+      [void]$sb.Append($Unit.Substring($hit, [Math]::Min($j, $n) - $hit))
+      [void]$sb.Append("`n")
+      $i = $j + 1
+    }
+    return $sb.ToString().ToLower()
+  }
+
   function Get-AssertedFields {
     param([string]$Source)
     $fields = New-Object System.Collections.Generic.List[string]
@@ -103,8 +149,8 @@ try {
         $j++
       }
       if ($j -le $i) { continue }
-      $args = $Source.Substring($i, $j - $i)
-      foreach ($f in [regex]::Matches($args, 'symbol->([a-z_0-9]+)')) {
+      $argsText = $Source.Substring($i, $j - $i)
+      foreach ($f in [regex]::Matches($argsText, 'symbol->([a-z_0-9]+)')) {
         $name = $f.Groups[1].Value
         if (-not $fields.Contains($name)) { $fields.Add($name) }
       }
@@ -122,18 +168,30 @@ try {
       $problems += "$($m.modul): test unit '$($m.test_unit)' not found"
       continue
     }
-    $unit = [IO.File]::ReadAllText($unitPath)
+    $unit = Get-AssertionText -Unit ([IO.File]::ReadAllText($unitPath))
 
     $missing = @()
     $unmapped = @()
     $checked = 0
+    $foundTestFile = $false
     foreach ($cFile in ($m.c_datei -split '\s*,\s*')) {
       if ($cFile -eq "") { continue }
       $base = $cFile -replace '\.[ch]$', ''
       $testFile = Join-Path $cTests ("test_{0}.c" -f $base)
       if (-not (Test-Path $testFile)) { continue }
+      $foundTestFile = $true
       $src = [IO.File]::ReadAllText($testFile)
-      foreach ($field in (Get-AssertedFields -Source $src)) {
+      # Kein zusaetzliches @(): die Funktion gibt das Array bereits mit ",@()"
+      # gegen das Entrollen zurueck - ein weiteres @() ergaebe ein Array im Array,
+      # und das erste Element waere kein Feldname, sondern die ganze Liste.
+      $fields = Get-AssertedFields -Source $src
+      # C vergleicht das Modulmuster ueber testUtilModulesCmp(symbol, ...) -
+      # im Assert-Argument steht kein symbol->encoded_data. Ohne diesen Zusatz
+      # waere die wichtigste C-Pruefung ausserhalb des Sichtfelds.
+      if ($src -match 'testUtilModulesCmp|testUtilModulesDump') {
+        if ($fields -notcontains "encoded_data") { $fields += "encoded_data" }
+      }
+      foreach ($field in $fields) {
         if ($ignored.ContainsKey(("{0}:{1}" -f $m.modul, $field).ToLower())) { continue }
         if (-not $fieldMap.ContainsKey($field)) {
           if ($unmapped -notcontains $field) { $unmapped += $field }
@@ -144,7 +202,7 @@ try {
           if ($missing -notcontains $field) { $missing += $field }
           continue
         }
-        if ($unit.Contains($token)) { $checked++ }
+        if ($unit.Contains($token.ToLower())) { $checked++ }
         elseif ($missing -notcontains $field) { $missing += $field }
       }
     }
@@ -157,6 +215,12 @@ try {
       Felder   = ($missing + ($unmapped | ForEach-Object { $_ + "?" })) -join ", "
     }
 
+    # "nichts gefunden" und "alles gedeckt" duerfen nicht gleich aussehen.
+    if (-not $foundTestFile) {
+      $problems += ("{0} has a test unit but no C test file was found for c_datei '{1}' - nothing was compared" -f
+        $m.modul, $m.c_datei)
+    }
+
     if ($m.status -eq "done" -and ($missing.Count -gt 0 -or $unmapped.Count -gt 0)) {
       $problems += ("{0} is marked done but C asserts field(s) the test unit never checks: {1}" -f
         $m.modul, (($missing + $unmapped) -join ", "))
@@ -164,8 +228,11 @@ try {
   }
 
   if (-not $Quiet) {
-    @($stats | Where-Object { $_.Fehlend -gt 0 -or $_.Felder -ne "" }) |
-      Sort-Object Fehlend -Descending | Format-Table -AutoSize | Out-String | Write-Host
+    foreach ($row in (@($stats | Where-Object { $_.Felder -ne "" }) | Sort-Object Fehlend -Descending)) {
+      Write-Host ("{0,-12} {1,-8} geprueft {2,3}   fehlend: {3}" -f
+        $row.Modul, $row.Status, $row.Geprueft, $row.Felder)
+    }
+    Write-Host ""
   }
 
   $clean = @($stats | Where-Object { $_.Felder -eq "" }).Count

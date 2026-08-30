@@ -44,7 +44,7 @@ Der Modulstatus stand auf `done`. Das ist nicht haltbar, gemessen gegen
 |---|---|
 | C-Testfaelle | 462 |
 | Delphi-Testmethoden | 163 (35 %) |
-| Faelle mit Fehlerpruefung | 33 |
+| Testmethoden mit Fehler- oder Warnungserwartung | 33 |
 | Faelle mit `errtxt`-Pruefung | **0** |
 
 Zum Vergleich: telepen 100 %, auspost 99 %, postal 89 %, 2of5 82 %, code 74 %,
