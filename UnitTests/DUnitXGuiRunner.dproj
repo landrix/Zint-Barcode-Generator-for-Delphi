@@ -66,7 +66,7 @@
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
         <DCC_DcuOutput>.\dcu\$(Platform)_$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\bin\$(Platform)_$(Config)</DCC_ExeOutput>
-        <DCC_UnitSearchPath>D:\Projekte\src-landrix-delphi-win64\lib\dunitx;..\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\Lib\dunitx\Source;..\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
