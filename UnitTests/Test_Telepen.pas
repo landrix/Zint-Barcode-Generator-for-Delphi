@@ -207,13 +207,17 @@ var
   ret: Integer;
   b: TArrayOfByte;
 begin
-  // test_input[3]: byte 233 (e-acute) -> INVALID_DATA
+  { test_input[3]: C uebergibt "e-acute" als UTF-8, also die zwei Bytes
+    C3 A9 - nicht ein einzelnes Byte 233. Das Ergebnis ist zwar in beiden
+    Faellen INVALID_DATA an Position 1, die Daten sind hier aber strukturgleich
+    zur C-Referenz uebernommen. }
   sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN);
   try
-    SetLength(b, 2);
-    b[0] := 233; // e-acute
-    b[1] := 0;
-    ret := TZintTestHelper.EncodeData(sym, b, 1);
+    SetLength(b, 3);
+    b[0] := $C3;
+    b[1] := $A9;
+    b[2] := 0;
+    ret := TZintTestHelper.EncodeData(sym, b, 2);
     ZAssert.AreEqual(ZINT_ERROR_INVALID_DATA, ret, 'ret');
     ZAssert.AreEqual(
       'Error 391: Invalid character at position 1 in input, extended ASCII not allowed',
@@ -336,6 +340,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, 'ABC1234.;$');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABC1234.;$', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -348,6 +355,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, 'abc1234.;$');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('abc1234.;$', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -360,6 +370,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, 'ABC1234' + #1);
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABC1234 ', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -377,6 +390,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, b, 8);
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABC 1234', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -389,6 +405,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, 'ABK0');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABK0', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -524,6 +543,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, '1234');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('1234', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -536,6 +558,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, '123X');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -548,6 +573,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, '123x');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -560,6 +588,9 @@ begin
     ret := TZintTestHelper.EncodeData(sym, '12345');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('012345', TZintTestHelper.GetText(sym), 'text');
+    { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
+      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+    ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
 
@@ -850,10 +881,12 @@ var
   sym: TZintSymbol;
   ret: Integer;
 begin
-  { test_fuzz[3] }
+  { test_fuzz[3]: 136 Zeichen im Muster 0404..., maximale gerade Eingabelaenge.
+    StrRepeat fuellt auf die Ziellaenge, wiederholt das Muster also nicht N-mal -
+    die frueheren 34 ergaben nur 34 Zeichen statt der 136 aus der C-Referenz. }
   sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
   try
-    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('0404', 34));
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('0404', 136));
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
   finally sym.Free; end;
 end;
@@ -863,10 +896,11 @@ var
   sym: TZintSymbol;
   ret: Integer;
 begin
-  { test_fuzz[4] }
+  { test_fuzz[4]: 137 Zeichen im Muster 1234567890... wie in der C-Referenz.
+    Vorher stand hier 137x '1', was Large_MaxNum_Plus1_TooLong dupliziert hat. }
   sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
   try
-    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 137));
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1234567890', 137));
     ZAssert.AreEqual(ZINT_ERROR_TOO_LONG, ret, 'ret');
   finally sym.Free; end;
 end;

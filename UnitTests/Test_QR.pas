@@ -1,4 +1,4 @@
-﻿unit Test_QR;
+unit Test_QR;
 
 {$I zint_test.inc}
 

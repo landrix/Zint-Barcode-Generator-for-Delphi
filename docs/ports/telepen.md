@@ -84,6 +84,28 @@ Fehler statt als Warnung.
 einziger C-Fall nicht portiert. Nachgetragen als
 `TTestTelepenNum.Fuzz_136Nines_OK`; damit ist die Abdeckung vollstaendig.
 
+### Review-Befunde (Fable 5, 2026-08-30)
+
+Der Review hat die urspruengliche Behauptung "alle 49 Faelle portiert"
+widerlegt und weitere Luecken gefunden. Alle sind behoben:
+
+| Befund | Korrektur |
+|---|---|
+| `test_fuzz` C#3 prueft nur **34 statt 136 Zeichen**. `StrRepeat` fuellt auf Ziellaenge, wiederholt das Muster nicht N-mal. Der Test war damit trivial gruen und ein Pufferueberlauf bei maximaler gerader Eingabelaenge waere unentdeckt geblieben. | `StrRepeat('0404', 136)` |
+| `test_input` C#3 uebergab ein Byte 233 statt der zwei UTF-8-Bytes `C3 A9` aus der C-Referenz. | Auf die C-Daten umgestellt |
+| `test_fuzz` C#4 nutzte 137x `'1'` statt des C-Musters `1234567890...` und duplizierte damit `Large_MaxNum_Plus1_TooLong`. | Auf das C-Muster umgestellt |
+| Die neun HRT-Faelle ohne `BARCODE_CONTENT_SEGS` liessen Cs `assert_null(content_segs)` weg. | `content_segs_count = 0` ergaenzt |
+| In `Test_QR.pas` war versehentlich eine UTF-8-BOM entstanden (keine andere Testunit hat eine). Latente Falle, sobald `port/qr` die Unit ins FPC-Gate holt. | Entfernt |
+
+Geprueft und ohne Befund: die zehn `test_encode`-Modulmuster sind byteidentisch
+zu C, ebenso alle `content_segs`-Erwartungswerte inklusive Checkzeichen und
+Laengen bei eingebetteten NULs.
+
+Die uebrigen `StrRepeat`-Aufrufe im Projekt wurden gegengeprueft - die
+Ziellaengen-Semantik entspricht der C-Konvention `{ "muster", laenge }`, der
+Fehler war auf diesen einen Fall beschraenkt. Hinweis dazu jetzt in
+`docs/PORTING_WORKFLOW.md` Abschnitt 4.3a.
+
 ### Uebernommen aus MIGRATION_PLAN.md (Stand 2026-03-30)
 
 - `zint_telepen.pas` | ✅ b3a3c0d | ✅ `Test_Telepen.pas` (48 Tests) | **Erstes portiertes Modul**

@@ -241,6 +241,26 @@ for reader := 0 to n - 1 do ...   // FALSCH: n=0 ergibt 4294967295 Iterationen
 Auf x86 laeuft das still ueber den Puffer, auf ARM64 gibt es sofort `EBusError`.
 Zaehlvariablen fuer Schleifen **immer** `Integer`, oder vorher auf `n = 0` pruefen.
 
+### 4.3a StrRepeat fuellt auf Laenge, es wiederholt nicht
+
+`TZintTestHelper.StrRepeat(APattern, ATargetLen)` erzeugt einen String **der
+Laenge ATargetLen**, indem es das Muster zyklisch einsetzt. Es wiederholt das
+Muster nicht ATargetLen-mal.
+
+```pascal
+StrRepeat('0404', 34)    // 34 Zeichen  - NICHT 136
+StrRepeat('0404', 136)   // 136 Zeichen - das ist gemeint
+```
+
+Das passt genau zur C-Konvention: die Testarrays dort fuehren `{ ..., "muster",
+laenge, ... }`, wobei `laenge` ebenfalls die Ziellaenge ist. Bei einstelligen
+Mustern faellt der Unterschied nicht auf, bei mehrstelligen schon - ein solcher
+Fall lieferte in `Test_Telepen` einen Test, der statt 136 nur 34 Zeichen prueft
+und dadurch trivial gruen war.
+
+**Beim Uebernehmen eines C-Falls immer die Laenge aus der C-Zeile uebernehmen,
+nicht die Zahl der Musterwiederholungen ausrechnen.**
+
 ### 4.4 Testunits
 
 ```pascal
