@@ -115,6 +115,46 @@ Ziellaengen-Semantik entspricht der C-Konvention `{ "muster", laenge }`, der
 Fehler war auf diesen einen Fall beschraenkt. Hinweis dazu jetzt in
 `docs/PORTING_WORKFLOW.md` Abschnitt 4.3a.
 
+### Rueckstand gegenueber Upstream (Stand 2026-08-30)
+
+Nachgesehen nach dem Merge, weil die Frage aufkam, ob die C-Referenz mitgezogen
+werden soll. `zint/zint` `master` ist 43 Commits und 223 Dateien vor unserem Pin
+`b3a3c0d`; neuester Commit dort 2026-07-30. Derselbe Entwicklungszyklus, beide
+Staende tragen `ZINT_VERSION_BUILD 9` (2.16.0 erschien 2025-12-19).
+
+Telepen hat sich in diesen 4,5 Monaten erheblich veraendert. Zahlen direkt aus
+`master/backend/tests/test_telepen.c` ausgezaehlt, nicht geschaetzt:
+
+| Testblock | `b3a3c0d` (unser Pin) | `master` |
+|---|---|---|
+| `test_large` | 4 | 34 |
+| `test_hrt` | 18 | 42 |
+| `test_input` | 9 | 18 |
+| `test_encode` | 10 | 15 |
+| `test_fuzz` | 8 | 8 |
+| **Summe** | **49** | **117** |
+
+Inhaltlich in `master/backend/telepen.c`:
+
+- **AIM-Modus ist neu** (22 Fundstellen `asc_comp_num`/`DLE`): DLE-Umschaltung
+  fuer den Compressed-Numeric-Tail und alternative Start/Stop-Zeichen
+  `0x82`/`0x83` statt `0x5F`/`0x7A`. Im Pin existiert davon nichts.
+- **Die Hoehenlogik ist eine andere.** `master` rechnet
+  `z_set_height(symbol, min_height, min_height > 32.0f ? min_height : 32.0f, 0, 0)`
+  - dynamisches Minimum aus der Symbollaenge, und `no_errtxt = 0`, also mit
+  moeglicher Warnung. Der oben dokumentierte Hoehendelta ("C setzt 32 bzw. 50")
+  gilt weiterhin gegen `b3a3c0d`, beschreibt aber nicht mehr den aktuellen
+  Upstream-Stand.
+
+**Was das fuer die Indizes heisst:** vier der fuenf Bloecke haben zusaetzliche
+Faelle bekommen. Jeder `C#<n>`-Verweis in `Test_Telepen.pas` ausser denen in
+`test_fuzz` zeigt gegen `master` auf einen anderen Fall als gemeint - lautlos,
+ohne dass ein Test rot wird. Das ist der Beleg fuer die Entscheidung in
+PORTING_WORKFLOW Abschnitt 2b, den Pin nicht mitzuziehen.
+
+Fuer den spaeteren `chore/c-reference-*`-Branch ist damit bekannt, was hier
+ansteht: 68 zusaetzliche Faelle, der AIM-Modus und die neue Hoehenlogik.
+
 ### Review-Befunde (Codex, 2026-08-30)
 
 Der zweite Reviewer hat 14 Befunde geliefert, davon vier zu Telepen selbst.

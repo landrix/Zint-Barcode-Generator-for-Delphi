@@ -211,6 +211,15 @@ folgenden - und zwar lautlos: kein Test wird rot, kein Gate schlaegt an, die
 Zuordnung stimmt nur nicht mehr. Das ist genau die Fehlerklasse, gegen die die
 Mindest-Testzahlen und die Reviews aufgestellt wurden, nur ohne Signal.
 
+**Das ist kein theoretisches Risiko.** Am 2026-08-30 nachgesehen: `master` ist
+43 Commits und 223 Dateien vor `b3a3c0d`. Allein in `test_telepen.c` ist die
+Zahl der Faelle von 49 auf 117 gestiegen, und zwar in vier der fuenf Bloecke -
+`test_large` 4 -> 34, `test_hrt` 18 -> 42, `test_input` 9 -> 18, `test_encode`
+10 -> 15. Jeder `C#<n>`-Verweis der frisch fertiggestellten Telepen-Suite ausser
+denen in `test_fuzz` zeigt gegen `master` auf einen anderen Fall. Einzelheiten
+in [ports/telepen.md](ports/telepen.md), Abschnitt "Rueckstand gegenueber
+Upstream".
+
 **Der Pin steckt an rund 160 Stellen in etwa 65 Dateien** - Pfade, Statusangaben,
 Delta-Tabellen.
 
@@ -220,9 +229,10 @@ alles Unfertige verschieben. Dokumentierte Deltas waeren danach weder bestaetigt
 noch widerlegt, sondern unklar - und der Port ueberbrueckt ohnehin schon rund
 neun Jahre (Delphi-Basis `3432bc9`, Zint ~2.4.x von 2016/17).
 
-Der Preis dafuer ist bekannt und wird bewusst bezahlt: Es kann sein, dass
-Verhalten nachportiert wird, das Upstream inzwischen korrigiert hat - denkbar
-etwa bei den `errtxt`-Formaten und der Warnklassifikation. Das ist der
+Der Preis dafuer ist bekannt und wird bewusst bezahlt: Es wird Verhalten
+nachportiert, das Upstream inzwischen geaendert hat. Bei Telepen ist genau das
+schon eingetreten - `master` hat dort einen AIM-Modus und eine andere
+Hoehenlogik. Das ist der
 guenstigere der beiden Fehler. Ein fester Bezugspunkt erlaubt die Aussage "gruen
 gegen `b3a3c0d`"; ein wandernder erlaubt nur "gruen gegen irgendetwas".
 
