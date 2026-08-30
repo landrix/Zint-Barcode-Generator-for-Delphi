@@ -93,6 +93,7 @@ type
     [Test] procedure Fuzz_136x0404_OK;
     [Test] procedure Fuzz_137Digits_TooLong;
     [Test] procedure Fuzz_136ZerosX_OK;
+    [Test] procedure Fuzz_136Nines_OK;
     [Test] procedure Fuzz_Length4_OverlongBuffer_OK;
   end;
 
@@ -880,6 +881,19 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('0', 135) + 'X');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+  finally sym.Free; end;
+end;
+
+procedure TTestTelepenNum.Fuzz_136Nines_OK;
+var
+  sym: TZintSymbol;
+  ret: Integer;
+begin
+  { test_fuzz[6]: 136 Neunen, hoechstmoegliche Ziffernfolge }
+  sym := TZintTestHelper.CreateSymbol(BARCODE_TELEPEN_NUM);
+  try
+    ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('9', 136));
+    ZAssert.AreEqual(ZINT_OK, ret, 'C#6 ret');
   finally sym.Free; end;
 end;
 

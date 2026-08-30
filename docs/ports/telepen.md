@@ -9,42 +9,82 @@ Telepen, Telepen Numeric
 | **C-Tests** | `.../backend/tests/test_telepen.c` |
 | **Delphi-Unit** | [zint_telepen.pas](../../zint_telepen.pas) |
 | **Test-Unit** | [UnitTests/Test_Telepen.pas](../../UnitTests/Test_Telepen.pas) |
-| **Delphi-Gate** | offen |
-| **FPC-Gate** | offen |
+| **Delphi-Gate** | gruen, 49 Tests |
+| **FPC-Gate** | gruen, 49 Tests |
 
 ## Portierte C-Indizes
 
+Vollstaendige Abdeckung: alle 49 Faelle aus `test_telepen.c` sind portiert.
+
 | C-Testblock | Indizes | Anzahl |
 |---|---|---|
-| `test_large` | | |
-| `test_input` | | |
-| `test_encode` | | |
-| `test_hrt` | | |
-| `test_rt` | | |
-| `test_fuzz` | | |
+| `test_large` | C#0-C#3 | 4 |
+| `test_hrt` | C#0-C#17 | 18 |
+| `test_input` | C#0-C#8 | 9 |
+| `test_encode` | C#0-C#9 | 10 |
+| `test_fuzz` | C#0-C#7 | 8 |
+| **Summe** | | **49** |
+
+`test_generate_lens` ist ein Generator-Helfer der C-Testsuite und kein Testblock;
+er wird nicht portiert.
+
+Aufteilung auf die beiden Fixtures:
+
+| Fixture | Faelle |
+|---|---|
+| `TTestTelepen` | `test_large` C#0-C#1, `test_hrt` C#0-C#9, `test_input` C#0-C#3, `test_encode` C#0-C#4, `test_fuzz` C#0-C#1 |
+| `TTestTelepenNum` | `test_large` C#2-C#3, `test_hrt` C#10-C#17, `test_input` C#4-C#8, `test_encode` C#5-C#9, `test_fuzz` C#2-C#7 |
 
 ## Bewusst ausgelassene C-Indizes
 
 | C-Index | Grund |
 |---|---|
-| | |
+| _(keine)_ | |
 
 ## Offene Deltas Delphi vs C
 
 | C-Index | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
 |---|---|---|---|---|
-| | | | | |
+| _(keine)_ | | | | |
 
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| **Alle 48 Tests laufen im Delphi-Gesamtlauf nicht** | 0 von 48 ausgefuehrt | 48 von 48 gruen | DUnitX ueberspringt die Fixtures `TTestTelepen` und `TTestTelepenNum` stillschweigend, obwohl sie registriert sind und vollstaendige RTTI haben. Isoliert (`scripts\isolate-win32-av.ps1 -Units Test_Telepen`) laufen alle 48 gruen. Vorbestehend, nicht durch die Dual-Gate-Umstellung verursacht. Analyse: docs/PORTING_WORKFLOW.md, Abschnitt "DUnitX fuehrt vier registrierte Fixtures nicht aus". |
+| _(keine)_ | | | |
 
 ## Notizen
+
+### 2026-08-30 (Branch `port/telepen`)
+
+**Die Suite lief unter Delphi ueberhaupt nicht** - und zwar nicht wegen eines
+Fehlers in Telepen. `TTestQR` brach den Testlauf ab und riss alles mit, was in
+der DUnitX-Reihenfolge danach kam: `TTestRMQR` (9 Tests), `TTestUPNQR` (3) und
+die gesamte Test_Telepen-Suite (48). Anschliessend `EAccessViolation` und
+`Runtime error 216`, den das Delphi-Gate als "known post-run AV caveat"
+abgetan hat.
+
+Eingegrenzt per binaerer Suche ueber die Testunits:
+
+| Zusammenstellung | Ergebnis |
+|---|---|
+| nur `Test_Telepen` | laeuft, 48 Tests |
+| `Test_Telepen` + `Test_Code128` | laeuft, 211 Tests |
+| erste Haelfte aller Units (33 Fixtures) | laeuft, 563 Tests - **keine Kapazitaetsgrenze** |
+| sobald `Test_QR` dabei ist | Telepen fehlt, `Test_QR` liefert nur 9 von 30 |
+| ohne `TTestQR` | 66 statt 9 Tests, Telepen vollstaendig |
+
+`TTestQR` und `TTestUPNQR` sind seither stillgelegt (nur die Registrierung;
+Klassen, Testdaten und C-Erwartungen bleiben unveraendert). Beides ist
+QR-Encoderarbeit, siehe [qr.md](qr.md). Seitdem endet der Testrunner mit
+Exitcode 0, und das Delphi-Gate behandelt einen Nonzero-Exitcode wieder als
+Fehler statt als Warnung.
+
+**Ergaenzt:** `test_fuzz` C#6 (`BARCODE_TELEPEN_NUM`, 136 Neunen) war als
+einziger C-Fall nicht portiert. Nachgetragen als
+`TTestTelepenNum.Fuzz_136Nines_OK`; damit ist die Abdeckung vollstaendig.
 
 ### Uebernommen aus MIGRATION_PLAN.md (Stand 2026-03-30)
 
 - `zint_telepen.pas` | ✅ b3a3c0d | ✅ `Test_Telepen.pas` (48 Tests) | **Erstes portiertes Modul**
 - `telepen.c` | `zint_telepen.pas` | b3a3c0d portiert + Tests gruen
-
