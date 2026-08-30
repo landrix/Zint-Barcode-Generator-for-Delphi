@@ -46,12 +46,13 @@ nicht - dort wurden vorhandene C-Assertions beim Portieren weggelassen.)
 
 | C-Funktion | Status | Fehlt im Port |
 |---|---|---|
-| `zint_code39` (`code.c:198-211`) | partial | Hoehenlogik |
-| `zint_code93` (`code.c:404-407`) | partial | Hoehenlogik |
-| `zint_excode39` (`code.c:270-284`) | partial | Zwei Dinge: die Hoehenlogik ueber `zint_code39`, und `option_2` wird nicht zurueckgesetzt. C merkt sich den Wert, setzt ihn fuer den Aufruf auf 1 und stellt danach 2 wieder her (`code.c:282-283`); `ec39` merkt sich den Wert in `have_option_2`, nutzt ihn fuer die HRT-Entscheidung, setzt `symbol.option_2` aber nie zurueck. Wer dasselbe Symbol erneut kodiert, bekommt die Pruefziffer sichtbar statt versteckt |
+| `zint_excode39` (`code.c:270-284`) | partial | `option_2` wird nicht zurueckgesetzt. C merkt sich den Wert, setzt ihn fuer den Aufruf auf 1 und stellt danach 2 wieder her (`code.c:282-283`); `ec39` merkt sich den Wert in `have_option_2`, nutzt ihn fuer die HRT-Entscheidung, setzt `symbol.option_2` aber nie zurueck. Wer dasselbe Symbol erneut kodiert, bekommt die Pruefziffer sichtbar statt versteckt |
 
-Gemeinsame Ursache: der Port kennt kein `z_set_height`. Portweite Beschreibung
-in [library.md](library.md), Abschnitt *Querschnittsdeltas*.
+Bis zum 2026-08-30 fehlte in `zint_code39` und `zint_code93` zusaetzlich die
+Hoehenlogik. Die Hoehenlogik ist portiert (Zweig `chore/set-height`). Geprueft wird sie
+ueber `UnitTests/Test_Height.pas`, erzeugt aus den Tabellen `test_height` und
+`test_height_per_row` in `test_vector.c` - upstream die einzige Stelle, an der
+`symbol->height` je Symbologie geprueft wird.
 
 `zint_code11` (`code11.c`) und `zint_vin` sind vollstaendig portiert und
 enthalten in C keine Hoehenlogik.

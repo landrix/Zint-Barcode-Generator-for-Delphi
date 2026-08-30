@@ -211,6 +211,10 @@ var
   content_len : Integer;
   error_number : Integer;
   dest : TArrayOfChar;
+  min_height, default_height : Single;
+const
+  { getypt, weil C hier ein float-Literal hat - siehe zint_postal.usps_set_height }
+  factor : Single = 0.15;
 begin
   SetLength(dest, 890); { 10 (Start) + 86*10 + 10 (Check) + 9 (Stop) + 1 = 890 }
   error_number := 0;
@@ -280,6 +284,39 @@ begin
   end;
 
   expand(symbol, dest);
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    if symbol.symbology = BARCODE_LOGMARS then
+    begin
+      { C: code.c:192. MIL-STD-1189 Rev. B 5.2: Mindesthoehe 0.25" / 0.04"
+        (X max) = 6.25; Standardhoehe 0.625" (Mittel aus 0.375" - 0.875")
+        geteilt durch 0.01375" (Mittel aus 0.0075" - 0.02"). }
+      error_number := set_height(symbol, 6.25, 45.4545441 { 0.625 / 0.01375 },
+                                              116.666664 { 0.875 / 0.0075 }, 0);
+    end
+    else if (symbol.symbology = BARCODE_CODE39) or (symbol.symbology = BARCODE_EXCODE39) or
+            (symbol.symbology = BARCODE_HIBC_39) then
+    begin
+      { C: code.c:199. ISO/IEC 16388:2007 4.4 (e) empfiehlt 5.0mm oder 15% der
+        Breite ohne Ruhezonen. X bleibt der Anwendung ueberlassen, also
+        Breite = (C + 2) * 9 + C + 1 = 10 * C + 19. 50 als Standard, die Norm
+        empfiehlt keinen. }
+      { C rundet nach jedem Schritt auf float, daher stripf auch innen }
+      if symbol.option_2 = 1 then
+        min_height := stripf(stripf(10.0 * (_length + 1) + 19.0) * factor)
+      else
+        min_height := stripf(stripf(10.0 * _length + 19.0) * factor);
+      if min_height > 50.0 then
+        default_height := min_height
+      else
+        default_height := 50.0;
+      error_number := set_height(symbol, min_height, default_height, 0.0, 0);
+    end;
+    { PZN und CODE32 setzen ihre Hoehe selbst }
+  end
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
 
   { Display a space check digit as _, otherwise it looks like an error }
   if (symbol.option_2 = 1) and (check_digit = ' ') then
@@ -457,6 +494,9 @@ var
   buffer : TArrayOfChar;
   dest : TArrayOfChar;
   set_copy : TArrayOfChar;
+  min_height, default_height : Single;
+const
+  factor : Single = 0.15; { siehe c39 }
 begin
   SetLength(buffer, 248); { 123*2 + 1 }
   SetLength(dest, 770); { 6 (Start) + 123*6 + 2*6 (Checks) + 7 (Stop) + 1 = 764 }
@@ -530,6 +570,22 @@ begin
   { Stop character }
   concat(dest, '1111411');
   expand(symbol, dest);
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: code.c:399. ANSI/AIM BC5-1995 2.6: Mindesthoehe 0.2" oder 15% der
+      Symbollaenge, je nachdem was groesser ist. Ein groesstes X ist nicht
+      angegeben, daher als Laenge (9 * (C + 4) + 1) * X + 2 * Q =
+      symbol.width + 20. 40 als Standard nach den Abbildungen der Norm. }
+    min_height := stripf(stripf(symbol.width + 20) * factor);
+    if min_height > 40.0 then
+      default_height := min_height
+    else
+      default_height := 40.0;
+    error_number := set_height(symbol, min_height, default_height, 0.0, 0);
+  end
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
 
   { HRT: by default just the source, check digits shown only if option_2=1 }
   for i := 0 to _length - 1 do

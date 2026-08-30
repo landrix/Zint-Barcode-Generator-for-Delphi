@@ -376,7 +376,7 @@ type
     //please use the following vars *ONLY* if you *REALLY* know, what you're doing
     //otherwise use the properties of the RenderTarget or the TZintSymbol.???Options - properties
     symbology : Integer;
-    height: Integer;
+    height: Single; { C: float. Nicht Integer - konforme Hoehen wie 3.225 }
     whitespace_width : Integer;
     border_width : Integer;
     output_options : Integer;
@@ -395,7 +395,7 @@ type
     content_segs : TZintSegments;
     content_segs_count : Integer;
     encoded_data : array[0..ZINT_ROWS_MAX - 1] of array[0..ZINT_COLS_MAX - 1] of Byte;
-    row_height : array[0..ZINT_ROWS_MAX - 1] of Integer; { Largest symbol is 177x177 QR Code }
+    row_height : array[0..ZINT_ROWS_MAX - 1] of Single; { C: float. Largest symbol is 177x177 QR Code }
 
     constructor Create(AOwner : TPersistent); override;
     destructor Destroy; override;
@@ -530,7 +530,7 @@ type
   TZintCustomRenderTarget = class(TZintPersistent)
   protected
     FSymbol : TZintSymbol;
-    FRowHeights : Integer; //sum of all rowheights measured in modules
+    FRowHeights : Single; //sum of all rowheights measured in modules
     FModuleWidth, FModuleHeight : Single;
     FLargeBarCount : Integer; //count of rows, which height should be maximied
     FLargeBarHeight : Single; //barheight of the rows, which height should be maximied
@@ -839,6 +839,10 @@ const
   BARCODE_BIND = 2;
   BARCODE_BOX = 4;
   READER_INIT = 16;
+  { C: zint.h:309. Warnt bei nicht konformer Hoehe bzw. nutzt die
+    Standardhoehe der jeweiligen Spezifikation. Ausgewertet ueber
+    set_height (zint_common.pas). }
+  COMPLIANT_HEIGHT = $2000;
 
   // Input Data type
   DATA_MODE = 0;
@@ -849,6 +853,9 @@ const
   ESCAPE_MODE = 8;
   GS1PARENS_MODE = 16;
   GS1NOCHECK_MODE = 32;
+  { C: zint.h:323. Deutet height als Zeilenhoehe statt als Gesamthoehe.
+    Ausgewertet in set_height (zint_common.pas); sonst nirgends im Port. }
+  HEIGHTPERROW_MODE = 64;
   FAST_MODE = $80;
   EXTRA_ESCAPE_MODE = $100;
   ZINT_FULL_MULTIBYTE = 200;
@@ -2206,41 +2213,9 @@ begin
 	Result := error_number; exit;
 end;
 
-procedure check_row_heights(symbol : zint_symbol);
-var
-  large_bar_count: NativeInt;
-  i: NativeInt;
-  preset_height: NativeInt;
-  large_bar_height: NativeInt;
-begin
-   exit;
-  {* Check that rows with undefined heights are never less than 5x  *}
-  large_bar_count   := 0;
-  preset_height     := 0;
-  large_bar_height  := 0;
-
-  for i := 0 to symbol.rows - 1 do begin
-    inc(preset_height, symbol.row_height[i]);
-    if symbol.row_height[i] = 0 then
-      inc(large_bar_count);
-  end;
-
-  if large_bar_count = 0 then
-    symbol.height := preset_height
-  else
-    large_bar_height := (symbol.height - preset_height) div large_bar_count;
-
-  if (large_bar_height < 5) then begin
-    for i := 0 to symbol.rows - 1 do begin
-      if symbol.row_height[i] = 0 then begin
-        symbol.row_height[i] := 5;
-        inc(preset_height, 5);
-      end;
-    end;
-    symbol.height := preset_height;
-  end;
-end;
-
+{ check_row_heights war toter Code: der Rumpf begann mit einem unbedingten
+  exit, die Summierung aus row_height lief nie. Die Aufgabe uebernimmt
+  set_height in zint_common.pas (C: z_set_height, common.c). }
 function gs1_compliant(_symbology : Integer) : boolean;
 { Returns 1 if symbology supports GS1 data }
 begin
@@ -2842,6 +2817,16 @@ begin
                            BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF]) then
     symbol.input_mode := symbol.input_mode or FAST_MODE;
 
+  { C loescht die oberen input_mode-Bits nie (library.c:977 setzt nur bei
+    ungueltigem Basismodus zurueck), base_mode oben schon. HEIGHTPERROW_MODE
+    wird erst spaet in set_height gelesen und muss die Zuweisung ueberleben,
+    sonst wird height als Gesamthoehe statt als Zeilenhoehe verstanden.
+    Dasselbe steht noch dreimal weiter unten, wo input_mode erneut
+    vollstaendig zugewiesen wird. Fuer die anderen oberen Flags gilt das
+    nicht - siehe docs/ports/library.md, Querschnittsdeltas. }
+  if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+    symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
+
   pdf417_single_warn_eci := False;
   if (base_mode = UNICODE_MODE)
     and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417]) then
@@ -2893,6 +2878,8 @@ begin
         symbol.input_mode := DATA_MODE;
         if (original_input_mode and FAST_MODE) <> 0 then
           symbol.input_mode := symbol.input_mode or FAST_MODE;
+        if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
       end;
     end;
   end;
@@ -2944,12 +2931,16 @@ begin
       begin
         symbol.eci := auto_eci;
         symbol.input_mode := DATA_MODE;
+        if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
         error_number := reduced_charset(symbol, dm_retry_bytes, dm_retry_len);
       end
       else
       begin
         symbol.eci := auto_eci;
         symbol.input_mode := base_mode;
+        if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+          symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
         case symbol.symbology of
           BARCODE_QRCODE,
           BARCODE_MICROQR,
@@ -3054,8 +3045,14 @@ begin
 
 	error_tag(symbol.errtxt, error_number);
 
-  if (error_number > 0) and (error_number <= 5) then
-    check_row_heights(symbol);
+  { C: library.c:1276. Absolutes Minimum, falls der Encoder keine Hoehe
+    gesetzt hat. Betrifft die Symbologien, die in C selbst kein
+    z_set_height rufen - etwa plessey.c und die C25-Varianten in 2of5.c. }
+  if error_number < ZERROR_TOO_LONG then
+  begin
+    if symbol.height < 0.5 then
+      set_height(symbol, 0.0, 50.0, 0.0, 1);
+  end;
 
   symbol.input_mode := original_input_mode;
 

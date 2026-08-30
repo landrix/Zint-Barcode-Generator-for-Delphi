@@ -7,6 +7,8 @@ interface
 uses
   {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
   TestFramework_Zint,
+  TestHelper_Zint,
+  SysUtils,
   zint,
   zint_common;
 
@@ -30,6 +32,14 @@ type
     procedure TestIsTwoDigits;
     [Test]
     procedure TestFroundupThreshold;
+    [Test]
+    procedure TestSetHeight;
+    [Test]
+    procedure TestEncodeHeightFallback;
+  private
+    procedure SetHeightCase(ACIndex, ARows: Integer; const ARowHeights: array of Single;
+      const AHeight, AMinRowHeight, ADefaultHeight, AMaxHeight: Single;
+      ANoErrtxt, ARet: Integer; const AExpHeight: Single; const AExpErrtxt: String);
   end;
 
 implementation
@@ -124,6 +134,98 @@ begin
   ZAssert.AreEqual(1.009, froundup(1.009));
   ZAssert.AreEqual(2.01, froundup(2.01));
 end;
+
+{ C: test_set_height, test_common.c:1370. Prueft z_set_height direkt, ohne
+  Umweg ueber eine Symbologie - die einzige Stelle upstream, die die
+  Zweige der Funktion einzeln durchgeht.
+
+  Abweichung beim errtxt: C schreibt in z_set_height nur "247: ..." und
+  setzt das Wort "Warning" erst in error_tag davor. Der Port schreibt den
+  vollen Text im Modul, wie alle anderen portierten Meldungen auch. }
+procedure TTestCommonCore.SetHeightCase(ACIndex, ARows: Integer;
+  const ARowHeights: array of Single;
+  const AHeight, AMinRowHeight, ADefaultHeight, AMaxHeight: Single;
+  ANoErrtxt, ARet: Integer; const AExpHeight: Single; const AExpErrtxt: String);
+var
+  sym: TZintSymbol;
+  ctx: String;
+  i: Integer;
+begin
+  ctx := Format('C#%d', [ACIndex]);
+  sym := TZintSymbol.Create(nil);
+  try
+    sym.rows := ARows;
+    for i := 0 to High(sym.row_height) do
+      sym.row_height[i] := 0;
+    for i := 0 to High(ARowHeights) do
+      sym.row_height[i] := ARowHeights[i];
+    sym.height := AHeight;
+    ZAssert.AreEqual(ARet,
+      set_height(sym, AMinRowHeight, ADefaultHeight, AMaxHeight, ANoErrtxt), ctx + ' ret');
+    ZAssert.AreEqual(AExpHeight, sym.height, ctx + ' height');
+    ZAssert.AreEqual(AExpErrtxt, TZintTestHelper.GetErrTxt(sym), ctx + ' errtxt');
+  finally
+    sym.Free;
+  end;
+end;
+
+procedure TTestCommonCore.TestSetHeight;
+const
+  W = 'Warning ';
+begin
+  SetHeightCase( 0,  0, [],           0,  0,          0,   0,   0, 0,                  0.5, '');
+  { zero_count = 0, nur feste Hoehen }
+  SetHeightCase( 1,  2, [1, 1],       2,  0,          0,   0,   0, 0,                  2,   '');
+  SetHeightCase( 2,  2, [1, 1],       2,  0,          0,   1,   1, ZWARN_NONCOMPLIANT, 2,   '');
+  SetHeightCase( 3,  2, [1, 1],       2,  0,          0,   1,   0, ZWARN_NONCOMPLIANT, 2,
+                 W + '248: Height not compliant with standards (maximum 1)');
+  { zero_count <> 0 }
+  SetHeightCase( 4,  2, [2, 0],       2,  0,          0,   0,   0, 0,                  2.5, '');
+  SetHeightCase( 5,  2, [2, 0],       2,  1,          0,   0,   1, ZWARN_NONCOMPLIANT, 2.5, '');
+  SetHeightCase( 6,  2, [2, 0],       2,  1,          0,   0,   0, ZWARN_NONCOMPLIANT, 2.5,
+                 W + '247: Height not compliant with standards (too small)');
+  SetHeightCase( 7,  2, [2, 0],       0,  0,          20,  0,   0, 0,                  22,  '');
+  SetHeightCase( 8,  2, [2, 0],       20, 0,          20,  0,   0, 0,                  20,  '');
+  SetHeightCase( 9,  2, [2, 0],       0,  2,          0,   0,   0, 0,                  4,   '');
+  { War vor der Epsilon-Behandlung nicht konform (CODABLOCKF) }
+  SetHeightCase(10, 20, [],           0,  12.9000006, 258, 0,   0, 0,                  258, '');
+  { dito (CODE93) }
+  SetHeightCase(11,  1, [],           9.9,  9.90000057, 40, 0,  0, 0,                  9.9, '');
+  SetHeightCase(12,  1, [],           9.89, 9.90000057, 40, 0,  0, ZWARN_NONCOMPLIANT, 9.89,
+                 W + '247: Height not compliant with standards (too small)');
+  SetHeightCase(13,  1, [],           40.02, 10,       40, 40.01, 0, ZWARN_NONCOMPLIANT, 40.02,
+                 W + '248: Height not compliant with standards (maximum 40.01)');
+end;
+
+
+{ C: library.c:1276. Wer keine Hoehe vorgibt und eine Symbologie waehlt, die
+  in C selbst kein z_set_height ruft, bekommt am Ende von ZBarcode_Encode 50.
+  Die C-Tabelle test_height deckt das nicht ab: fuer diese drei Symbologien
+  ist dort durchweg eine Hoehe gesetzt. Ohne diesen Test bliebe der
+  Auffangzweig ungeprueft. }
+procedure TTestCommonCore.TestEncodeHeightFallback;
+
+  procedure Check(ASymbology: Integer; const AData: String; const AName: String);
+  var
+    sym: TZintSymbol;
+  begin
+    sym := TZintTestHelper.CreateSymbol(ASymbology);
+    try
+      ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, AData),
+        AName + ' ret (' + TZintTestHelper.GetErrTxt(sym) + ')');
+      ZAssert.AreEqual(Single(50), sym.height, AName + ' height');
+    finally
+      sym.Free;
+    end;
+  end;
+
+begin
+  { Diese drei rufen in C kein z_set_height - ihre Hoehe kommt nur von dort. }
+  Check(BARCODE_PLESSEY, '1234567890', 'PLESSEY');
+  Check(BARCODE_C25MATRIX, '1234567890', 'C25MATRIX');
+  Check(BARCODE_CODE11, '1234567890', 'CODE11');
+end;
+
 
 initialization
   ZRegisterFixture(TTestCommonCore);

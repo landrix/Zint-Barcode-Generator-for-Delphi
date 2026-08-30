@@ -43,34 +43,107 @@ Kern-API, Dispatch, TZintSymbol
 
 ## Querschnittsdeltas (betreffen jedes Modul)
 
-Beide gefunden im Codex-Review von `port/telepen` am 2026-08-30. Sie stehen
-hier und nicht bei einem einzelnen Barcode, weil sie den gesamten Port
-betreffen.
+Sie stehen hier und nicht bei einem einzelnen Barcode, weil sie den gesamten
+Port betreffen. Die ersten beiden stammen aus dem Codex-Review von
+`port/telepen` am 2026-08-30, die beiden mittleren aus dem Review von
+`chore/set-height` am selben Tag. Erledigt ist bisher nur der erste.
 
-### `symbol.height` wird nie gesetzt
+### `symbol.height` wurde nie gesetzt (erledigt 2026-08-30)
 
-C setzt am Ende jedes Encoders eine Symbolhoehe, ueber `z_set_height()` aus
-`common.c` - mit und ohne `COMPLIANT_HEIGHT` je einen anderen Wert. Beispiel
-`telepen.c:133-138`: 32 mit `COMPLIANT_HEIGHT`, sonst 50.
+**Befund.** C setzt am Ende jedes Encoders eine Symbolhoehe, ueber
+`z_set_height()` aus `common.c` - mit und ohne `COMPLIANT_HEIGHT` je einen
+anderen Wert. Beispiel `telepen.c:133-138`: 32 mit `COMPLIANT_HEIGHT`, sonst
+50. Der Port hatte kein Gegenstueck; nach `ZBarcode_Encode` blieb
+`symbol.height` auf seinem Ausgangswert, einzige Ausnahme `zint_qr.pas`
+(`:2653`, `:3006`), wo die Modulzahl eingetragen wird.
 
-Der Delphi-Port hat kein Gegenstueck zu `z_set_height`. Nach `ZBarcode_Encode`
-bleibt `symbol.height` auf seinem Ausgangswert; einzige Ausnahme ist
-`zint_qr.pas:2653`/`:3006`, wo die Modulzahl eingetragen wird.
+`zint.pas` enthielt zwar eine Summierung aus `row_height`, aber sie lief nie:
+sie stand in `check_row_heights`, dessen Rumpf mit einem unbedingten `exit`
+begann - der Rest war toter Code. Wer dort nach der Hoehenlogik suchte, fand
+Code, der aussah, als taete er etwas. Die Prozedur ist entfernt.
 
-`zint.pas` enthaelt zwar eine Summierung aus `row_height` (`:2229`, `:2240`),
-aber sie laeuft nie: sie steht in `check_row_heights` (`:2209`), dessen Rumpf
-mit einem unbedingten `exit` beginnt (`:2216`) - der Rest ist toter Code. Die
-Prozedur wird ohnehin nur aus `ZBarcode_Encode` bei Warnungen 1..5 gerufen
-(`:3057`). Wer hier nach der Hoehenlogik sucht, findet also Code, der aussieht,
-als taete er etwas.
+**Warum es niemand gemerkt hat.** Die Modul-Testdateien pruefen `height` fast
+nirgends - `test_telepen.c` enthaelt das Wort nicht ein einziges Mal. Die
+eigentliche Pruefung steht upstream woanders: in `test_height` und
+`test_height_per_row` in `test_vector.c`, einer Tabelle ueber alle
+Symbologien, sowie in `test_set_height` in `test_common.c`, das die Funktion
+selbst durchgeht. Beim Portieren der Modul-Testdateien kommt man an keiner der
+drei vorbei.
 
-Warum es bisher niemand gemerkt hat: **keine der portierten C-Testsuiten prueft
-`height`** - `test_telepen.c` enthaelt das Wort nicht ein einziges Mal. Das
-Delta ist damit real, aber von keinem Gate erfasst.
+**Behoben in `chore/set-height`.** Portiert sind `set_height` und `stripf` in
+`zint_common.pas`, `usps_set_height` und `daft_set_height` in
+`zint_postal.pas`, der Auffangzweig aus `library.c:1276` am Ende von
+`ZBarcode_Encode` sowie die Aufrufstellen in 2of5, auspost, code, code128,
+medical, postal und telepen.
 
-Naechster Schritt: `z_set_height` als eigenen Vorgang portieren, nicht
-nebenbei in einem Barcode-Branch. Bis dahin gilt fuer jedes Modul: eine leere
-Delta-Tabelle heisst "keine getesteten Deltas", nicht "keine Deltas".
+Der Auffangzweig ist leicht zu uebersehen und deshalb eigens erwaehnt: einige
+Symbologien rufen in C ueberhaupt kein `z_set_height` - `plessey.c` und die
+C25-Varianten in `2of5.c` -, ihre Hoehe von 50 entsteht allein dort. `height` und `row_height` sind dabei von `Integer`
+auf `Single` gewechselt - die konformen Postal-Hoehen 3.225/2.15 sind als
+Integer nicht darstellbar.
+
+Geprueft wird es durch `UnitTests/Test_Height.pas` (182 Faelle, erzeugt von
+`scripts/gen-height-tests.ps1` aus `test_vector.c`) und
+`TTestCommonCore.TestSetHeight` (14 Faelle aus `test_common.c`). Drei
+Abweichungen sind dabei aufgefallen und behoben worden; die beiden
+Genauigkeitsfallen sind in [common.md](common.md) beschrieben.
+
+Nicht portiert ist die Hoehenlogik der Module, die insgesamt nicht portiert
+sind (bc412, channel, codabar, codablock, dxfilmedge, mailmark, ultra) sowie
+der Module mit Status `legacy` oder `partial`, deren Encoder noch nicht auf
+`b3a3c0d` stehen: code16k, code49, composite, imail, maxicode, pdf417, rss,
+upcean und `zint_dpd`/`zint_upu_s10` in `code128_based.c`. Sie steht dort
+jeweils im Portierungsvorgang des Moduls an, nicht mehr als Querschnittsthema.
+
+**Was bleibt.** Fuer jedes Modul gilt weiter: eine leere Delta-Tabelle heisst
+"keine getesteten Deltas", nicht "keine Deltas".
+
+### errtxt bekommt zwei Praefixe (offen)
+
+C baut den Meldungstext in zwei Schritten: der Encoder schreibt `247: Height
+not compliant with standards (too small)`, und `error_tag` (`library.c:251`)
+stellt genau einmal `Warning ` bzw. `Error ` voran. Oeffentlich steht am Ende
+`Warning 247: ...`.
+
+Der Port macht beides doppelt. Die Module schreiben den vollen Text
+(`'Warning 247: ...'`, `'Error 486: ...'`), und `error_tag` (`zint.pas`)
+stellt zusaetzlich das aeltere `warning: ` bzw. `error: ` voran. Oeffentlich
+steht damit:
+
+```
+warning: Warning 247: Height not compliant with standards (too small)
+```
+
+Das betrifft **jede** Meldung des Ports, nicht nur die Hoehenwarnungen, und
+stammt aus dem Legacy-Stand. In den Tests ist es unsichtbar, weil
+`TZintTestHelper.GetErrTxt` das aeussere Praefix abschneidet - ausdruecklich,
+damit die portierten C-Erwartungswerte passen.
+
+Die Aufloesung ist mechanisch, aber breit: die Module duerften nur noch
+`247: ...` schreiben, und `error_tag` muesste `Warning `/`Error ` voranstellen
+statt `warning: `/`error: `. Das beruehrt jeden Encoder und jede Testunit und
+gehoert deshalb in einen eigenen Vorgang, nicht in einen Barcode-Branch.
+Gefunden im Codex-Review von `chore/set-height` am 2026-08-30.
+
+### `input_mode` verliert die oberen Bits (teilweise offen)
+
+`ZBarcode_Encode` weist `symbol.input_mode` an vier Stellen vollstaendig neu
+zu - einmal `base_mode` vor der Kodierung, dann in den Wiederholungspfaden
+fuer PDF417, Data Matrix und ECI. Jede dieser Zuweisungen loescht alles
+oberhalb der 3-Bit-Basis. C tut das nie; nur ein ungueltiger Basismodus wird
+komplett auf `DATA_MODE` gesetzt (`library.c:977`).
+
+Der Port faengt einzelne Flags danach wieder ein: `FAST_MODE` und
+`GS1NOCHECK_MODE` seit laengerem, `HEIGHTPERROW_MODE` seit
+`chore/set-height` an allen vier Stellen. Nicht wiederhergestellt werden
+`ESCAPE_MODE`, `GS1PARENS_MODE`, `EXTRA_ESCAPE_MODE` und
+`GS1SYNTAXENGINE_MODE`; `FAST_MODE` fehlt in den letzten drei Zuweisungen.
+
+Praktische Folge heute: keine bekannte - die betroffenen Flags werden vor
+diesen Stellen ausgewertet oder gehoeren zu Modulen, die ohnehin nicht auf
+`b3a3c0d` stehen. Die saubere Loesung ist, die oberen Bits gar nicht erst zu
+verwerfen, statt sie einzeln nachzureichen. Gefunden im Codex-Review von
+`chore/set-height` am 2026-08-30.
 
 ### `TZintSymbol` hat kein `text_length`
 

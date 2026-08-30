@@ -44,12 +44,18 @@ faellt darueber: die zugehoerige C-Testsuite prueft `symbol->height` nirgends,
 der blinde Fleck ist also aus C geerbt. (Fuer postal und code128 gilt das
 nicht - dort wurden vorhandene C-Assertions beim Portieren weggelassen.)
 
-| C-Funktion | Status | Fehlt im Port |
-|---|---|---|
-| `zint_auspost` (`auspost.c:263-280`) | partial | C setzt bei `COMPLIANT_HEIGHT` `row_height` 3.7/2.6 und ruft `zint_daft_set_height(7.0, 14.0)`, was auch eine Grenzwarnung erzeugen kann. `zint_auspost.pas:265-267` setzt fest 3/2/3 |
+_(keine)_
 
-Portweite Beschreibung in [library.md](library.md), Abschnitt
-*Querschnittsdeltas*; `zint_daft_set_height` selbst siehe [postal.md](postal.md).
+Bis zum 2026-08-30 setzte `australia_post` `row_height` fest auf 3/2/3, statt
+wie C bei `COMPLIANT_HEIGHT` 3.7/2.6 zu setzen und `zint_daft_set_height(7.0,
+14.0)` zu rufen. Die Hoehenlogik ist portiert (Zweig `chore/set-height`). Geprueft wird sie
+ueber `UnitTests/Test_Height.pas`, erzeugt aus den Tabellen `test_height` und
+`test_height_per_row` in `test_vector.c` - upstream die einzige Stelle, an der
+`symbol->height` je Symbologie geprueft wird.
+
+`daft_set_height` steht im Port in `zint_postal.pas` und ist dort ueber die
+Interface-Sektion erreichbar - wie in C, wo `auspost.c` den Helfer aus
+`postal.c` deklariert.
 
 ## Offene Deltas FPC vs Delphi
 

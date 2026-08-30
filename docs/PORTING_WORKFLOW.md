@@ -342,8 +342,8 @@ Die Testunits sind Portierungen der C-Testsuiten. Damit erben sie deren blinde
 Flecken: **was C nicht prueft, kann im Port fehlen, ohne dass ein Test rot
 wird.**
 
-Der Beleg steht in [ports/library.md](ports/library.md): `z_set_height` ist im
-gesamten Port nicht vorhanden, und 881 gruene Tests bemerken es nicht, weil
+Der Beleg steht in [ports/library.md](ports/library.md): `z_set_height` fehlte
+im gesamten Port, und 881 gruene Tests bemerkten es nicht, weil
 `test_telepen.c` die Hoehe kein einziges Mal prueft. Ein Test kann nur pruefen,
 was jemand geschrieben hat - fehlenden Code findet er nicht.
 
@@ -388,8 +388,8 @@ Pruefungen gelten fuer jedes Modul.
 
 ### Wer eine Luecke aufruft, muss sie nennen
 
-`zint_postnet` ist sauber portiert, ruft aber `usps_set_height`, das es nicht
-ist. Ist die Symbologie damit vollstaendig? Codex sagte ja - also `partial`;
+`zint_postnet` war sauber portiert, rief aber `usps_set_height`, das es nicht
+war. War die Symbologie damit vollstaendig? Codex sagte ja - also `partial`;
 Fable hielt die Zeile fuer richtig als `ported` klassifiziert.
 
 Entschieden wurde gegen die Kaskade: der Status beschreibt **die Portierung
@@ -400,17 +400,46 @@ Bemerkung nennen; das Skript prueft das ueber den C-Quelltext. Die Luecke steht
 damit genau einmal in der Zaehlung und ist trotzdem von jeder Aufrufstelle aus
 auffindbar.
 
+### Die C-Pruefung steht nicht immer in der Modul-Testdatei
+
+Beim Portieren von `z_set_height` sah es zunaechst so aus, als pruefe upstream
+niemand die Hoehe: `test_telepen.c` erwaehnt sie nicht, `test_code.c`,
+`test_medical.c` und `test_auspost.c` ebenso wenig, `test_postal.c` nur in drei
+Bloecken. Beide Gates waren gruen, nachdem 17 Funktionen portiert waren - **ohne
+dass ein einziger Testfall die neue Logik beruehrt haette.**
+
+Die eigentliche Pruefung liegt woanders:
+
+| C-Datei | Was dort geprueft wird |
+|---|---|
+| `tests/test_vector.c`, `test_height` | `symbol->height` je Symbologie, mit und ohne `COMPLIANT_HEIGHT`, 177 Faelle allein fuer die hier portierten Symbologien |
+| `tests/test_vector.c`, `test_height_per_row` | `HEIGHTPERROW_MODE` |
+| `tests/test_common.c`, `test_set_height` | die Funktion selbst, Zweig fuer Zweig, samt `errtxt` |
+
+Als diese drei Tabellen portiert waren, fielen sofort drei Abweichungen auf,
+zwei davon Genauigkeitsfallen, die nie in einem Modultest aufgetaucht waeren
+(siehe [ports/common.md](ports/common.md)).
+
+**Regel daraus:** wer eine Querschnittsfunktion portiert, sucht ihre Tests
+nicht nur in der Modul-Testdatei, sondern per `grep` nach dem C-Namen ueber
+`backend/tests/` **und** nach dem betroffenen `symbol->`-Feld. Erst wenn diese
+Fundstellen mitportiert sind, ist die Arbeit fertig; vorher heisst "Gates
+gruen" nur, dass nichts kaputtgegangen ist.
+
+Der Assertions-Abgleich sieht das nicht: er ordnet je Modul genau eine
+C-Testdatei zu. `test_vector.c` gehoert keinem Modul, also faellt nichts auf.
+
 ### Zwei Fragen, zwei Werkzeuge
 
 `check-c-inventory.ps1` fragt: **haben wir allen C-Code portiert?**
 `check-c-assertions.ps1` fragt: **haben wir alle C-Pruefungen portiert?**
 
 Das sind verschiedene Fehler. Das Inventar fand, dass `z_set_height` im Port
-nicht existiert. Der Assertions-Abgleich findet, dass `test_postal.c`
+nicht existierte. Der Assertions-Abgleich fand, dass `test_postal.c`
 `symbol->height` in drei Testbloecken assertiert - je Fall einmal, also ueber
 viele Faelle hinweg -, waehrend `Test_Postal.pas` bei 116 Testmethoden keine
-einzige Hoehen-Assertion hat. Die Faelle wurden portiert, die Pruefung
-weggelassen.
+einzige Hoehen-Assertion hatte. Die Faelle waren portiert, die Pruefung
+weggelassen. Beides ist in `chore/set-height` behoben.
 
 Er sammelt je C-Testdatei die assertierten `symbol->`-Felder ein - nur die
 geprueften Argumente, nicht den Meldungstext, sonst gaelte jedes in einer

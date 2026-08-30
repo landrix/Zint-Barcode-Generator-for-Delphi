@@ -28,7 +28,7 @@ function australia_post(symbol : zint_symbol; source : TArrayOfByte; _length : I
 implementation
 
 uses
-  zint_reedsol, zint_common, zint_helper;
+  zint_reedsol, zint_common, zint_helper, zint_postal;
 
 const GDSET : String = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz #';
 
@@ -262,9 +262,22 @@ begin
     Inc(writer, 2);
   end;
 
-  symbol.row_height[0] := 3;
-  symbol.row_height[1] := 2;
-  symbol.row_height[2] := 3;
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: auspost.c:262. Australia Post Customer Barcoding Technical
+      Specifications (Rev. Aug 2012) S.12: X 0.5mm (Mittel aus 0.4 - 0.6),
+      Mindesthoehe 4.2mm / 0.6mm = 7, Maximum 5.6mm / 0.4mm = 14.
+      Tracker 1.3mm, Ascender/Descender 3.15mm abzueglich Tracker = 1.85mm. }
+    symbol.row_height[0] := 3.7; { 1.85 / 0.5 }
+    symbol.row_height[1] := 2.6; { 1.3 / 0.5 }
+    error_number := daft_set_height(symbol, 7.0, 14.0);
+  end
+  else
+  begin
+    symbol.row_height[0] := 3.0;
+    symbol.row_height[1] := 2.0;
+    error_number := daft_set_height(symbol, 0.0, 0.0);
+  end;
 
   symbol.rows := 3;
   symbol.width := writer - 1;

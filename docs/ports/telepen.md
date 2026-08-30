@@ -53,7 +53,6 @@ Gefunden im Codex-Review am 2026-08-30, ausfuehrlich in
 
 | C-Index | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
 |---|---|---|---|---|
-| alle (ungetestet) | `telepen.c:133-138` und `:215-218` setzen `symbol.height` auf 32 mit `COMPLIANT_HEIGHT`, sonst 50 | `height` bleibt 0; `zint_telepen.pas` hat keine Entsprechung | Der Port kennt kein `z_set_height`. `test_telepen.c` prueft `height` nirgends, deshalb faellt es in keinem Gate auf | Port-weit loesen, siehe [common.md](common.md) und [library.md](library.md) |
 | `test_hrt` C#0-C#17 | C prueft `symbol->text_length` und vergleicht per `memcmp` | Vergleich ueber `GetText()`, also nullterminiert; `TZintSymbol` hat kein `text_length` | Strukturunterschied von `TZintSymbol` | Ohne Folge fuer Telepen: alle 18 Faelle setzen `expected_length = -1` (= `strlen`), und die Telepen-HRT ersetzt NUL durch ein Leerzeichen. Wird erst relevant, wenn ein Modul NUL in der HRT fuehrt |
 
 ## Portierungsluecken (Funktionsinventar)
@@ -65,13 +64,13 @@ faellt darueber: die zugehoerige C-Testsuite prueft `symbol->height` nirgends,
 der blinde Fleck ist also aus C geerbt. (Fuer postal und code128 gilt das
 nicht - dort wurden vorhandene C-Assertions beim Portieren weggelassen.)
 
-| C-Funktion | Status | Fehlt im Port |
-|---|---|---|
-| `zint_telepen` (`telepen.c:133-138`) | partial | Hoehenlogik: 32 mit `COMPLIANT_HEIGHT`, sonst 50 |
-| `zint_telepen_num` (`telepen.c:215-218`) | partial | dieselbe Hoehenlogik |
+_(keine)_
 
-Das ist derselbe Sachverhalt wie in der Delta-Tabelle oben, hier nur auf
-Funktionsebene. Portweite Beschreibung in [library.md](library.md).
+Bis zum 2026-08-30 fehlte in `zint_telepen` und `zint_telepen_num` die
+Hoehenlogik (32 mit `COMPLIANT_HEIGHT`, sonst 50). Die Hoehenlogik ist portiert (Zweig `chore/set-height`). Geprueft wird sie
+ueber `UnitTests/Test_Height.pas`, erzeugt aus den Tabellen `test_height` und
+`test_height_per_row` in `test_vector.c` - upstream die einzige Stelle, an der
+`symbol->height` je Symbologie geprueft wird.
 
 ## Offene Deltas FPC vs Delphi
 

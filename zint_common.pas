@@ -57,6 +57,9 @@ procedure concat(var dest : TArrayOfChar; const source : TArrayOfChar); overload
 procedure concat(var ADest: TArrayOfChar; const ASource: String); overload;
 procedure concat(var ADest: TArrayOfChar; const ASource: TArrayOfByte); overload;
 procedure bin_append(const arg, length: NativeInt; binary: TArrayOfChar);
+function set_height(symbol : zint_symbol; const min_row_height, default_height,
+  max_height : Single; const no_errtxt : Integer) : Integer;
+function stripf(const arg : Single) : Single;
 function ctoi(source : Char) : Integer;
 function itoc(source : Integer) : Char;
 procedure to_upper(var source : TArrayOfByte);
@@ -94,6 +97,12 @@ function nitems(a : TArrayOfInteger) : Integer; overload;
 implementation
 
 uses zint_helper{$IFNDEF FPC}, System.AnsiStrings{$ENDIF};
+
+{ Zahlen in errtxt muessen unabhaengig von der Systemsprache mit Punkt als
+  Dezimaltrennzeichen erscheinen - C formatiert in der C-Locale. Ohne das
+  liefert eine deutsche Windows-Installation "maximum 40,01". }
+var
+  ZintFmt : TFormatSettings;
 
 function strlen(const AString: TArrayOfChar): NativeInt;
 var
@@ -196,6 +205,98 @@ begin
 end;
 
 { Converts a character 0-9 to its equivalent integer value }
+{ C: z_stripf, common.c. Nimmt ueberschuessige Genauigkeit heraus. In C ueber
+  einen volatile-Zugriff, hier ueber die Zuweisung an ein Single - beides
+  erzwingt die Rundung auf einfache Genauigkeit. }
+function stripf(const arg : Single) : Single;
+begin
+  Result := arg;
+end;
+
+{ C: z_set_height, common.c.
+
+  Verteilt die Symbolhoehe auf die Zeilen: Zeilen mit gesetztem row_height
+  behalten ihre Hoehe, die uebrigen teilen sich den Rest. Liefert
+  ZWARN_NONCOMPLIANT, wenn die errechnete Zeilenhoehe unter min_row_height
+  oder die Gesamthoehe ueber max_height liegt - ausser no_errtxt ist gesetzt,
+  dann wird nur der Rueckgabewert gesetzt, kein errtxt geschrieben. }
+function set_height(symbol : zint_symbol; const min_row_height, default_height,
+  max_height : Single; const no_errtxt : Integer) : Integer;
+const
+  { Etwas Spielraum bei den Konformitaetspruefungen, wie in C. }
+  epsilon : Single = 0.00000095367431640625;
+var
+  error_number : Integer;
+  fixed_height : Single;
+  zero_count : Integer;
+  row_height : Single;
+  i, rows : Integer;
+begin
+  error_number := 0;
+  fixed_height := 0;
+  zero_count := 0;
+
+  { Wird gelegentlich vor expand() gerufen. }
+  if symbol.rows <> 0 then rows := symbol.rows else rows := 1;
+
+  for i := 0 to rows - 1 do
+  begin
+    if symbol.row_height[i] <> 0 then
+      fixed_height := fixed_height + symbol.row_height[i]
+    else
+      Inc(zero_count);
+  end;
+
+  if zero_count <> 0 then
+  begin
+    if symbol.height <> 0 then
+    begin
+      if (symbol.input_mode and HEIGHTPERROW_MODE) <> 0 then
+        row_height := stripf(symbol.height)
+      else
+        row_height := stripf((symbol.height - fixed_height) / zero_count);
+    end
+    else if default_height <> 0 then
+      row_height := stripf(default_height / zero_count)
+    else
+      row_height := stripf(min_row_height);
+
+    { Absolutes Minimum. }
+    if row_height < 0.5 then
+      row_height := 0.5;
+
+    if min_row_height <> 0 then
+    begin
+      if stripf(row_height + epsilon) < stripf(min_row_height) then
+      begin
+        error_number := ZWARN_NONCOMPLIANT;
+        if no_errtxt = 0 then
+          strcpy(symbol.errtxt, 'Warning 247: Height not compliant with standards (too small)');
+      end;
+    end;
+
+    { C schreibt row_height hier nicht zurueck. Der Port tat es einmal und
+      nahm dem Renderer damit die streckbaren Zeilen: FetchRowInfos zaehlt
+      Zeilen mit row_height = 0 als LargeBars (zint.pas). }
+    symbol.height := stripf(row_height * zero_count + fixed_height);
+  end
+  else
+    { Eine vorgegebene Hoehe wird ignoriert. }
+    symbol.height := stripf(fixed_height);
+
+  if max_height <> 0 then
+  begin
+    if stripf(symbol.height) > stripf(max_height + epsilon) then
+    begin
+      error_number := ZWARN_NONCOMPLIANT;
+      if no_errtxt = 0 then
+        strcpy(symbol.errtxt, Format('Warning 248: Height not compliant with standards (maximum %.4g)', [max_height], ZintFmt));
+    end;
+  end;
+
+  Result := error_number;
+end;
+
 function ctoi(source : Char) : Integer;
 begin
 	if (source >= '0') and (source <= '9') then
@@ -740,5 +841,8 @@ begin
 end;
 
 
-end.
+initialization
+  ZintFmt := {$IFDEF FPC}DefaultFormatSettings{$ELSE}SysUtils.FormatSettings{$ENDIF};
+  ZintFmt.DecimalSeparator := '.';
 
+end.

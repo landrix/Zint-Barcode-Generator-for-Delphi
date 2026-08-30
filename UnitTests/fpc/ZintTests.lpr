@@ -30,6 +30,7 @@ uses
   Test_CommonCore,
   Test_Composite,
   Test_DMatrix,
+  Test_Height,
   Test_Medical,
   Test_PZN,
   Test_Plessey,

@@ -35,19 +35,24 @@ Die Eintraege stammen nicht aus einem Testlauf, sondern aus dem
 Funktionsinventar (`docs/ports/_functions.tsv`): C-Funktionen, zu denen es im
 Port keine oder nur eine unvollstaendige Entsprechung gibt.
 
-**Hier ist es kein geerbter blinder Fleck.** `test_postal.c` prueft
-`symbol->height` sehr wohl - in drei Testbloecken (`postal.c` Zeilen 150, 203
-und 396 der Testdatei), jeweils einmal je Testfall der Schleife. `UnitTests/Test_Postal.pas` hat bei 116
-Testmethoden **keine einzige Hoehen-Assertion**: die Faelle wurden portiert, die
-Assertion dabei weggelassen. Waere sie mitportiert worden, waere die Luecke beim
-ersten Lauf aufgefallen. Nachzuholen, wenn die Hoehenlogik portiert wird.
+**Hier war es kein geerbter blinder Fleck.** `test_postal.c` prueft
+`symbol->height` sehr wohl - in drei Testbloecken (Zeilen 150, 203 und 396 der
+Testdatei), jeweils einmal je Testfall der Schleife. `Test_Postal.pas` hatte
+bei 116 Testmethoden keine einzige Hoehen-Assertion: die Faelle waren portiert,
+die Assertion dabei weggelassen. Waere sie mitportiert worden, waere die Luecke
+beim ersten Lauf aufgefallen.
 
-| C-Funktion | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
-|---|---|---|---|---|
-| `usps_set_height` (`postal.c:92`) | `row_height[0]/[1]` = 3.225/2.15 bei `COMPLIANT_HEIGHT` oder `BARCODE_CEPNET`, sonst 6.0/6.0; zusaetzlich Halbbalken-Verhaeltnis, wenn `symbol.height` gesetzt ist | `zint_postal.pas:157` setzt fest 6.0/6.0 - nur der Nicht-Compliant-Zweig, kein Verhaeltnis | Der Port kennt keine `COMPLIANT_HEIGHT`-Behandlung fuer POSTNET/PLANET | Zusammen mit dem port-weiten `z_set_height` loesen, siehe [library.md](library.md) |
-| `zint_daft_set_height` (`postal.c:400`) | Setzt die Hoehe fuer die DAFT-artigen Symbologien | keine Entsprechung | Eigenstaendige Luecke, **nicht** dieselbe wie `usps_set_height`: der Helfer wird von `zint_rm4scc`, `zint_kix`, `zint_daft`, `zint_japanpost` und zusaetzlich von `zint_auspost` (`auspost.c:275`) verwendet | Zusammen mit den vier Symbologien unten loesen |
-| `zint_rm4scc`, `zint_kix`, `zint_daft`, `zint_japanpost` | `row_height` je nach `COMPLIANT_HEIGHT`, dazu `zint_daft_set_height` mit Grenzwarnung | `royal_plot`, `kix_code`, `daft_code`, `japan_post` setzen fest 3/2/3 | siehe Zeile darueber | dito |
-| `zint_fim` (`postal.c:386-388`) | Hoehenlogik vorhanden | in `fim` fehlt sie ganz | Port kennt kein `z_set_height` | siehe [library.md](library.md) |
+Seit dem 2026-08-30 ist die Hoehenlogik portiert und geprueft: drei Faelle aus
+`test_postal.c` in `Test_Postal.pas` sowie die POSTNET-, PLANET-, CEPNET-,
+RM4SCC-, KIX-, DAFT-, JAPANPOST- und FIM-Zeilen aus `test_height`
+(`test_vector.c`) in `Test_Height.pas`.
+
+_(keine)_
+
+Mitportiert wurde dabei auch das Trackerverhaeltnis ueber `option_2` in
+`zint_daft` (`postal.c:626`): C erlaubt Werte von 50 bis 900 in Tausendsteln
+und setzt `symbol.height` auf 8, wenn keine Hoehe vorgegeben ist. Der Port
+wertete `option_2` fuer DAFT bis dahin gar nicht aus.
 
 ## Offene Deltas FPC vs Delphi
 

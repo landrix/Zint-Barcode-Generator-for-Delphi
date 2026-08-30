@@ -16,6 +16,7 @@ uses
   Test_Code49,
   Test_Code1,
   Test_DMatrix,
+  Test_Height,
   //Test_Code128,
   Test_Telepen,
   Test_Medical,

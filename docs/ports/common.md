@@ -33,7 +33,6 @@ Gemeinsame Hilfsfunktionen
 
 | C-Index | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
 |---|---|---|---|---|
-| n/a (`z_set_height`) | Jeder Encoder setzt am Ende `symbol.height`, je nach `COMPLIANT_HEIGHT` unterschiedlich | Funktion nicht portiert, `symbol.height` bleibt 0 | Der Port kennt kein `z_set_height`; Hoehe entsteht erst beim Rendern aus `row_height` | Als eigenen Vorgang portieren, siehe [library.md](library.md), Abschnitt Querschnittsdeltas |
 | | | | | |
 
 ## Offene Deltas FPC vs Delphi
@@ -44,6 +43,27 @@ Gemeinsame Hilfsfunktionen
 
 ## Notizen
 
+### `set_height` und `stripf` (2026-08-30)
+
+`z_set_height` und `z_stripf` sind portiert. Die 14 Faelle aus `test_set_height`
+(`test_common.c:1370`) stehen als `TTestCommonCore.TestSetHeight` im Port - die
+einzige Stelle upstream, die die Zweige der Funktion einzeln durchgeht.
+
+Zwei Dinge, die beim Portieren nicht offensichtlich waren:
+
+- **Fliesskommaliterale.** C schreibt `4.6f`, also ein `float`. Pascal-Literale
+  sind `Extended`; ein aus `Single`-Werten errechnetes `symbol.height` ist dann
+  kleiner als das Literal, obwohl beide dieselbe Zahl meinen. Vergleiche gegen
+  solche Literale brauchen eine getypte Konstante (`compliant_min : Single =
+  4.6`). Betroffen waren `usps_set_height` sowie die `min_height`-Ketten in
+  `c25_inter_common`, `c39` und `c93`.
+- **Dezimaltrennzeichen.** `Warning 248` traegt den Grenzwert in den Text.
+  `Format` benutzt ohne weitere Angabe die Systemsprache und schreibt auf einem
+  deutschen Windows `40,01`. `zint_common.pas` haelt dafuer ein
+  `TFormatSettings` mit Punkt bereit.
+
+Beides faellt nur auf, wenn die Assertion mitportiert wird - beide Fehler waren
+in einem Lauf gruen, bis die C-Testtabellen dazukamen.
 ### Uebernommen aus MIGRATION_PLAN.md (Stand 2026-03-30)
 
 - `zint_common.pas` | 🔧 Bugfix + Basis-Checks | ✅ `Test_CommonCore.pas` | `posn()`-Regression abgesichert; Basischecks fuer `ctoi/itoc/ustrlen/is_stackable/is_extendable/istwodigits/froundup`
