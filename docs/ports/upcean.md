@@ -39,7 +39,7 @@ EAN-8, EAN-13, UPC-A, UPC-E
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| | | | |
+| `BARCODE_EANX`, Eingabe `4012345678901` (13 Ziffern) | nicht gemessen | ret=5, errtxt `error: Invalid length input` | Noch nicht untersucht; ob Delphi hier abweicht, ist offen. Aufgefallen im FPC-Smoke-Test von `chore/fpc-gate` (2026-08-30). Modul ist Legacy-Port ohne Testabdeckung. |
 
 ## Notizen
 
