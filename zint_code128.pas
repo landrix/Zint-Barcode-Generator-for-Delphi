@@ -536,14 +536,6 @@ begin
   separator_row := 0;
   error_number := 0;
 
-  { Cannot use Reader Initialisation in GS1 mode }
-  if (symbol.output_options and READER_INIT) <> 0 then
-  begin
-    strcpy(symbol.errtxt, 'Cannot use Reader Initialisation in GS1 mode, ignoring');
-    error_number := ZWARN_INVALID_OPTION;
-    symbol.output_options := symbol.output_options and (not READER_INIT);
-  end;
-
   if _length > C128_MAX then
   begin
     strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, C128_MAX]));
@@ -648,6 +640,47 @@ begin
       if module_is_set(symbol, separator_row + 1, i) = 0 then
         set_module(symbol, separator_row, i);
     end;
+  end;
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: code128.c:622. GS1 General Specifications Release 26.0 5.12.3.2
+      Tabelle 2 samt Fussnote (**), wie ITF-14: bei weiterer Platznot
+      Hoehe 5.8mm / 1.016mm (X max); Standard 31.75mm / 0.495mm. }
+    if symbol.symbology = BARCODE_EAN128_CC then
+    begin
+      { Rueckgabe ueber die temporaere lineare Struktur }
+      if symbol.height <> 0 then
+        symbol.height := 5.70866156  { 5.8 / 1.016 }
+      else
+        symbol.height := 64.1414108; { 31.75 / 0.495 }
+    end
+    else
+    begin
+      if error_number = 0 then { Eine Warnung aus gs1_verify nicht ueberschreiben }
+        error_number := set_height(symbol, 5.70866156, 64.1414108, 0.0, 0)
+      else
+        set_height(symbol, 5.70866156, 64.1414108, 0.0, 1);
+    end;
+  end
+  else
+  begin
+    if symbol.symbology = BARCODE_EAN128_CC then
+    begin
+      if cc_mode = 3 then
+        symbol.height := 50.0 - cc_rows * 3 - 1.0
+      else
+        symbol.height := 50.0 - cc_rows * 2 - 1.0;
+    end
+    else
+      set_height(symbol, 0.0, 50.0, 0.0, 1);
+  end;
+
+  { C: code128.c:647. Nur warnen, wenn sonst nichts gewarnt hat. }
+  if (error_number = 0) and ((symbol.output_options and READER_INIT) <> 0) then
+  begin
+    strcpy(symbol.errtxt, 'Cannot use Reader Initialisation in GS1 mode, ignoring');
+    error_number := ZWARN_INVALID_OPTION;
   end;
 
   { Set HRT: replace [ ] with ( ) }

@@ -2817,6 +2817,13 @@ begin
                            BARCODE_HIBC_PDF, BARCODE_HIBC_MICPDF]) then
     symbol.input_mode := symbol.input_mode or FAST_MODE;
 
+  { C loescht die oberen input_mode-Bits nie (library.c:977 setzt nur bei
+    ungueltigem Basismodus zurueck), base_mode oben schon. HEIGHTPERROW_MODE
+    wird erst spaet in set_height gelesen und muss die Zuweisung ueberleben,
+    sonst wird height als Gesamthoehe statt als Zeilenhoehe verstanden. }
+  if (original_input_mode and HEIGHTPERROW_MODE) <> 0 then
+    symbol.input_mode := symbol.input_mode or HEIGHTPERROW_MODE;
+
   pdf417_single_warn_eci := False;
   if (base_mode = UNICODE_MODE)
     and (symbol.symbology in [BARCODE_PDF417, BARCODE_PDF417TRUNC, BARCODE_MICROPDF417]) then

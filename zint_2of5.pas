@@ -170,14 +170,21 @@ end;
 
 { Common to Interleaved, and to ITF-14, DP Leitcode, DP Identcode }
 function c25_inter_common(symbol : zint_symbol; source : TArrayOfByte; _length : Integer;
-  checkdigit_option : Integer) : Integer;
+  checkdigit_option : Integer; dont_set_height : Boolean) : Integer;
 var
   i, j, d : Integer;
   dest : TArrayOfChar;
   local_source : TArrayOfByte;
   have_checkdigit : Boolean;
   bars, spaces : String;
+  error_number : Integer;
+  min_height, default_height : Single;
+const
+  { getypt, weil C hier float-Literale hat - siehe zint_postal.usps_set_height }
+  min_height_min : Single = 15.151515; { 5.0 / 0.33 }
+  factor : Single = 0.15;
 begin
+  error_number := 0;
   SetLength(dest, 700);
   SetLength(local_source, 128);
 
@@ -246,6 +253,30 @@ begin
 
   expand(symbol, dest);
 
+  if not dont_set_height then
+  begin
+    if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    begin
+      { C: 2of5inter.c:102. ISO/IEC 16390:2007 4.4: Mindesthoehe 5mm oder 15%
+        der Symbolbreite, je nachdem was groesser ist. Mit P Zeichenpaaren und
+        dem Verhaeltnis breit/schmal N=3 ist die Breite
+        (P(4N + 6) + N + 6)X = (_length / 2) * 18 + 9.
+        Kleinstes X 0.330mm nach Anhang D.3.1. }
+      { C rundet nach jedem Schritt auf float, daher stripf auch innen }
+      min_height := stripf(stripf(18.0 * (_length div 2) + 9.0) * factor);
+      if min_height < min_height_min then
+        min_height := min_height_min;
+      { 50 als Standard, die Norm empfiehlt keinen }
+      if min_height > 50.0 then
+        default_height := min_height
+      else
+        default_height := 50.0;
+      error_number := set_height(symbol, min_height, default_height, 0.0, 0);
+    end
+    else
+      set_height(symbol, 0.0, 50.0, 0.0, 1);
+  end;
+
   { Exclude check digit from HRT if hidden }
   d := _length;
   if (symbol.option_2 = 2) then Dec(d);
@@ -265,13 +296,13 @@ begin
     symbol.content_segs_count := 1;
   end;
 
-  Result := 0;
+  Result := error_number;
 end;
 
 { Code 2 of 5 Interleaved ISO/IEC 16390:2007 }
 function interleaved_two_of_five(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 begin
-  Result := c25_inter_common(symbol, source, _length, symbol.option_2);
+  Result := c25_inter_common(symbol, source, _length, symbol.option_2, False);
 end;
 
 { Interleaved 2-of-5 (ITF-14) }
@@ -338,7 +369,7 @@ begin
   end;
   local_source[13] := check_digit_val;
 
-  error_number := c25_inter_common(symbol, local_source, 14, 0);
+  error_number := c25_inter_common(symbol, local_source, 14, 0, True);
 
   if (error_number < ZERROR_TOO_LONG) then
   begin
@@ -350,6 +381,17 @@ begin
       if symbol.border_width = 0 then
         symbol.border_width := 5;
     end;
+
+    if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    begin
+      { C: 2of5inter_based.c:98. GS1 General Specifications 21.0.1 5.12.3.2
+        Tabelle 2 samt Fussnote (**) - Rahmen kommt zu symbol.height hinzu.
+        Wie GS1-128: Hoehe 5.8mm / 1.016mm (X max), Standard 31.75mm / 0.495mm. }
+      error_number := set_height(symbol, 5.70866156 { 5.8 / 1.016 },
+                                         64.1414108 { 31.75 / 0.495 }, 0.0, 0);
+    end
+    else
+      set_height(symbol, 0.0, 50.0, 0.0, 1);
   end;
 
   { HRT }
@@ -402,7 +444,12 @@ begin
 
   local_source[13] := Ord(itoc((10 - (count mod 10)) mod 10));
 
-  error_number := c25_inter_common(symbol, local_source, 14, 0);
+  error_number := c25_inter_common(symbol, local_source, 14, 0, True);
+
+  { C: 2of5inter_based.c:155. Zu den Massen von DPLEIT gibt es
+    keine Dokumentation (TODO in C); 72X stammt aus dem Augenschein
+    von DIALOGPOST SCHWER. }
+  set_height(symbol, 0.0, 72.0, 0.0, 1);
 
   { HRT formatting: XXXXX.XXX.XXX.XXX }
   hrt := '';
@@ -458,7 +505,12 @@ begin
 
   local_source[11] := Ord(itoc((10 - (count mod 10)) mod 10));
 
-  error_number := c25_inter_common(symbol, local_source, 12, 0);
+  error_number := c25_inter_common(symbol, local_source, 12, 0, True);
+
+  { C: 2of5inter_based.c:199. Zu den Massen von DPIDENT gibt es
+    keine Dokumentation (TODO in C); 72X stammt aus dem Augenschein
+    von DIALOGPOST SCHWER. }
+  set_height(symbol, 0.0, 72.0, 0.0, 1);
 
   { HRT formatting: XX.XX X.XXX.XXX X }
   hrt := '';

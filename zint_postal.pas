@@ -31,6 +31,8 @@ function kix_code(symbol : zint_symbol; source : TArrayOfByte; _length : Integer
 function daft_code(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 function flattermarken(symbol : zint_symbol; const source : TArrayOfByte; _length : Integer) : Integer;
 function japan_post(symbol : zint_symbol; const source : TArrayOfByte; _length : Integer) : Integer;
+{ C: zint_daft_set_height, postal.c:400. INTERNAL, wird auch von auspost.c benutzt. }
+function daft_set_height(symbol : zint_symbol; const min_height, max_height : Single) : Integer;
 
 implementation
 
@@ -67,8 +69,53 @@ const KoreaTable : array[0..9] of String = ('1313150613', '0713131313', '0417131
 const JapanTable : array[0..18] of String = ('114', '132', '312', '123', '141', '321', '213', '231', '411', '144',
 	'414', '324', '342', '234', '432', '243', '423', '441', '111');
 
-{ Handles the PostNet system used for Zip codes in the US }
-{ Also handles Brazilian CEPNet }
+{ C: zint_daft_set_height, postal.c:400.
+
+  Setzt die Hoehe der DAFT-Codes und haelt dabei das Verhaeltnis von Tracker
+  zu Gesamthoehe. Erwartet row_height[0] und row_height[1] als gesetzt;
+  row_height[2] (Descender) wird auf row_height[0] gespiegelt. }
+function daft_set_height(symbol : zint_symbol; const min_height, max_height : Single) : Integer;
+var
+  error_number : Integer;
+  t_ratio : Single;
+begin
+  error_number := 0;
+
+  if symbol.height <> 0 then
+  begin
+    { Verhaeltnis des Trackers zur Gesamthoehe }
+    t_ratio := stripf(symbol.row_height[1] / stripf(symbol.row_height[0] * 2 + symbol.row_height[1]));
+    symbol.row_height[1] := stripf(symbol.height * t_ratio);
+    if symbol.row_height[1] < 0.5 then
+    begin
+      { Absolutes Minimum }
+      symbol.row_height[1] := 0.5;
+      symbol.row_height[0] := stripf(stripf(0.25 / t_ratio) - 0.25);
+    end
+    else
+      symbol.row_height[0] := stripf(stripf(symbol.height - symbol.row_height[1]) / 2.0);
+    if symbol.row_height[0] < 0.5 then
+    begin
+      symbol.row_height[0] := 0.5;
+      symbol.row_height[1] := stripf(t_ratio / stripf(1.0 - t_ratio));
+    end;
+  end;
+  symbol.row_height[2] := symbol.row_height[0];
+  symbol.height := stripf(stripf(symbol.row_height[0] + symbol.row_height[1]) + symbol.row_height[2]);
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    if (((min_height <> 0) and (symbol.height < min_height)) or
+        ((max_height <> 0) and (symbol.height > max_height))) then
+    begin
+      error_number := ZWARN_NONCOMPLIANT;
+      strcpy(symbol.errtxt, 'Warning 499: Height not compliant with standards');
+    end;
+  end;
+
+  Result := error_number;
+end;
+
 { C: usps_set_height, postal.c:92.
 
   USPS DMM 300 (Jan 2006, akt. 2011) 708.4.2.5, Balkenteilung als X
@@ -76,6 +123,12 @@ const JapanTable : array[0..18] of String = ('114', '132', '312', '123', '141', 
   daraus die konformen Grenzen 4.6 bis 9.0. CEPNet nutzt dieselben Werte
   (Guia Tecnico 26.05.2021, 3.3.2), dort ohne Altlast-Zweig. }
 function usps_set_height(symbol : zint_symbol; const no_errtxt : Integer) : Integer;
+const
+  { C vergleicht gegen float-Literale. Als Extended-Literal waere 4.6 groesser
+    als das aus Singles errechnete symbol.height und die Warnung schluege
+    faelschlich an. }
+  compliant_min : Single = 4.6;
+  compliant_max : Single = 9.0;
 var
   error_number : Integer;
   h_ratio : Single;
@@ -103,7 +156,7 @@ begin
     begin
       { Absolutes Minimum }
       symbol.row_height[1] := 0.5;
-      symbol.row_height[0] := stripf(0.5 / h_ratio - 0.5); { 0.75 }
+      symbol.row_height[0] := stripf(stripf(0.5 / h_ratio) - 0.5); { 0.75 }
     end
     else
       symbol.row_height[0] := stripf(symbol.height - symbol.row_height[1]);
@@ -112,7 +165,7 @@ begin
 
   if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
   begin
-    if (symbol.height < 4.6) or (symbol.height > 9.0) then
+    if (symbol.height < compliant_min) or (symbol.height > compliant_max) then
     begin
       error_number := ZWARN_NONCOMPLIANT;
       if no_errtxt = 0 then
@@ -123,6 +176,8 @@ begin
   Result := error_number;
 end;
 
+{ Handles the PostNet system used for Zip codes in the US }
+{ Also handles Brazilian CEPNet }
 function postnet(symbol : zint_symbol; const source : TArrayOfByte; var dest : TArrayOfChar; _length : Integer) : Integer;
 var
   i, sum, check_digit : Integer;
@@ -192,7 +247,6 @@ var
   error_number : Integer;
   sum, check_digit, i : Integer;
 begin
-  warn_number := 0;
   SetLength(height_pattern, 256);
 
   error_number := postnet(symbol, source, height_pattern, _length);
@@ -299,7 +353,6 @@ var
   error_number : Integer;
   sum, check_digit, i : Integer;
 begin
-  warn_number := 0;
   SetLength(height_pattern, 256);
 
   error_number := planet(symbol, source, height_pattern, _length);
@@ -450,6 +503,18 @@ begin
     end;
   end;
 
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: postal.c:380. USPS DMM 300 (Jan 2006, akt. 2011) 708.9.3,
+      X 0.03125" (1/32) +- 0.008", also X max 0.03925";
+      Hoehe 0.625" (5/8) +- 0.125" (1/8). }
+    error_number := set_height(symbol, 12.7388535 { 0.5 / 0.03925 },
+                                       20.0       { 0.625 / 0.03125 },
+                                       31.0559006 { 0.75 / 0.02415 }, 0);
+  end
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
+
   if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
   begin
     SetLength(symbol.content_segs, 1);
@@ -542,9 +607,24 @@ begin
     Inc(writer, 2);
   end;
 
-  symbol.row_height[0] := 3;
-  symbol.row_height[1] := 2;
-  symbol.row_height[2] := 3;
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: postal.c:505. Royal Mail Know How User's Manual Anhang C
+      (CBC); Rasterabstand und Grenzen wie Mailmark, daher die Empfehlungen
+      aus dem Mailmark Barcode Definition Document (15.09.2015) 3.5.1.
+      Fuer das Minimum wird das groesste X benutzt, fuer das Maximum das
+      kleinste - beides ist damit die schaerfere Pruefung. }
+    symbol.row_height[0] := 3.16417313; { (1.9 * 42.3) / 25.4 }
+    symbol.row_height[1] := 2.16496062; { (1.3 * 42.3) / 25.4 }
+    error_number := daft_set_height(symbol, 6.47952747 { (4.22 * 39) / 25.4 },
+                                            10.8062992 { (5.84 * 47) / 25.4 });
+  end
+  else
+  begin
+    symbol.row_height[0] := 3.0;
+    symbol.row_height[1] := 2.0;
+    daft_set_height(symbol, 0.0, 0.0);
+  end;
   symbol.rows := 3;
   symbol.width := writer - 1;
 
@@ -608,9 +688,24 @@ begin
     Inc(writer, 2);
   end;
 
-  symbol.row_height[0] := 3;
-  symbol.row_height[1] := 2;
-  symbol.row_height[2] := 3;
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: postal.c:572. Royal Mail Know How User's Manual Anhang C
+      (CBC); Rasterabstand und Grenzen wie Mailmark, daher die Empfehlungen
+      aus dem Mailmark Barcode Definition Document (15.09.2015) 3.5.1.
+      Fuer das Minimum wird das groesste X benutzt, fuer das Maximum das
+      kleinste - beides ist damit die schaerfere Pruefung. }
+    symbol.row_height[0] := 3.16417313; { (1.9 * 42.3) / 25.4 }
+    symbol.row_height[1] := 2.16496062; { (1.3 * 42.3) / 25.4 }
+    error_number := daft_set_height(symbol, 6.47952747 { (4.22 * 39) / 25.4 },
+                                            10.8062992 { (5.84 * 47) / 25.4 });
+  end
+  else
+  begin
+    symbol.row_height[0] := 3.0;
+    symbol.row_height[1] := 2.0;
+    daft_set_height(symbol, 0.0, 0.0);
+  end;
   symbol.rows := 3;
   symbol.width := writer - 1;
 
@@ -635,6 +730,7 @@ var
   loopey : Integer;
   writer, i : Integer;
   p : Integer;
+  t_ratio : Single;
 begin
   if (_length > 576) then
   begin
@@ -666,9 +762,24 @@ begin
     Inc(writer, 2);
   end;
 
-  symbol.row_height[0] := 3;
-  symbol.row_height[1] := 2;
-  symbol.row_height[2] := 3;
+  { C: postal.c:626. Das Trackerverhaeltnis darf in Tausendsteln
+    vorgegeben werden. }
+  if (symbol.option_2 >= 50) and (symbol.option_2 <= 900) then
+  begin
+    t_ratio := symbol.option_2 / 1000.0;
+    if symbol.height < 0.5 then
+      symbol.height := 8.0;
+    symbol.row_height[1] := stripf(symbol.height * t_ratio);
+    symbol.row_height[0] := stripf((symbol.height - symbol.row_height[1]) / 2.0);
+  end
+  else
+  begin
+    symbol.row_height[0] := 3.0;
+    symbol.row_height[1] := 2.0;
+  end;
+
+  { DAFT ist ein generischer Code, also ohne Hoehenvorgabe }
+  daft_set_height(symbol, 0.0, 0.0);
   symbol.rows := 3;
   symbol.width := writer - 1;
 
@@ -844,9 +955,22 @@ begin
     Inc(writer, 2);
   end;
 
-  symbol.row_height[0] := 3;
-  symbol.row_height[1] := 2;
-  symbol.row_height[2] := 3;
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: postal.c:778. Japan Post Zip/Barcode Manual S.11-12,
+      X 0.6mm (0.5 - 0.7). Tracker 1.2mm / 0.6mm = 2; Ascender/Descender
+      1.2mm (volle 3.6mm abzueglich Tracker, halbiert) / 0.6mm = 2. }
+    symbol.row_height[0] := 2.0;
+    symbol.row_height[1] := 2.0;
+    error_number := daft_set_height(symbol, 4.85714293 { 3.4 / 0.7 },
+                                            7.19999981 { 3.6 / 0.5 });
+  end
+  else
+  begin
+    symbol.row_height[0] := 3.0;
+    symbol.row_height[1] := 2.0;
+    daft_set_height(symbol, 0.0, 0.0);
+  end;
   symbol.rows := 3;
   symbol.width := writer - 1;
 

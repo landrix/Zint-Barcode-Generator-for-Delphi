@@ -44,15 +44,18 @@ faellt darueber: die zugehoerige C-Testsuite prueft `symbol->height` nirgends,
 der blinde Fleck ist also aus C geerbt. (Fuer postal und code128 gilt das
 nicht - dort wurden vorhandene C-Assertions beim Portieren weggelassen.)
 
-| C-Funktion | Status | Fehlt im Port |
-|---|---|---|
-| `zint_pharma` (`medical.c:97-99`) | partial | Hoehenlogik |
-| `zint_pharma_two` (`medical.c:188-190`) | partial | Hoehenlogik |
-| `zint_code32` (`medical.c:280-282`) | partial | Hoehenlogik |
-| `zint_pzn` (`medical.c:365-369`) | partial | Hoehenlogik |
+_(keine)_
 
-Gemeinsame Ursache: der Port kennt kein `z_set_height`. Portweite Beschreibung
-in [library.md](library.md), Abschnitt *Querschnittsdeltas*.
+Bis zum 2026-08-30 fehlte in `zint_pharma`, `zint_pharma_two`, `zint_code32`
+und `zint_pzn` die Hoehenlogik. Die Hoehenlogik ist portiert (Zweig `chore/set-height`). Geprueft wird sie
+ueber `UnitTests/Test_Height.pas`, erzeugt aus den Tabellen `test_height` und
+`test_height_per_row` in `test_vector.c` - upstream die einzige Stelle, an der
+`symbol->height` je Symbologie geprueft wird.
+
+`codabar` liegt im Port in `zint_medical.pas`, stammt aber aus einem aelteren
+Zint-Stand und ist gegen `b3a3c0d` nicht portiert (Modul `codabar`, Status
+`missing`). Seine Hoehenlogik aus `codabar.c:124-135` fehlt entsprechend und
+gehoert in den Portierungsvorgang fuer Codabar, nicht hierher.
 
 ## Offene Deltas FPC vs Delphi
 

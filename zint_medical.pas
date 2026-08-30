@@ -112,6 +112,13 @@ begin
 
   expand(symbol, dest);
 
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    { C: medical.c:95. Laetus Pharmacode Guide 1.2, einspurige Standardhoehe
+      8mm / 0.5mm (X). }
+    error_number := set_height(symbol, 16.0, 0.0, 0.0, 0)
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
+
   if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
   begin
     SetLength(symbol.content_segs, 1);
@@ -221,6 +228,14 @@ begin
   end;
   symbol.rows := 2;
   symbol.width := writer - 1;
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    { C: medical.c:184. Laetus Pharmacode Guide 1.4, zweispurig:
+      Mindesthoehe 8mm / 2mm (X max) = 4X, also 2X je Zeile;
+      Standard 8mm / 1mm = 8X, Maximum 12mm / 0.8mm (X min) = 15X. }
+    error_number := set_height(symbol, 2.0, 8.0, 15.0, 0)
+  else
+    set_height(symbol, 0.0, 10.0, 0.0, 1);
 
   if (symbol.output_options and BARCODE_CONTENT_SEGS) <> 0 then
   begin
@@ -393,6 +408,16 @@ begin
 
   if (error_number <> 0) then begin result := error_number; exit; end;
 
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+    { C: medical.c:273. Allegato A, Caratteristiche tecniche del bollino
+      farmaceutico: X ist mit 0.250mm angegeben, Hoehe und Ruhezonen bleiben
+      bei ISO/IEC 16388:2007 (Code 39). Mindesthoehe 5mm / 0.25mm = 20, was
+      ueber den 15% der Breite liegt ((10 * 8 + 19) * 0.15 = 14.85).
+      Derselbe Wert dient als Standard. }
+    error_number := set_height(symbol, 20.0, 20.0, 0.0, 0)
+  else
+    set_height(symbol, 0.0, 50.0, 0.0, 1);
+
   { Override the normal text output with the Pharmacode number }
   ustrcpy(symbol.text, 'A');
   uconcat(symbol.text, localstr);
@@ -473,6 +498,22 @@ begin
 
   if (saved_option_2 = 1) or (saved_option_2 = 2) then
     symbol.option_2 := saved_option_2; { Restore }
+
+  if (symbol.output_options and COMPLIANT_HEIGHT) <> 0 then
+  begin
+    { C: medical.c:357. Technical Information regarding PZN Coding V 2.1
+      (25.02.2019), Code size: "normales" X 0.25mm (0.187 - 0.45),
+      Hoehe 8mm bis 20mm bei X 0.25mm; genannt werden 10mm, also
+      10mm / 0.25mm = 40 als Standard. }
+    if error_number < ZERROR_TOO_LONG then
+      error_number := set_height(symbol, 17.7777786 { 8.0 / 0.45 }, 40.0,
+                                         106.951874 { 20.0 / 0.187 }, 0);
+  end
+  else
+  begin
+    if error_number < ZERROR_TOO_LONG then
+      set_height(symbol, 0.0, 50.0, 0.0, 1);
+  end;
 
   { HRT }
   ustrcpy(symbol.text, 'PZN - ');

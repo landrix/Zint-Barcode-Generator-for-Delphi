@@ -45,32 +45,52 @@ Kern-API, Dispatch, TZintSymbol
 
 Beide gefunden im Codex-Review von `port/telepen` am 2026-08-30. Sie stehen
 hier und nicht bei einem einzelnen Barcode, weil sie den gesamten Port
-betreffen.
+betreffen. Der erste ist inzwischen erledigt.
 
-### `symbol.height` wird nie gesetzt
+### `symbol.height` wurde nie gesetzt (erledigt 2026-08-30)
 
-C setzt am Ende jedes Encoders eine Symbolhoehe, ueber `z_set_height()` aus
-`common.c` - mit und ohne `COMPLIANT_HEIGHT` je einen anderen Wert. Beispiel
-`telepen.c:133-138`: 32 mit `COMPLIANT_HEIGHT`, sonst 50.
+**Befund.** C setzt am Ende jedes Encoders eine Symbolhoehe, ueber
+`z_set_height()` aus `common.c` - mit und ohne `COMPLIANT_HEIGHT` je einen
+anderen Wert. Beispiel `telepen.c:133-138`: 32 mit `COMPLIANT_HEIGHT`, sonst
+50. Der Port hatte kein Gegenstueck; nach `ZBarcode_Encode` blieb
+`symbol.height` auf seinem Ausgangswert, einzige Ausnahme `zint_qr.pas`
+(`:2653`, `:3006`), wo die Modulzahl eingetragen wird.
 
-Der Delphi-Port hat kein Gegenstueck zu `z_set_height`. Nach `ZBarcode_Encode`
-bleibt `symbol.height` auf seinem Ausgangswert; einzige Ausnahme ist
-`zint_qr.pas:2653`/`:3006`, wo die Modulzahl eingetragen wird.
+`zint.pas` enthielt zwar eine Summierung aus `row_height`, aber sie lief nie:
+sie stand in `check_row_heights`, dessen Rumpf mit einem unbedingten `exit`
+begann - der Rest war toter Code. Wer dort nach der Hoehenlogik suchte, fand
+Code, der aussah, als taete er etwas. Die Prozedur ist entfernt.
 
-`zint.pas` enthaelt zwar eine Summierung aus `row_height` (`:2229`, `:2240`),
-aber sie laeuft nie: sie steht in `check_row_heights` (`:2209`), dessen Rumpf
-mit einem unbedingten `exit` beginnt (`:2216`) - der Rest ist toter Code. Die
-Prozedur wird ohnehin nur aus `ZBarcode_Encode` bei Warnungen 1..5 gerufen
-(`:3057`). Wer hier nach der Hoehenlogik sucht, findet also Code, der aussieht,
-als taete er etwas.
+**Warum es niemand gemerkt hat.** Die Modul-Testdateien pruefen `height` fast
+nirgends - `test_telepen.c` enthaelt das Wort nicht ein einziges Mal. Die
+eigentliche Pruefung steht upstream woanders: in `test_height` und
+`test_height_per_row` in `test_vector.c`, einer Tabelle ueber alle
+Symbologien, sowie in `test_set_height` in `test_common.c`, das die Funktion
+selbst durchgeht. Beim Portieren der Modul-Testdateien kommt man an keiner der
+drei vorbei.
 
-Warum es bisher niemand gemerkt hat: **keine der portierten C-Testsuiten prueft
-`height`** - `test_telepen.c` enthaelt das Wort nicht ein einziges Mal. Das
-Delta ist damit real, aber von keinem Gate erfasst.
+**Behoben in `chore/set-height`.** Portiert sind `set_height` und `stripf` in
+`zint_common.pas`, `usps_set_height` und `daft_set_height` in
+`zint_postal.pas` sowie die Aufrufstellen in 2of5, auspost, code, code128,
+medical, postal und telepen. `height` und `row_height` sind dabei von `Integer`
+auf `Single` gewechselt - die konformen Postal-Hoehen 3.225/2.15 sind als
+Integer nicht darstellbar.
 
-Naechster Schritt: `z_set_height` als eigenen Vorgang portieren, nicht
-nebenbei in einem Barcode-Branch. Bis dahin gilt fuer jedes Modul: eine leere
-Delta-Tabelle heisst "keine getesteten Deltas", nicht "keine Deltas".
+Geprueft wird es durch `UnitTests/Test_Height.pas` (182 Faelle, erzeugt von
+`scripts/gen-height-tests.ps1` aus `test_vector.c`) und
+`TTestCommonCore.TestSetHeight` (14 Faelle aus `test_common.c`). Drei
+Abweichungen sind dabei aufgefallen und behoben worden; die beiden
+Genauigkeitsfallen sind in [common.md](common.md) beschrieben.
+
+Nicht portiert ist die Hoehenlogik der Module, die insgesamt nicht portiert
+sind (bc412, channel, codabar, codablock, dxfilmedge, mailmark, ultra) sowie
+der Module mit Status `legacy` oder `partial`, deren Encoder noch nicht auf
+`b3a3c0d` stehen: code16k, code49, composite, imail, maxicode, pdf417, rss,
+upcean und `zint_dpd`/`zint_upu_s10` in `code128_based.c`. Sie steht dort
+jeweils im Portierungsvorgang des Moduls an, nicht mehr als Querschnittsthema.
+
+**Was bleibt.** Fuer jedes Modul gilt weiter: eine leere Delta-Tabelle heisst
+"keine getesteten Deltas", nicht "keine Deltas".
 
 ### `TZintSymbol` hat kein `text_length`
 

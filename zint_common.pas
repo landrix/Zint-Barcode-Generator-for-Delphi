@@ -98,6 +98,12 @@ implementation
 
 uses zint_helper{$IFNDEF FPC}, System.AnsiStrings{$ENDIF};
 
+{ Zahlen in errtxt muessen unabhaengig von der Systemsprache mit Punkt als
+  Dezimaltrennzeichen erscheinen - C formatiert in der C-Locale. Ohne das
+  liefert eine deutsche Windows-Installation "maximum 40,01". }
+var
+  ZintFmt : TFormatSettings;
+
 function strlen(const AString: TArrayOfChar): NativeInt;
 var
   i : NativeInt;
@@ -285,7 +291,7 @@ begin
     begin
       error_number := ZWARN_NONCOMPLIANT;
       if no_errtxt = 0 then
-        strcpy(symbol.errtxt, Format('Warning 248: Height not compliant with standards (maximum %.4g)', [max_height]));
+        strcpy(symbol.errtxt, Format('Warning 248: Height not compliant with standards (maximum %.4g)', [max_height], ZintFmt));
     end;
   end;
 
@@ -836,5 +842,8 @@ begin
 end;
 
 
-end.
+initialization
+  ZintFmt := {$IFDEF FPC}DefaultFormatSettings{$ELSE}SysUtils.FormatSettings{$ENDIF};
+  ZintFmt.DecimalSeparator := '.';
 
+end.

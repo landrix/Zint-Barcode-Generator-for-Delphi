@@ -21,10 +21,8 @@ plessey:text_length
 postal:text_length
 telepen:text_length
 
-# symbol.height cannot be checked before z_set_height is ported: the port never
-# sets it (docs/ports/library.md), and height/row_height are Integer while C
-# has float - the compliant postal heights 3.225/2.15 are not representable at
-# all. Both entries go away with the set-height branch, and the assertions from
-# test_postal.c and test_code128.c get ported with it.
+# The only symbol->height assertions in test_code128.c are in test_dpd
+# (test_code128.c:1266). zint_dpd has no Pascal counterpart at all - recorded
+# as a gap in docs/ports/_functions.tsv and docs/ports/code128.md. The
+# assertion gets ported when DPD does.
 code128:height
-postal:height
