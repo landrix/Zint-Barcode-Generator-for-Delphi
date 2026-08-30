@@ -9,6 +9,7 @@ uses
   Vcl.Forms,
   DUnitX.TestFramework,
   DUnitX.Loggers.GUI.VCL,
+  TestFramework_Zint,
   TestHelper_Zint,
   Test_CommonCore,
   Test_Code16k,

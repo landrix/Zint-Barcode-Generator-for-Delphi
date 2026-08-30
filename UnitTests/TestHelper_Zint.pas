@@ -1,5 +1,7 @@
 unit TestHelper_Zint;
 
+{$I zint_test.inc}
+
 {
   Test-Infrastruktur fuer Zint-Barcode-Generator Unit-Tests.
   Stellt Hilfsfunktionen bereit, die das Testen der TZintSymbol-Klasse
@@ -9,7 +11,7 @@ unit TestHelper_Zint;
 interface
 
 uses
-  System.SysUtils, zint, zint_common, zint_helper;
+  SysUtils, zint, zint_common, zint_helper;
 
 type
   TEncodeTestItem = record

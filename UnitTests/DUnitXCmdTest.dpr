@@ -37,6 +37,7 @@ uses
   DUnitX.Timeout,
   DUnitX.Attributes,
   DUnitX.Linux.Console,
+  TestFramework_Zint,
   TestHelper_Zint,
   Test_Code128,
   Test_Telepen,

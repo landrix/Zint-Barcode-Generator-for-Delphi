@@ -115,9 +115,20 @@ Eine Aenderung ist erst fertig, wenn **beide** Gates gruen sind.
 | Beides | `scripts\gate-all.ps1` | | |
 | QR-Schnellcheck | `UnitTests\run_qr_regression.bat` | Delphi | Win32 |
 
-Das Linux-Gate ist **nur ein Compile-Gate**: FPC 3.2.2 kann keine Custom Attributes,
-kann die Testfixtures also nicht ausfuehren. Es sichert Plattformunabhaengigkeit
-des Cores ab, nicht das Testverhalten.
+Das Linux-Gate ist **nur ein Compile-Gate**: FPC 3.2.2 kennt den Modeswitch
+`prefixedattributes` nicht und kann die Testfixtures daher nicht uebersetzen.
+Es sichert Plattformunabhaengigkeit des Cores ab, nicht das Testverhalten.
+
+### Bekannte Einschraenkungen der Gates
+
+Stand 2026-08-30. Diese Punkte sind offen und sollen im jeweils passenden
+Barcode-Branch abgearbeitet werden, nicht in der Infrastruktur.
+
+| Punkt | Stand |
+|---|---|
+| `Test_QR` und `Test_PDF417` laufen nicht im FPC-Gate | 304 bzw. 48 Zeichenliterale > `#$00FF` lassen sich unter FPC nicht in `AnsiString` legen. Siehe `docs/ports/qr.md` und `docs/ports/pdf417.md`. |
+| `Test_DMatrix` C#20 im FPC-Lauf uebersprungen | FPC liefert 14 statt 12 rows. Siehe `docs/ports/dmatrix.md`. |
+| Delphi fuehrt weniger Tests aus als FPC | Im Bestand stehen 895 `[Test]`-Methoden. FPC fuehrt 848 aus, also alle ausser den 47 in QR/PDF417. DUnitX meldet dagegen nur 827 gefundene Tests. Die Differenz von 68 Methoden ist **ungeklaert**: entweder zaehlt DUnitX anders, oder es fuehrt 68 vorhandene Tests stillschweigend nicht aus. Das ist vor der naechsten Portierungsrunde zu klaeren, weil davon abhaengt, ob der Delphi-Stand so gruen ist wie er aussieht. |
 
 ---
 

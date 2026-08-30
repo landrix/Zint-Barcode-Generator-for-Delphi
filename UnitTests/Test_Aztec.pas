@@ -1,5 +1,7 @@
 unit Test_Aztec;
 
+{$I zint_test.inc}
+
 {
   DUnitX-Testfixture fuer BARCODE_AZTEC, BARCODE_AZRUNE.
   Portiert aus: Lib/zint-master-2026-03-13-b3a3c0d/backend/tests/test_aztec.c
@@ -27,14 +29,15 @@ unit Test_Aztec;
 interface
 
 uses
-  DUnitX.TestFramework,
+  {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
+  TestFramework_Zint,
   TestHelper_Zint,
   zint,
   zint_common;
 
 type
   [TestFixture]
-  TTestAztecFromC = class(TObject)
+  TTestAztecFromC = class(TZintFixture)
   published
     [Test]
     procedure TestVersionSizes;
@@ -51,7 +54,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  SysUtils;
 
 { TTestAztecFromC }
 
@@ -180,16 +183,16 @@ begin
       Ret := TZintTestHelper.EncodeData(Symbol,
         TZintTestHelper.StrRepeat(Cases[I].Pattern, Cases[I].Length));
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret,
         Format('C#%d (%s) ret errtxt="%s"',
           [Cases[I].Index, Cases[I].Comment, TZintTestHelper.GetErrTxt(Symbol)]));
 
       if (Ret < ZERROR_TOO_LONG) and (Cases[I].ExpectedRows > 0) then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows,
           Format('C#%d (%s) rows', [Cases[I].Index, Cases[I].Comment]));
 
       if (Ret < ZERROR_TOO_LONG) and (Cases[I].ExpectedWidth > 0) then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width,
           Format('C#%d (%s) width', [Cases[I].Index, Cases[I].Comment]));
     finally
       Symbol.Free;
@@ -460,17 +463,17 @@ begin
 
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret,
         Format('C#%d (%s) ret got %d errtxt="%s"',
           [Cases[I].Index, Cases[I].Comment, Ret,
            TZintTestHelper.GetErrTxt(Symbol)]));
 
       if (Ret < ZERROR_TOO_LONG) and (Cases[I].ExpectedRows > 0) then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows,
           Format('C#%d (%s) rows', [Cases[I].Index, Cases[I].Comment]));
 
       if (Ret < ZERROR_TOO_LONG) and (Cases[I].ExpectedWidth > 0) then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width,
           Format('C#%d (%s) width', [Cases[I].Index, Cases[I].Comment]));
     finally
       Symbol.Free;
@@ -493,7 +496,7 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_AZRUNE);
   try
     Ret := TZintTestHelper.EncodeData(Symbol, '1234');
-    Assert.AreEqual<Integer>(ZERROR_TOO_LONG, Ret,
+    ZAssert.AreEqual(ZERROR_TOO_LONG, Ret,
       'AZRUNE: length 4 -> ZERROR_TOO_LONG (after aztec_runes fix)');
   finally
     Symbol.Free;
@@ -503,7 +506,7 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_AZRUNE);
   try
     Ret := TZintTestHelper.EncodeData(Symbol, 'X');
-    Assert.AreEqual<Integer>(ZERROR_INVALID_DATA, Ret,
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, Ret,
       'AZRUNE: non-digit -> ZERROR_INVALID_DATA');
   finally
     Symbol.Free;
@@ -513,7 +516,7 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_AZRUNE);
   try
     Ret := TZintTestHelper.EncodeData(Symbol, '256');
-    Assert.AreEqual<Integer>(ZERROR_INVALID_DATA, Ret,
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, Ret,
       'AZRUNE: value 256 -> ZERROR_INVALID_DATA (range 0..255)');
   finally
     Symbol.Free;
@@ -523,9 +526,9 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_AZRUNE);
   try
     Ret := TZintTestHelper.EncodeData(Symbol, '0');
-    Assert.AreEqual<Integer>(0, Ret, 'AZRUNE value 0 -> success');
-    Assert.AreEqual<Integer>(11, Symbol.rows,  'AZRUNE value 0 rows = 11');
-    Assert.AreEqual<Integer>(11, Symbol.width, 'AZRUNE value 0 width = 11');
+    ZAssert.AreEqual(0, Ret, 'AZRUNE value 0 -> success');
+    ZAssert.AreEqual(11, Symbol.rows,  'AZRUNE value 0 rows = 11');
+    ZAssert.AreEqual(11, Symbol.width, 'AZRUNE value 0 width = 11');
   finally
     Symbol.Free;
   end;
@@ -534,9 +537,9 @@ begin
   Symbol := TZintTestHelper.CreateSymbol(BARCODE_AZRUNE);
   try
     Ret := TZintTestHelper.EncodeData(Symbol, '255');
-    Assert.AreEqual<Integer>(0, Ret, 'AZRUNE value 255 -> success');
-    Assert.AreEqual<Integer>(11, Symbol.rows,  'AZRUNE value 255 rows = 11');
-    Assert.AreEqual<Integer>(11, Symbol.width, 'AZRUNE value 255 width = 11');
+    ZAssert.AreEqual(0, Ret, 'AZRUNE value 255 -> success');
+    ZAssert.AreEqual(11, Symbol.rows,  'AZRUNE value 255 rows = 11');
+    ZAssert.AreEqual(11, Symbol.width, 'AZRUNE value 255 width = 11');
   finally
     Symbol.Free;
   end;
@@ -639,22 +642,22 @@ begin
 
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret,
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret,
         Format('C#%d (%s) ret errtxt="%s"',
           [Cases[I].Index, Cases[I].Comment, TZintTestHelper.GetErrTxt(Symbol)]));
 
       if Ret < ZERROR_TOO_LONG then
       begin
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows,
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows,
           Format('C#%d (%s) rows', [Cases[I].Index, Cases[I].Comment]));
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width,
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width,
           Format('C#%d (%s) width', [Cases[I].Index, Cases[I].Comment]));
 
         if Cases[I].ExpectedBits <> '' then
         begin
           ActualBits := StringReplace(
             TZintTestHelper.ModulesDump(Symbol), #10, '', [rfReplaceAll]);
-          Assert.AreEqual(Cases[I].ExpectedBits, ActualBits,
+          ZAssert.AreEqual(Cases[I].ExpectedBits, ActualBits,
             Format('C#%d (%s) bit pattern', [Cases[I].Index, Cases[I].Comment]));
         end;
       end;
@@ -682,7 +685,7 @@ begin
       Data[I] := $FF;
     Data[High(Data)] := 0;
     Ret := TZintTestHelper.EncodeData(Symbol, Data, 2251);
-    Assert.IsTrue(
+    ZAssert.IsTrue(
       (Ret = ZERROR_TOO_LONG) or (Ret = ZERROR_INVALID_DATA),
       Format('Fuzz 2251x0xFF: expected error, got ret=%d errtxt="%s"',
         [Ret, TZintTestHelper.GetErrTxt(Symbol)]));
@@ -699,7 +702,7 @@ begin
       Data[I] := Byte(I mod 256);
     Data[High(Data)] := 0;
     Ret := TZintTestHelper.EncodeData(Symbol, Data, 3000);
-    Assert.IsTrue(
+    ZAssert.IsTrue(
       (Ret = ZERROR_TOO_LONG) or (Ret = ZERROR_INVALID_DATA) or (Ret = 0),
       Format('Fuzz 3000 bytes ECC4: unexpected ret=%d errtxt="%s"',
         [Ret, TZintTestHelper.GetErrTxt(Symbol)]));
@@ -709,5 +712,5 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TTestAztecFromC);
+  ZRegisterFixture(TTestAztecFromC);
 end.

@@ -39,7 +39,7 @@ QR Code, MicroQR, rMQR, UPNQR
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| | | | |
+| **Gesamte Unit laeuft nicht im FPC-Gate** | 30 Tests gruen | nicht uebersetzbar | `Test_QR.pas` enthaelt 304 Zeichenliterale > `#$00FF` (z.B. `#$0416`) in typisierten Konstanten-Arrays. Unter FPC ist `String` eine AnsiString: *Unicodechar/string constants cannot be converted to ansi/shortstring at compile-time*. Loesung: betroffene Record-Felder von `String` auf `UnicodeString` umstellen (unter Delphi verhaltensgleich) samt Helper-Signaturen. Danach in `UnitTests/fpc/ZintTests.lpr` wieder eintragen. |
 
 ## Notizen
 

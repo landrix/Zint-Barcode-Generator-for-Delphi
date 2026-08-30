@@ -1,5 +1,7 @@
 unit Test_Code16k;
 
+{$I zint_test.inc}
+
 {
   DUnitX-Testfixture fuer BARCODE_CODE16K.
   Portiert aus: Lib/zint-master-2026-03-13-b3a3c0d/backend/tests/test_code16k.c
@@ -17,14 +19,15 @@ unit Test_Code16k;
 interface
 
 uses
-  DUnitX.TestFramework,
+  {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
+  TestFramework_Zint,
   TestHelper_Zint,
   zint,
   zint_common;
 
 type
   [TestFixture]
-  TTestCode16kFromC = class(TObject)
+  TTestCode16kFromC = class(TZintFixture)
   published
     [Test]
     procedure TestLargeSubset;
@@ -41,7 +44,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  SysUtils;
 
 procedure TTestCode16kFromC.TestLargeSubset;
 type
@@ -98,13 +101,13 @@ begin
       Data := TZintTestHelper.StrRepeat(Cases[I].Pattern, Cases[I].Length);
       Ret := TZintTestHelper.EncodeData(Symbol, Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
       if Cases[I].ExpectedErr <> '' then
-        Assert.AreEqual(Cases[I].ExpectedErr, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedErr, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
       if Cases[I].ExpectedRows > 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth > 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -157,13 +160,13 @@ begin
       TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODE16K, Cases[I].InputMode, -1, -1, -1, Cases[I].OutputOptions);
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
       if Cases[I].ExpectedErr <> '' then
-        Assert.AreEqual(Cases[I].ExpectedErr, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedErr, TZintTestHelper.GetErrTxt(Symbol), Format('C#%d errtxt', [Cases[I].Index]));
       if Cases[I].ExpectedRows > 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth > 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -376,11 +379,11 @@ begin
         TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODE16K, Cases[I].InputMode, Cases[I].Option1, -1, -1, -1);
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
       if Cases[I].ExpectedRows > 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
       if Cases[I].ExpectedWidth > 0 then
-        Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -474,12 +477,12 @@ begin
       TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODE16K, Cases[I].InputMode, -1, -1, -1, -1);
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
-      Assert.AreEqual<Integer>(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRows, Symbol.rows, Format('C#%d rows', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedWidth, Symbol.width, Format('C#%d width', [Cases[I].Index]));
       
       if Cases[I].HasModules then
-        Assert.AreEqual(Cases[I].ExpectedModules, TZintTestHelper.ModulesDump(Symbol), Format('C#%d modules', [Cases[I].Index]));
+        ZAssert.AreEqual(Cases[I].ExpectedModules, TZintTestHelper.ModulesDump(Symbol), Format('C#%d modules', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -567,8 +570,8 @@ begin
       TZintTestHelper.SetupSymbol(Symbol, BARCODE_CODE16K, Cases[I].InputMode, -1, -1, -1, Cases[I].OutputOptions);
       Ret := TZintTestHelper.EncodeData(Symbol, Cases[I].Data);
 
-      Assert.AreEqual<Integer>(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
-      Assert.AreEqual<Integer>(Cases[I].ExpectedEci, Symbol.eci, Format('C#%d eci', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedRet, Ret, Format('C#%d ret', [Cases[I].Index]));
+      ZAssert.AreEqual(Cases[I].ExpectedEci, Symbol.eci, Format('C#%d eci', [Cases[I].Index]));
     finally
       Symbol.Free;
     end;
@@ -576,6 +579,6 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TTestCode16kFromC);
+  ZRegisterFixture(TTestCode16kFromC);
 
 end.

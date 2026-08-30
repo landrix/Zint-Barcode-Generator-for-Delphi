@@ -39,7 +39,7 @@ Data Matrix inkl. DMRE
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| | | | |
+| `test_input` C#20, `UNICODE_MODE or FAST_MODE`, Daten `ABCDEF` | rows 12 (= C) | rows 14 | Nicht die Datenuebergabe: unter FPC nachgemessen kommen 6 Bytes an, `ustrlen` = 6. Die Abweichung entsteht im UNICODE_MODE-Pfad des Encoders. Der Fall wird im FPC-Lauf uebersprungen (`{$IFDEF FPC}` in `Test_DMatrix.pas`), damit die C-Erwartung sichtbar bleibt. |
 
 ## Notizen
 

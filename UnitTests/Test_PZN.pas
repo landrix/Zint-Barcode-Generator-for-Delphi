@@ -1,5 +1,7 @@
 unit Test_PZN;
 
+{$I zint_test.inc}
+
 {
   DUnitX-Tests fuer PZN (Pharmazentralnummer) in zint_medical.pas
   Testdaten aus test_medical.c (Zint commit b3a3c0d, 2026-03-13)
@@ -9,16 +11,18 @@ unit Test_PZN;
 interface
 
 uses
-  DUnitX.TestFramework,
-  System.SysUtils,
+  {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
+  TestFramework_Zint,
+  SysUtils,
   TestHelper_Zint,
   zint;
 
 type
   [TestFixture]
-  TTestPZN = class
+  TTestPZN = class(TZintFixture)
   public
     { test_input / test_large }
+  published
     [Test] procedure Input_PZN8_1Digit_OK;
     [Test] procedure Input_PZN8_TooLong_9;
     [Test] procedure Input_PZN7_1Digit_OK;
@@ -71,9 +75,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     { 1 digit => ok, padded to 7 + check = 8 }
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1'));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(142, sym.width);
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1'));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(142, sym.width);
   finally sym.Free; end;
 end;
 
@@ -82,8 +86,8 @@ var sym: TZintSymbol;
 begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, '123456789'));
-    Assert.AreEqual('Error 325: Input length 9 too long (maximum 8)',
+    ZAssert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, '123456789'));
+    ZAssert.AreEqual('Error 325: Input length 9 too long (maximum 8)',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -94,9 +98,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1; { PZN7 }
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1'));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(129, sym.width);
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1'));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(129, sym.width);
   finally sym.Free; end;
 end;
 
@@ -106,8 +110,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1; { PZN7 }
-    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, '12345678'));
-    Assert.AreEqual('Error 325: Input length 8 too long (maximum 7)',
+    ZAssert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, '12345678'));
+    ZAssert.AreEqual('Error 325: Input length 8 too long (maximum 7)',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -117,8 +121,8 @@ var sym: TZintSymbol;
 begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '12345A'));
-    Assert.AreEqual('Error 326: Invalid character at position 6 in input (digits only)',
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '12345A'));
+    ZAssert.AreEqual('Error 326: Invalid character at position 6 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -129,8 +133,8 @@ begin
   { "0000003" => weights 1*0+2*0+3*0+4*0+5*0+6*0+7*3 = 21, 21 mod 11 = 10 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '0000003'));
-    Assert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '0000003'));
+    ZAssert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -141,8 +145,8 @@ begin
   { "12345678" - correct check is 8, provide "12345670" with bad check 0 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '12345670'));
-    Assert.AreEqual('Error 890: Invalid check digit ''0'', expecting ''8''',
+    ZAssert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '12345670'));
+    ZAssert.AreEqual('Error 890: Invalid check digit ''0'', expecting ''8''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -154,8 +158,8 @@ var sym: TZintSymbol;
 begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
-    Assert.AreEqual('PZN - 00123458', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    ZAssert.AreEqual('PZN - 00123458', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -164,8 +168,8 @@ var sym: TZintSymbol;
 begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
-    Assert.AreEqual('PZN - 01234562', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
+    ZAssert.AreEqual('PZN - 01234562', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -174,8 +178,8 @@ var sym: TZintSymbol;
 begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567'));
-    Assert.AreEqual('PZN - 12345678', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567'));
+    ZAssert.AreEqual('PZN - 12345678', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -185,8 +189,8 @@ begin
   { Full 8 digits including correct check digit }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345678'));
-    Assert.AreEqual('PZN - 12345678', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345678'));
+    ZAssert.AreEqual('PZN - 12345678', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -198,8 +202,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234'));
-    Assert.AreEqual('PZN - 0012345', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234'));
+    ZAssert.AreEqual('PZN - 0012345', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -209,8 +213,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
-    Assert.AreEqual('PZN - 0123458', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    ZAssert.AreEqual('PZN - 0123458', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -220,8 +224,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
-    Assert.AreEqual('PZN - 1234562', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
+    ZAssert.AreEqual('PZN - 1234562', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -232,8 +236,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234562'));
-    Assert.AreEqual('PZN - 1234562', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234562'));
+    ZAssert.AreEqual('PZN - 1234562', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -245,8 +249,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 2;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
-    Assert.AreEqual('PZN - 00123458', TZintTestHelper.GetText(sym));
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '12345'));
+    ZAssert.AreEqual('PZN - 00123458', TZintTestHelper.GetText(sym));
   finally sym.Free; end;
 end;
 
@@ -258,10 +262,10 @@ begin
   { Example from IFA Info Code 39 EN V2.1 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567'));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(142, sym.width);
-    Assert.AreEqual(
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567'));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(142, sym.width);
+    ZAssert.AreEqual(
       '1001011011010100101011011011010010101101011001010110110110010101010100110101101101001101010101100110101010100101101101101001011010100101101101',
       TZintTestHelper.ModulesDump(sym));
   finally sym.Free; end;
@@ -273,10 +277,10 @@ begin
   { Example from IFA Info Check Digit Calculations EN 15 July 2019 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '2758089'));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(142, sym.width);
-    Assert.AreEqual(
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '2758089'));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(142, sym.width);
+    ZAssert.AreEqual(
       '1001011011010100101011011010110010101101010010110110110100110101011010010110101010011011010110100101101010110010110101011001011010100101101101',
       TZintTestHelper.ModulesDump(sym));
   finally sym.Free; end;
@@ -289,10 +293,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(129, sym.width);
-    Assert.AreEqual(
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '123456'));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(129, sym.width);
+    ZAssert.AreEqual(
       '100101101101010010101101101101001010110101100101011011011001010101010011010110110100110101010110011010101011001010110100101101101',
       TZintTestHelper.ModulesDump(sym));
   finally sym.Free; end;
@@ -305,10 +309,10 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 2;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567'));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(142, sym.width);
-    Assert.AreEqual(
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, '1234567'));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(142, sym.width);
+    ZAssert.AreEqual(
       '1001011011010100101011011011010010101101011001010110110110010101010100110101101101001101010101100110101010100101101101101001011010100101101101',
       TZintTestHelper.ModulesDump(sym));
   finally sym.Free; end;
@@ -320,9 +324,9 @@ begin
   { test_large[6]: "1" * 7 -> OK, 1 row, width 142 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 7)));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(142, sym.width);
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 7)));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(142, sym.width);
   finally sym.Free; end;
 end;
 
@@ -332,8 +336,8 @@ begin
   { test_large[7]: "1" * 9 -> ERROR_TOO_LONG }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 9)));
-    Assert.AreEqual('Error 325: Input length 9 too long (maximum 8)',
+    ZAssert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 9)));
+    ZAssert.AreEqual('Error 325: Input length 9 too long (maximum 8)',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -345,9 +349,9 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(0, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 6)));
-    Assert.AreEqual(1, sym.rows);
-    Assert.AreEqual(129, sym.width);
+    ZAssert.AreEqual(0, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 6)));
+    ZAssert.AreEqual(1, sym.rows);
+    ZAssert.AreEqual(129, sym.width);
   finally sym.Free; end;
 end;
 
@@ -358,8 +362,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 8)));
-    Assert.AreEqual('Error 325: Input length 8 too long (maximum 7)',
+    ZAssert.AreEqual(ZERROR_TOO_LONG, TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 8)));
+    ZAssert.AreEqual('Error 325: Input length 8 too long (maximum 7)',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -370,8 +374,8 @@ begin
   { test_input[22]: "A" -> invalid char at position 1 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, 'A'));
-    Assert.AreEqual('Error 326: Invalid character at position 1 in input (digits only)',
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, 'A'));
+    ZAssert.AreEqual('Error 326: Invalid character at position 1 in input (digits only)',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -382,8 +386,8 @@ begin
   { test_input[23]: "1000006" -> check digit is 10 }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '1000006'));
-    Assert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '1000006'));
+    ZAssert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -394,8 +398,8 @@ begin
   { test_input[24]: "00000011" -> bad check digit }
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
-    Assert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '00000011'));
-    Assert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
+    ZAssert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '00000011'));
+    ZAssert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -407,8 +411,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '100009'));
-    Assert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
+    ZAssert.AreEqual(ZERROR_INVALID_DATA, TZintTestHelper.EncodeData(sym, '100009'));
+    ZAssert.AreEqual('Error 327: Invalid PZN, check digit is ''10''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -420,8 +424,8 @@ begin
   sym := TZintTestHelper.CreateSymbol(BARCODE_PZN);
   try
     sym.option_2 := 1;
-    Assert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '0000011'));
-    Assert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
+    ZAssert.AreEqual(ZERROR_INVALID_CHECK, TZintTestHelper.EncodeData(sym, '0000011'));
+    ZAssert.AreEqual('Error 890: Invalid check digit ''1'', expecting ''7''',
       TZintTestHelper.GetErrTxt(sym));
   finally sym.Free; end;
 end;
@@ -460,14 +464,14 @@ begin
         sym.option_2 := Items[i].Option2;
 
       ret := TZintTestHelper.EncodeData(sym, Items[i].Data);
-      Assert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
-      Assert.AreEqual(Items[i].ExpectedText, TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
+      ZAssert.AreEqual(ZINT_OK, ret, Format('C#%d ret', [Items[i].Index]));
+      ZAssert.AreEqual(Items[i].ExpectedText, TZintTestHelper.GetText(sym), Format('C#%d text', [Items[i].Index]));
 
       expected_content_len := Length(Items[i].ExpectedContent);
-      Assert.AreEqual(1, Integer(sym.content_segs_count), Format('C#%d content_segs_count', [Items[i].Index]));
-      Assert.AreEqual(expected_content_len, Integer(sym.content_segs[0].Length), Format('C#%d content length', [Items[i].Index]));
+      ZAssert.AreEqual(1, Integer(sym.content_segs_count), Format('C#%d content_segs_count', [Items[i].Index]));
+      ZAssert.AreEqual(expected_content_len, Integer(sym.content_segs[0].Length), Format('C#%d content length', [Items[i].Index]));
       for j := 1 to expected_content_len do
-        Assert.AreEqual<Integer>(Ord(Items[i].ExpectedContent[j]), Integer(sym.content_segs[0].Source[j - 1]),
+        ZAssert.AreEqual(Ord(Items[i].ExpectedContent[j]), Integer(sym.content_segs[0].Source[j - 1]),
           Format('C#%d content[%d]', [Items[i].Index, j - 1]));
     finally
       sym.Free;
@@ -476,6 +480,6 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TTestPZN);
+  ZRegisterFixture(TTestPZN);
 
 end.

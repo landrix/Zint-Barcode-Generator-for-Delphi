@@ -75,3 +75,7 @@ GRTAGS
 GTAGS
 UnitTests/bin
 UnitTests/dcu
+UnitTests/fpc/units
+UnitTests/fpc/*.exe
+UnitTests/fpc/*.log
+UnitTests/fpc/ZintTests

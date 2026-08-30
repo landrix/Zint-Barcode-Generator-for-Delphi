@@ -1,5 +1,7 @@
 unit Test_QR;
 
+{$I zint_test.inc}
+
 {
   DUnitX-Tests fuer zint_qr.pas
   Referenz: backend/tests/test_qr.c (Zint commit b3a3c0d)
@@ -15,15 +17,17 @@ unit Test_QR;
 interface
 
 uses
-  DUnitX.TestFramework,
-  System.SysUtils,
+  {$IFNDEF FPC}DUnitX.TestFramework,{$ENDIF}
+  TestFramework_Zint,
+  SysUtils,
   TestHelper_Zint,
   zint;
 
 type
   [TestFixture]
-  TTestQR = class
+  TTestQR = class(TZintFixture)
   public
+  published
     [Test] procedure Test_QR_Large_FromC_AllItems;
 
     [Test]
@@ -61,8 +65,9 @@ type
   end;
 
   [TestFixture]
-  TTestMicroQR = class
+  TTestMicroQR = class(TZintFixture)
   public
+  published
     [Test]
     procedure Test_MicroQR_Options_FromC;
 
@@ -83,8 +88,9 @@ type
   end;
 
   [TestFixture]
-  TTestUPNQR = class
+  TTestUPNQR = class(TZintFixture)
   public
+  published
     [Test]
     procedure Test_UPNQR_Input_FromC;
 
@@ -96,8 +102,9 @@ type
   end;
 
   [TestFixture]
-  TTestRMQR = class
+  TTestRMQR = class(TZintFixture)
   public
+  published
     [Test]
     procedure Test_RMQR_Large_FromC;
 
@@ -261,16 +268,16 @@ begin
       data := TZintTestHelper.StrRepeat('A', CItems[i].DataLen);
       ret := TZintTestHelper.EncodeData(sym, data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d', [i, CItems[i].ExpectedRet, ret]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
         Format('C#%d errtxt expected "%s" got "%s"', [i, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [i, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [i, CItems[i].ExpectedWidth, sym.width]));
       end;
     finally
@@ -351,18 +358,18 @@ begin
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
       if CItems[i].ExpectedRet in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT] then
-        Assert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
+        ZAssert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
           Format('C#%d ret expected success/warn got %d errtxt "%s"',
             [CItems[i].Index, ret, TZintTestHelper.GetErrTxt(sym)]))
       else
-        Assert.IsTrue(ret = CItems[i].ExpectedRet,
+        ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
           Format('C#%d ret expected %d got %d errtxt "%s"',
             [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
       end;
     finally
@@ -457,19 +464,19 @@ begin
       ret := ZBarcode_Encode_Segs(sym, segs);
 
       if CItems[i].ExpectedRet in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT] then
-        Assert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
+        ZAssert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
           Format('C#%d ret expected success/warn got %d errtxt "%s"',
             [CItems[i].Index, ret, TZintTestHelper.GetErrTxt(sym)]))
       else
-        Assert.IsTrue(ret = CItems[i].ExpectedRet,
+        ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
           Format('C#%d ret expected %d got %d errtxt "%s"',
             [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
       end;
     finally
@@ -548,19 +555,19 @@ begin
       ret := ZBarcode_Encode_Segs(sym, segs);
 
       if CItems[i].ExpectedRet in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT] then
-        Assert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
+        ZAssert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
           Format('C#%d ret expected success/warn got %d errtxt "%s"',
             [CItems[i].Index, ret, TZintTestHelper.GetErrTxt(sym)]))
       else
-        Assert.IsTrue(ret = CItems[i].ExpectedRet,
+        ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
           Format('C#%d ret expected %d got %d errtxt "%s"',
             [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
       end;
     finally
@@ -709,19 +716,19 @@ begin
 
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
         Format('C#%d errtxt expected "%s" got "%s"', [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
         if CItems[i].ExpectedSize >= 0 then
         begin
-          Assert.IsTrue(sym.rows = CItems[i].ExpectedSize,
+          ZAssert.IsTrue(sym.rows = CItems[i].ExpectedSize,
             Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.rows]));
-          Assert.IsTrue(sym.width = CItems[i].ExpectedSize,
+          ZAssert.IsTrue(sym.width = CItems[i].ExpectedSize,
             Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.width]));
         end;
       end;
@@ -779,17 +786,17 @@ begin
 
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
         Format('C#%d errtxt expected "%s" got "%s"', [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
 
       if (ret < ZINT_ERROR) and (CItems[i].ExpectedSize >= 0) then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedSize,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedSize,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedSize,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedSize,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.width]));
       end;
     finally
@@ -861,10 +868,10 @@ begin
 
       ret := ZBarcode_Encode_Segs(sym, segs);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('SegWarn#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
         Format('SegWarn#%d errtxt expected "%s" got "%s"',
           [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
     finally
@@ -1043,26 +1050,26 @@ begin
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
       if CItems[i].ExpectedRet in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT] then
-        Assert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
+        ZAssert.IsTrue(ret in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT],
           Format('C#%d ret expected success/warn got %d errtxt "%s"',
             [CItems[i].Index, ret, TZintTestHelper.GetErrTxt(sym)]))
       else
-        Assert.IsTrue(ret = CItems[i].ExpectedRet,
+        ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
           Format('C#%d ret expected %d got %d errtxt "%s"',
             [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
         Format('C#%d errtxt expected "%s" got "%s"', [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
         if (CItems[i].ECI <> 0) or not (CItems[i].ExpectedRet in [0, ZINT_WARN_USES_ECI, ZINT_WARN_NONCOMPLIANT]) then
-          Assert.IsTrue(sym.eci = CItems[i].ExpectedECI,
+          ZAssert.IsTrue(sym.eci = CItems[i].ExpectedECI,
             Format('C#%d eci expected %d got %d', [CItems[i].Index, CItems[i].ExpectedECI, sym.eci]));
         if CItems[i].ExpectedSize >= 0 then
         begin
-          Assert.IsTrue(sym.rows = CItems[i].ExpectedSize,
+          ZAssert.IsTrue(sym.rows = CItems[i].ExpectedSize,
             Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.rows]));
-          Assert.IsTrue(sym.width = CItems[i].ExpectedSize,
+          ZAssert.IsTrue(sym.width = CItems[i].ExpectedSize,
             Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.width]));
         end;
       end;
@@ -1086,21 +1093,21 @@ begin
       rawLen := Length(rawData) - 1;
       ret := TZintTestHelper.EncodeData(sym, rawData, rawLen);
 
-      Assert.IsTrue(ret = RawItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = RawItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [RawItems[i].Index, RawItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = RawItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = RawItems[i].ExpectedErrTxt,
         Format('C#%d errtxt expected "%s" got "%s"', [RawItems[i].Index, RawItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.eci = RawItems[i].ExpectedECI,
+        ZAssert.IsTrue(sym.eci = RawItems[i].ExpectedECI,
           Format('C#%d eci expected %d got %d', [RawItems[i].Index, RawItems[i].ExpectedECI, sym.eci]));
         if RawItems[i].ExpectedSize >= 0 then
         begin
-          Assert.IsTrue(sym.rows = RawItems[i].ExpectedSize,
+          ZAssert.IsTrue(sym.rows = RawItems[i].ExpectedSize,
             Format('C#%d rows expected %d got %d', [RawItems[i].Index, RawItems[i].ExpectedSize, sym.rows]));
-          Assert.IsTrue(sym.width = RawItems[i].ExpectedSize,
+          ZAssert.IsTrue(sym.width = RawItems[i].ExpectedSize,
             Format('C#%d width expected %d got %d', [RawItems[i].Index, RawItems[i].ExpectedSize, sym.width]));
         end;
       end;
@@ -1172,7 +1179,7 @@ begin
 
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
     finally
@@ -1248,33 +1255,33 @@ begin
         dataToEncode := StringOfChar(CItems[i].RepeatChar, CItems[i].RepeatCount);
 
       ret := TZintTestHelper.EncodeData(sym, dataToEncode);
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRet, ret]));
       if CItems[i].Index = 10 then
       begin
-        Assert.IsTrue(Pos('Error 569: Input too long for Version 1-M, requires ', TZintTestHelper.GetErrTxt(sym)) = 1,
+        ZAssert.IsTrue(Pos('Error 569: Input too long for Version 1-M, requires ', TZintTestHelper.GetErrTxt(sym)) = 1,
           Format('C#%d errtxt expected Version 1-M too long message got "%s"', [CItems[i].Index, TZintTestHelper.GetErrTxt(sym)]));
-        Assert.IsTrue(Pos('(maximum 16)', TZintTestHelper.GetErrTxt(sym)) > 0,
+        ZAssert.IsTrue(Pos('(maximum 16)', TZintTestHelper.GetErrTxt(sym)) > 0,
           Format('C#%d errtxt expected maximum 16 got "%s"', [CItems[i].Index, TZintTestHelper.GetErrTxt(sym)]));
       end
       else
-        Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+        ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
           Format('C#%d errtxt expected "%s" got "%s"', [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.width = CItems[i].ExpectedSize,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedSize,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.width]));
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedSize,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedSize,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.rows]));
       end;
 
-      Assert.IsTrue(sym.option_1 = CItems[i].ExpectedOption1,
+      ZAssert.IsTrue(sym.option_1 = CItems[i].ExpectedOption1,
         Format('C#%d option_1 expected %d got %d', [CItems[i].Index, CItems[i].ExpectedOption1, sym.option_1]));
-      Assert.IsTrue(sym.option_2 = CItems[i].ExpectedOption2,
+      ZAssert.IsTrue(sym.option_2 = CItems[i].ExpectedOption2,
         Format('C#%d option_2 expected %d got %d', [CItems[i].Index, CItems[i].ExpectedOption2, sym.option_2]));
       if (CItems[i].ExpectedOption3 and $FF) <> 0 then
-        Assert.IsTrue((sym.option_3 and $FF) = (CItems[i].ExpectedOption3 and $FF),
+        ZAssert.IsTrue((sym.option_3 and $FF) = (CItems[i].ExpectedOption3 and $FF),
           Format('C#%d option_3 low byte expected 0x%x got 0x%x',
             [CItems[i].Index, CItems[i].ExpectedOption3 and $FF, sym.option_3 and $FF]));
     finally
@@ -1351,40 +1358,40 @@ begin
       else
         ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.eci = CItems[i].ExpectedECI,
+        ZAssert.IsTrue(sym.eci = CItems[i].ExpectedECI,
           Format('C#%d eci expected %d got %d', [CItems[i].Index, CItems[i].ExpectedECI, sym.eci]));
 
-        Assert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
+        ZAssert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
           Format('C#%d content_segs_count expected %d got %d',
             [CItems[i].Index, CItems[i].ExpectedContentSegCount, sym.content_segs_count]));
 
         if CItems[i].ExpectedContentSegCount = 0 then
-          Assert.IsTrue(sym.content_segs = nil,
+          ZAssert.IsTrue(sym.content_segs = nil,
             Format('C#%d content_segs expected nil', [CItems[i].Index]))
         else
         begin
-          Assert.IsFalse(sym.content_segs = nil,
+          ZAssert.IsFalse(sym.content_segs = nil,
             Format('C#%d content_segs expected non-nil', [CItems[i].Index]));
-          Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
+          ZAssert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
             Format('C#%d content_segs length expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
           expectedSource := HexToByteArray(CItems[i].ExpectedContentHex);
           SetLength(expectedSource, Length(expectedSource) - 1);
-          Assert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
+          ZAssert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
             Format('C#%d content seg length expected %d got %d',
               [CItems[i].Index, Length(expectedSource), sym.content_segs[0].Length]));
           if Length(expectedSource) > 0 then
-            Assert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
+            ZAssert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
               Format('C#%d content seg source bytes differ expected [%s] got [%s]',
                 [CItems[i].Index, CItems[i].ExpectedContentHex,
                  BytesToHex(sym.content_segs[0].Source, sym.content_segs[0].Length)]));
-          Assert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
+          ZAssert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
             Format('C#%d content seg ECI expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentECI, sym.content_segs[0].ECI]));
         end;
@@ -1501,27 +1508,27 @@ begin
 
       ret := ZBarcode_Encode_Segs(sym, segs);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
 
-        Assert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
+        ZAssert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
           Format('C#%d content_segs_count expected %d got %d', [CItems[i].Index, CItems[i].ExpectedContentSegCount, sym.content_segs_count]));
-        Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
+        ZAssert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
           Format('C#%d content_segs length expected %d got %d', [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
 
         if CItems[i].ExpectedContentSegCount = 0 then
-          Assert.IsTrue(sym.content_segs = nil,
+          ZAssert.IsTrue(sym.content_segs = nil,
             Format('C#%d content_segs expected nil when output option is off', [CItems[i].Index]))
         else
-          Assert.IsFalse(sym.content_segs = nil,
+          ZAssert.IsFalse(sym.content_segs = nil,
             Format('C#%d content_segs expected non-nil when output option is on', [CItems[i].Index]));
 
         if CItems[i].ExpectedContentSegCount > 0 then
@@ -1569,16 +1576,16 @@ begin
               end;
             end;
 
-            Assert.IsTrue(sym.content_segs[j].Length = segs[j].Length,
+            ZAssert.IsTrue(sym.content_segs[j].Length = segs[j].Length,
               Format('C#%d seg[%d] length expected %d got %d', [CItems[i].Index, j, segs[j].Length, sym.content_segs[j].Length]));
-            Assert.IsTrue(sym.content_segs[j].ECI = expectedSegECI,
+            ZAssert.IsTrue(sym.content_segs[j].ECI = expectedSegECI,
               Format('C#%d seg[%d] ECI expected %d got %d', [CItems[i].Index, j, expectedSegECI, sym.content_segs[j].ECI]));
-            Assert.IsTrue(sym.content_segs[j].SourceMode = segs[j].SourceMode,
+            ZAssert.IsTrue(sym.content_segs[j].SourceMode = segs[j].SourceMode,
               Format('C#%d seg[%d] SourceMode expected %d got %d', [CItems[i].Index, j, segs[j].SourceMode, sym.content_segs[j].SourceMode]));
-            Assert.IsTrue(Length(sym.content_segs[j].Source) = Length(expectedSource),
+            ZAssert.IsTrue(Length(sym.content_segs[j].Source) = Length(expectedSource),
               Format('C#%d seg[%d] source length expected %d got %d', [CItems[i].Index, j, Length(expectedSource), Length(sym.content_segs[j].Source)]));
             if Length(expectedSource) > 0 then
-              Assert.IsTrue(CompareMem(@sym.content_segs[j].Source[0], @expectedSource[0], Length(expectedSource)),
+              ZAssert.IsTrue(CompareMem(@sym.content_segs[j].Source[0], @expectedSource[0], Length(expectedSource)),
                 Format('C#%d seg[%d] source bytes differ', [CItems[i].Index, j]));
           end;
         end;
@@ -1637,14 +1644,14 @@ begin
       if CItems[i].Option3 >= 0 then
         sym.option_3 := CItems[i].Option3;
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
       end;
     finally
@@ -1706,10 +1713,10 @@ begin
       if CItems[i].Option3 >= 0 then
         sym.option_3 := CItems[i].Option3;
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
         Format('C#%d errtxt expected "%s" got "%s"',
           [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
     finally
@@ -1759,7 +1766,7 @@ begin
       if CItems[i].Option3 >= 0 then
         sym.option_3 := CItems[i].Option3;
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
     finally
@@ -1830,15 +1837,15 @@ begin
 
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedSize,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedSize,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedSize,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedSize,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedSize, sym.width]));
       end;
     finally
@@ -1903,7 +1910,7 @@ begin
       if CItems[i].Option1 >= 0 then
         sym.option_1 := CItems[i].Option1;
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
-      Assert.IsTrue(ret = 0,
+      ZAssert.IsTrue(ret = 0,
         Format('C#%d ret expected 0 got %d errtxt "%s"',
           [CItems[i].Index, ret, TZintTestHelper.GetErrTxt(sym)]));
     finally
@@ -1965,44 +1972,44 @@ begin
       else
         ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.eci = CItems[i].ExpectedECI,
+        ZAssert.IsTrue(sym.eci = CItems[i].ExpectedECI,
           Format('C#%d eci expected %d got %d', [CItems[i].Index, CItems[i].ExpectedECI, sym.eci]));
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
 
-        Assert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
+        ZAssert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
           Format('C#%d content_segs_count expected %d got %d',
             [CItems[i].Index, CItems[i].ExpectedContentSegCount, sym.content_segs_count]));
 
         if CItems[i].ExpectedContentSegCount = 0 then
-          Assert.IsTrue(sym.content_segs = nil,
+          ZAssert.IsTrue(sym.content_segs = nil,
             Format('C#%d content_segs expected nil', [CItems[i].Index]))
         else
         begin
-          Assert.IsFalse(sym.content_segs = nil,
+          ZAssert.IsFalse(sym.content_segs = nil,
             Format('C#%d content_segs expected non-nil', [CItems[i].Index]));
-          Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
+          ZAssert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
             Format('C#%d content_segs length expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
           expectedSource := HexToByteArray(CItems[i].ExpectedContentHex);
           SetLength(expectedSource, Length(expectedSource) - 1);
-          Assert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
+          ZAssert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
             Format('C#%d content seg length expected %d got %d',
               [CItems[i].Index, Length(expectedSource), sym.content_segs[0].Length]));
           if Length(expectedSource) > 0 then
-            Assert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
+            ZAssert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
               Format('C#%d content seg source bytes differ expected [%s] got [%s]',
                 [CItems[i].Index, CItems[i].ExpectedContentHex,
                  BytesToHex(sym.content_segs[0].Source, sym.content_segs[0].Length)]));
-          Assert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
+          ZAssert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
             Format('C#%d content seg ECI expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentECI, sym.content_segs[0].ECI]));
         end;
@@ -2056,22 +2063,22 @@ begin
 
       ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
-        Assert.IsTrue(sym.option_1 = 2,
+        ZAssert.IsTrue(sym.option_1 = 2,
           Format('C#%d option_1 expected 2 got %d', [CItems[i].Index, sym.option_1]));
-        Assert.IsTrue(sym.option_2 = 15,
+        ZAssert.IsTrue(sym.option_2 = 15,
           Format('C#%d option_2 expected 15 got %d', [CItems[i].Index, sym.option_2]));
         if CItems[i].Option3 >= 0 then
-          Assert.IsTrue((sym.option_3 and $FF) = (CItems[i].Option3 and $FF),
+          ZAssert.IsTrue((sym.option_3 and $FF) = (CItems[i].Option3 and $FF),
             Format('C#%d option_3 low-byte expected %d got %d',
               [CItems[i].Index, (CItems[i].Option3 and $FF), (sym.option_3 and $FF)]));
       end;
@@ -2134,29 +2141,29 @@ begin
       else
         ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if CItems[i].ExpectedErrTxt <> '' then
       begin
-        Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
+        ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = CItems[i].ExpectedErrTxt,
           Format('C#%d errtxt expected "%s" got "%s"',
             [CItems[i].Index, CItems[i].ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]));
       end;
 
       if (ret < ZINT_ERROR) and (CItems[i].ExpectedRows > 0) and (CItems[i].ExpectedWidth > 0) then
       begin
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
-        Assert.IsTrue(sym.option_1 = 2,
+        ZAssert.IsTrue(sym.option_1 = 2,
           Format('C#%d option_1 expected 2 got %d', [CItems[i].Index, sym.option_1]));
-        Assert.IsTrue(sym.option_2 = 15,
+        ZAssert.IsTrue(sym.option_2 = 15,
           Format('C#%d option_2 expected 15 got %d', [CItems[i].Index, sym.option_2]));
         if CItems[i].Option3 >= 0 then
-          Assert.IsTrue((sym.option_3 and $FF) = (CItems[i].Option3 and $FF),
+          ZAssert.IsTrue((sym.option_3 and $FF) = (CItems[i].Option3 and $FF),
             Format('C#%d option_3 low-byte expected %d got %d',
               [CItems[i].Index, (CItems[i].Option3 and $FF), (sym.option_3 and $FF)]));
       end;
@@ -2214,48 +2221,48 @@ begin
       else
         ret := TZintTestHelper.EncodeData(sym, CItems[i].Data);
 
-      Assert.IsTrue(ret = CItems[i].ExpectedRet,
+      ZAssert.IsTrue(ret = CItems[i].ExpectedRet,
         Format('C#%d ret expected %d got %d errtxt "%s"',
           [CItems[i].Index, CItems[i].ExpectedRet, ret, TZintTestHelper.GetErrTxt(sym)]));
 
       if ret < ZINT_ERROR then
       begin
-        Assert.IsTrue(sym.eci = CItems[i].ExpectedECI,
+        ZAssert.IsTrue(sym.eci = CItems[i].ExpectedECI,
           Format('C#%d eci expected %d got %d', [CItems[i].Index, CItems[i].ExpectedECI, sym.eci]));
-        Assert.IsTrue(sym.rows = CItems[i].ExpectedRows,
+        ZAssert.IsTrue(sym.rows = CItems[i].ExpectedRows,
           Format('C#%d rows expected %d got %d', [CItems[i].Index, CItems[i].ExpectedRows, sym.rows]));
-        Assert.IsTrue(sym.width = CItems[i].ExpectedWidth,
+        ZAssert.IsTrue(sym.width = CItems[i].ExpectedWidth,
           Format('C#%d width expected %d got %d', [CItems[i].Index, CItems[i].ExpectedWidth, sym.width]));
-        Assert.IsTrue(sym.option_1 = 2,
+        ZAssert.IsTrue(sym.option_1 = 2,
           Format('C#%d option_1 expected 2 got %d', [CItems[i].Index, sym.option_1]));
-        Assert.IsTrue(sym.option_2 = 15,
+        ZAssert.IsTrue(sym.option_2 = 15,
           Format('C#%d option_2 expected 15 got %d', [CItems[i].Index, sym.option_2]));
 
-        Assert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
+        ZAssert.IsTrue(sym.content_segs_count = CItems[i].ExpectedContentSegCount,
           Format('C#%d content_segs_count expected %d got %d',
             [CItems[i].Index, CItems[i].ExpectedContentSegCount, sym.content_segs_count]));
 
         if CItems[i].ExpectedContentSegCount = 0 then
-          Assert.IsTrue(sym.content_segs = nil,
+          ZAssert.IsTrue(sym.content_segs = nil,
             Format('C#%d content_segs expected nil', [CItems[i].Index]))
         else
         begin
-          Assert.IsFalse(sym.content_segs = nil,
+          ZAssert.IsFalse(sym.content_segs = nil,
             Format('C#%d content_segs expected non-nil', [CItems[i].Index]));
-          Assert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
+          ZAssert.IsTrue(Length(sym.content_segs) = CItems[i].ExpectedContentSegCount,
             Format('C#%d content_segs length expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentSegCount, Length(sym.content_segs)]));
           expectedSource := HexToByteArray(CItems[i].ExpectedContentHex);
           SetLength(expectedSource, Length(expectedSource) - 1);
-          Assert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
+          ZAssert.IsTrue(sym.content_segs[0].Length = Length(expectedSource),
             Format('C#%d content seg length expected %d got %d',
               [CItems[i].Index, Length(expectedSource), sym.content_segs[0].Length]));
           if Length(expectedSource) > 0 then
-            Assert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
+            ZAssert.IsTrue(CompareMem(@sym.content_segs[0].Source[0], @expectedSource[0], Length(expectedSource)),
               Format('C#%d content seg source bytes differ expected [%s] got [%s]',
                 [CItems[i].Index, CItems[i].ExpectedContentHex,
                  BytesToHex(sym.content_segs[0].Source, sym.content_segs[0].Length)]));
-          Assert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
+          ZAssert.IsTrue(sym.content_segs[0].ECI = CItems[i].ExpectedContentECI,
             Format('C#%d content seg ECI expected %d got %d',
               [CItems[i].Index, CItems[i].ExpectedContentECI, sym.content_segs[0].ECI]));
         end;
@@ -2294,62 +2301,62 @@ begin
     ret := TZintTestHelper.EncodeData(sym, Data);
 
     if ExpectedRet >= 0 then
-      Assert.IsTrue(ret = ExpectedRet,
+      ZAssert.IsTrue(ret = ExpectedRet,
         Format('%s ret expected %d got %d', [CaseName, ExpectedRet, ret]))
     else
-      Assert.IsTrue(ret < ZINT_ERROR,
+      ZAssert.IsTrue(ret < ZINT_ERROR,
         Format('%s ret expected success/warn got %d errtxt "%s"', [CaseName, ret, TZintTestHelper.GetErrTxt(sym)]));
 
     if ExpectedErrTxt <> '' then
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = ExpectedErrTxt,
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = ExpectedErrTxt,
         Format('%s errtxt expected "%s" got "%s"', [CaseName, ExpectedErrTxt, TZintTestHelper.GetErrTxt(sym)]))
     else if ret = 0 then
-      Assert.IsTrue(TZintTestHelper.GetErrTxt(sym) = '',
+      ZAssert.IsTrue(TZintTestHelper.GetErrTxt(sym) = '',
         Format('%s errtxt expected empty got "%s"', [CaseName, TZintTestHelper.GetErrTxt(sym)]));
 
     if ret < ZINT_ERROR then
     begin
-      Assert.IsTrue(sym.symbology = BARCODE_RMQR,
+      ZAssert.IsTrue(sym.symbology = BARCODE_RMQR,
         Format('%s symbology expected %d got %d', [CaseName, BARCODE_RMQR, sym.symbology]));
       if ExpectedRows >= 0 then
-        Assert.IsTrue(sym.rows = ExpectedRows,
+        ZAssert.IsTrue(sym.rows = ExpectedRows,
           Format('%s rows expected %d got %d', [CaseName, ExpectedRows, sym.rows]))
       else
-        Assert.IsTrue(sym.rows > 0,
+        ZAssert.IsTrue(sym.rows > 0,
           Format('%s rows expected > 0 got %d', [CaseName, sym.rows]));
       if ExpectedWidth >= 0 then
-        Assert.IsTrue(sym.width = ExpectedWidth,
+        ZAssert.IsTrue(sym.width = ExpectedWidth,
           Format('%s width expected %d got %d', [CaseName, ExpectedWidth, sym.width]))
       else
-        Assert.IsTrue(sym.width > 0,
+        ZAssert.IsTrue(sym.width > 0,
           Format('%s width expected > 0 got %d', [CaseName, sym.width]));
-      Assert.IsTrue(sym.rows <> sym.width,
+      ZAssert.IsTrue(sym.rows <> sym.width,
         Format('%s expected rectangular symbol but rows == width == %d', [CaseName, sym.rows]));
-      Assert.IsTrue((sym.rows >= 7) and (sym.rows <= 17),
+      ZAssert.IsTrue((sym.rows >= 7) and (sym.rows <= 17),
         Format('%s rows expected in [7..17] got %d', [CaseName, sym.rows]));
-      Assert.IsTrue((sym.width >= 27) and (sym.width <= 139),
+      ZAssert.IsTrue((sym.width >= 27) and (sym.width <= 139),
         Format('%s width expected in [27..139] got %d', [CaseName, sym.width]));
 
       if ExpectedECI >= 0 then
-        Assert.IsTrue(sym.eci = ExpectedECI,
+        ZAssert.IsTrue(sym.eci = ExpectedECI,
           Format('%s eci expected %d got %d', [CaseName, ExpectedECI, sym.eci]));
 
       if ExpectedModules <> '' then
       begin
         ActualModules := StringReplace(TZintTestHelper.ModulesDump(sym), #10, '', [rfReplaceAll]);
-        Assert.IsTrue(ActualModules = ExpectedModules,
+        ZAssert.IsTrue(ActualModules = ExpectedModules,
           Format('%s modules expected "%s" got "%s"', [CaseName, ExpectedModules, ActualModules]));
       end;
     end;
 
     if ExpectedOption1 >= 0 then
-      Assert.IsTrue(sym.option_1 = ExpectedOption1,
+      ZAssert.IsTrue(sym.option_1 = ExpectedOption1,
         Format('%s option_1 expected %d got %d', [CaseName, ExpectedOption1, sym.option_1]));
     if ExpectedOption2 >= 0 then
-      Assert.IsTrue(sym.option_2 = ExpectedOption2,
+      ZAssert.IsTrue(sym.option_2 = ExpectedOption2,
         Format('%s option_2 expected %d got %d', [CaseName, ExpectedOption2, sym.option_2]));
     if ExpectedOption3 >= 0 then
-      Assert.IsTrue(sym.option_3 = ExpectedOption3,
+      ZAssert.IsTrue(sym.option_3 = ExpectedOption3,
         Format('%s option_3 expected 0x%x got 0x%x', [CaseName, ExpectedOption3, sym.option_3]));
   finally
     sym.Free;
@@ -2495,21 +2502,21 @@ begin
 
       ret := ZBarcode_Encode_Segs(sym, segs);
 
-      Assert.IsTrue(ret < ZINT_ERROR,
+      ZAssert.IsTrue(ret < ZINT_ERROR,
         Format('%s ret expected success/warn got %d errtxt "%s"', [CItems[i].CaseName, ret, TZintTestHelper.GetErrTxt(sym)]));
-      Assert.IsTrue(sym.rows > 0,
+      ZAssert.IsTrue(sym.rows > 0,
         Format('%s rows expected > 0 got %d', [CItems[i].CaseName, sym.rows]));
-      Assert.IsTrue(sym.width > 0,
+      ZAssert.IsTrue(sym.width > 0,
         Format('%s width expected > 0 got %d', [CItems[i].CaseName, sym.width]));
 
-      Assert.IsTrue(sym.content_segs_count = 0,
+      ZAssert.IsTrue(sym.content_segs_count = 0,
         Format('%s content_segs_count expected 0 got %d', [CItems[i].CaseName, sym.content_segs_count]));
-      Assert.IsTrue(Length(sym.content_segs) = 0,
+      ZAssert.IsTrue(Length(sym.content_segs) = 0,
         Format('%s content_segs length expected 0 got %d', [CItems[i].CaseName, Length(sym.content_segs)]));
 
       for j := 0 to High(segs) do
       begin
-        Assert.IsTrue(Length(segs[j].Source) >= 0,
+        ZAssert.IsTrue(Length(segs[j].Source) >= 0,
           Format('%s seg[%d] source setup invalid', [CItems[i].CaseName, j]));
       end;
     finally
@@ -2694,11 +2701,11 @@ begin
 
     ret := ZBarcode_Encode_Segs(sym, segs);
 
-    Assert.IsTrue(ret < ZINT_ERROR,
+    ZAssert.IsTrue(ret < ZINT_ERROR,
       Format('RTSegs#0 ret expected success/warn got %d errtxt "%s"', [ret, TZintTestHelper.GetErrTxt(sym)]));
-    Assert.IsTrue(sym.rows > 0, Format('RTSegs#0 rows expected > 0 got %d', [sym.rows]));
-    Assert.IsTrue(sym.width > 0, Format('RTSegs#0 width expected > 0 got %d', [sym.width]));
-    Assert.IsTrue(sym.content_segs_count = 0,
+    ZAssert.IsTrue(sym.rows > 0, Format('RTSegs#0 rows expected > 0 got %d', [sym.rows]));
+    ZAssert.IsTrue(sym.width > 0, Format('RTSegs#0 width expected > 0 got %d', [sym.width]));
+    ZAssert.IsTrue(sym.content_segs_count = 0,
       Format('RTSegs#0 content_segs_count expected 0 got %d', [sym.content_segs_count]));
   finally
     sym.Free;
@@ -2706,10 +2713,10 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TTestQR);
-  TDUnitX.RegisterTestFixture(TTestMicroQR);
-  TDUnitX.RegisterTestFixture(TTestUPNQR);
-  TDUnitX.RegisterTestFixture(TTestRMQR);
+  ZRegisterFixture(TTestQR);
+  ZRegisterFixture(TTestMicroQR);
+  ZRegisterFixture(TTestUPNQR);
+  ZRegisterFixture(TTestRMQR);
 
 end.
 
