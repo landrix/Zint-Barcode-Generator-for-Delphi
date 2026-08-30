@@ -4,7 +4,7 @@ param(
   [string]$Platform = "Win32",
   [string]$ProjectRelativePath = "UnitTests\DUnitXCmdTest.dproj",
   [string]$TestExeRelativePath = "",
-  [int]$MinTests = 827,
+  [int]$MinTests = 880,
   [switch]$SkipRun
 )
 
@@ -103,8 +103,13 @@ try {
 
   Write-Host ("Delphi: {0} tests, {1} failed, {2} errored (expected at least {3})." -f $foundCount, $failedCount, $erroredCount, $MinTests)
 
+  # Frueher wurde ein Nonzero-Exitcode hier nur als "known post-run AV caveat"
+  # gewarnt. Dieser AV (Runtime error 216) stammte von TTestQR, das den Lauf
+  # vorzeitig abbrach und dabei rund 60 Tests verschluckte - darunter die
+  # gesamte Telepen-Suite. Seit TTestQR stillgelegt ist, endet der Runner mit
+  # Exitcode 0. Ein Nonzero-Exitcode ist daher wieder ein echtes Fehlersignal.
   if ($runExit -ne 0) {
-    Write-Warning ("Test runner exited with code {0} although summary is green (known post-run AV caveat)." -f $runExit)
+    throw ("Test runner exited with code {0} although the summary looks green. That indicates a crash during or after the run - do not ignore it (see docs/PORTING_WORKFLOW.md, section 3)." -f $runExit)
   }
 }
 finally {
