@@ -31,9 +31,15 @@ PostNet, Planet, RM4SCC, KIX, CEPNet, FIM
 
 ## Offene Deltas Delphi vs C
 
-| C-Index | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
+Beide Eintraege stammen nicht aus einem Testlauf, sondern aus dem
+Funktionsinventar (`docs/ports/_functions.tsv`): C-Funktionen, zu denen es im
+Port keine oder nur eine unvollstaendige Entsprechung gibt. Kein Test faellt
+darueber, weil `test_postal.c` die Hoehe nicht prueft.
+
+| C-Funktion | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
 |---|---|---|---|---|
-| | | | | |
+| `usps_set_height` (`postal.c:92`) | `row_height[0]/[1]` = 3.225/2.15 bei `COMPLIANT_HEIGHT` oder `BARCODE_CEPNET`, sonst 6.0/6.0; zusaetzlich Halbbalken-Verhaeltnis, wenn `symbol.height` gesetzt ist | `zint_postal.pas:157` setzt fest 6.0/6.0 - nur der Nicht-Compliant-Zweig, kein Verhaeltnis | Der Port kennt keine `COMPLIANT_HEIGHT`-Behandlung fuer POSTNET/PLANET | Zusammen mit dem port-weiten `z_set_height` loesen, siehe [library.md](library.md) |
+| `zint_daft_set_height` (`postal.c:400`) | Setzt die Hoehe fuer die DAFT-Symbologien | keine Entsprechung | dito | dito |
 
 ## Offene Deltas FPC vs Delphi
 

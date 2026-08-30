@@ -132,6 +132,18 @@ jeden Branch, auch fuer reine Infrastruktur- und Doku-Branches.
   nachgeprueft, dann umgesetzt oder mit Begruendung verworfen; verworfene
   Befunde gehoeren in den Commit-Text.
 
+## 10b) Funktionsinventar
+
+- Tests aus C pruefen nur, was C prueft. Fehlender Port-Code faellt ihnen nicht
+  auf - `z_set_height` fehlt vollstaendig und keine 881 Tests merken es.
+- Deshalb: je C-Funktion eine Zeile in `docs/ports/_functions.tsv`, geprueft von
+  `scripts/check-c-inventory.ps1` (laeuft in `gate-all.ps1` mit).
+- `missing` und `partial` brauchen zusaetzlich einen Delta-Eintrag in
+  `docs/ports/<modul>.md`. Ein Modul geht erst auf Status `done`, wenn sein
+  Inventar vollstaendig ist.
+- Details: [../docs/PORTING_WORKFLOW.md](../docs/PORTING_WORKFLOW.md),
+  Abschnitt 3a.
+
 ## 11) Commit- und Aenderungsdisziplin
 
 - Kleine, thematisch saubere Aenderungen.

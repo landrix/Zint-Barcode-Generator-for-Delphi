@@ -67,6 +67,13 @@ git checkout -b port/<barcode>
 - Minimal und logiknah. Keine Misch-Refactorings.
 - Kein Fix ohne C-Referenz-Begruendung.
 
+### Schritt 3a - Funktionsinventar pflegen
+
+Jede C-Funktion des Moduls bekommt eine Zeile in `docs/ports/_functions.tsv`
+(Skelett: `scripts\check-c-inventory.ps1 -Skeleton -Module <modul>`). Was nicht
+portiert wurde, wird als `missing` oder `partial` eingetragen **und** als Delta
+in `docs/ports/<modul>.md` beschrieben. Begruendung in Abschnitt 3a.
+
 ### Schritt 4 - Beide Gates gruen
 
 ```powershell
@@ -261,6 +268,7 @@ Eine Aenderung ist erst fertig, wenn **beide** Gates gruen sind.
 
 | Gate | Kommando | Compiler | Plattform |
 |---|---|---|---|
+| C-Funktionsinventar | `scripts\check-c-inventory.ps1` | - | statisch, Sekunden |
 | Delphi-Vollgate | `scripts\build-delphi-tests.ps1` | Delphi Studio 37.0 | Win32 Debug |
 | FPC-Vollgate | `scripts\build-fpc-tests.ps1` | FPC 3.3.1 | aarch64-win64 |
 | FPC-Compile-Gate (Linux) | `scripts\build-fpc-tests.ps1 -Wsl` | FPC 3.2.2 | aarch64-linux |
@@ -324,6 +332,52 @@ Speicherkorruption im QR-Pfad, nicht zu einem Testfehler. Zustaendig ist
 **Die Lehre daraus gilt weiter:** Eine gruene Suite belegt nichts, solange die
 Zahl der gelaufenen Tests nicht mitgeprueft wird. Genau dafuer gibt es die
 Mindest-Testzahl oben.
+
+---
+
+## 3a) Was die Tests nicht beantworten koennen
+
+Die Testunits sind Portierungen der C-Testsuiten. Damit erben sie deren blinde
+Flecken: **was C nicht prueft, kann im Port fehlen, ohne dass ein Test rot
+wird.**
+
+Der Beleg steht in [ports/library.md](ports/library.md): `z_set_height` ist im
+gesamten Port nicht vorhanden, und 881 gruene Tests bemerken es nicht, weil
+`test_telepen.c` die Hoehe kein einziges Mal prueft. Ein Test kann nur pruefen,
+was jemand geschrieben hat - fehlenden Code findet er nicht.
+
+Dagegen steht das **Funktionsinventar**:
+
+| Datei | Rolle |
+|---|---|
+| `docs/ports/_functions.tsv` | je C-Funktion eine Zeile: Status, Pascal-Entsprechung, Bemerkung |
+| `scripts/check-c-inventory.ps1` | vergleicht die Datei gegen die C-Referenz und die Delphi-Units |
+
+Statuswerte: `ported` (eigene Routine), `inline` (in eine andere Routine
+gefaltet), `partial` (vorhanden, aber unvollstaendig - **braucht einen Delta-
+Eintrag** in `docs/ports/<modul>.md`), `missing` (nicht portiert, ebenfalls mit
+Delta-Eintrag), `n/a` (ausserhalb des Portierungsumfangs).
+
+Das Skript schlaegt an, wenn
+
+- ein Modul mit Status `done` eine unklassifizierte C-Funktion hat,
+- eine Zeile eine Pascal-Routine nennt, die es in der Unit nicht gibt,
+- eine Zeile auf eine C-Funktion zeigt, die es nicht mehr gibt (veraltet nach
+  einem Referenzwechsel, siehe Abschnitt 2b).
+
+Module ohne Status `done` werden nur gezaehlt, nicht bemaengelt - das Inventar
+wird modulweise gefuellt, nicht in einem Zug.
+
+> **Ein Modul darf erst auf `done` gesetzt werden, wenn sein Inventar
+> vollstaendig ist.** Vorher heisst `done` nur "die portierten C-Testfaelle sind
+> gruen" - und das ist eine schwaechere Aussage, als der Status suggeriert.
+
+Was das Inventar **nicht** leistet: Ein `ported` ist ein menschliches Urteil,
+kein Beweis fuer Gleichheit. Es findet Auslassungen, niemals falsches Verhalten.
+Das naechste Instrument dafuer waere ein Differenztest gegen die echte
+C-Bibliothek - dieselben Eingaben durch beide Implementierungen, Vergleich von
+`rows`, `width`, `encoded_data`, `errtxt` und `height`. Der wuerde auch Pfade
+abdecken, fuer die es in C gar keinen Test gibt. Noch nicht gebaut.
 
 ---
 
@@ -435,6 +489,7 @@ Vor dem Merge nach develop pruefen:
 - [ ] Bewusst ausgelassene C-Indizes sind mit Grund markiert
 - [ ] Verbleibende Deltas stehen in `docs/ports/<modul>.md`
 - [ ] Keine `System.*`-Namespaces, keine `Cardinal`-Zaehlschleifen (Abschnitt 4)
+- [ ] Funktionsinventar des Moduls vollstaendig, Luecken als Delta beschrieben
 - [ ] Beide Gates gruen, Zahlen im Commit genannt
 - [ ] Registrierungs-Aenderungen liegen im letzten Einzelcommit
 

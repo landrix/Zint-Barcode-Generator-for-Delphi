@@ -1,0 +1,51 @@
+c_datei	c_funktion	status	pascal	bemerkung
+2of5.c	c25_common	ported	c25_common
+2of5.c	zint_c25iata	ported	iata_two_of_five
+2of5.c	zint_c25ind	ported	industrial_two_of_five
+2of5.c	zint_c25logic	ported	logic_two_of_five
+2of5.c	zint_c25standard	ported	matrix_two_of_five	C ruft c25_common mit is_matrix=1
+auspost.c	aus_convert_pattern	ported	convert_pattern	Praefix aus_ ist eine spaetere Upstream-Umbenennung
+auspost.c	aus_rs_error	ported	rs_error	dito
+auspost.c	zint_auspost	ported	australia_post
+code.c	zint_code39	ported	c39
+code.c	zint_code93	ported	c93
+code.c	zint_excode39	ported	ec39
+code.c	zint_vin	ported	vin
+code128.c	c128_cost	ported	c128_cost
+code128.c	c128_cost_ab	ported	c128_cost_ab
+code128.c	c128_expand	ported	c128_expand
+code128.c	c128_set_priority	ported	c128_set_priority
+code128.c	c128_set_values	ported	c128_set_values
+code128.c	zint_code128	ported	code_128
+code128.c	zint_gs1_128	ported	ean_128	Upstream hat EAN-128 in GS1-128 umbenannt
+code128.c	zint_gs1_128_cc	ported	gs1_128_cc
+medical.c	pharma_two_calc	ported	pharma_two_calc
+medical.c	zint_code32	ported	code32
+medical.c	zint_pharma	ported	pharma_one
+medical.c	zint_pharma_two	ported	pharma_two
+medical.c	zint_pzn	ported	pzn
+plessey.c	msi_check_digit_mod10	ported	msi_check_digit_mod10
+plessey.c	msi_check_digit_mod11	ported	msi_check_digit_mod11
+plessey.c	msi_plessey_nomod	inline	msi_handle	C hat die fuenf Varianten in eigene Funktionen ausgelagert und schaltet per switch; der Port entscheidet inline ueber check_option 0..6
+plessey.c	msi_plessey_mod10	inline	msi_handle	siehe msi_plessey_nomod
+plessey.c	msi_plessey_mod1010	inline	msi_handle	siehe msi_plessey_nomod
+plessey.c	msi_plessey_mod11	inline	msi_handle	siehe msi_plessey_nomod
+plessey.c	msi_plessey_mod1110	inline	msi_handle	siehe msi_plessey_nomod
+plessey.c	zint_msi_plessey	ported	msi_handle
+plessey.c	zint_plessey	ported	plessey
+postal.c	planet_enc	ported	planet
+postal.c	postnet_enc	ported	postnet
+postal.c	rm4scc_enc	ported	rm4scc
+postal.c	usps_set_height	partial	post_plot, planet_plot	LUECKE: der Port setzt row_height fest auf 6/6 (zint_postal.pas:157). C unterscheidet COMPLIANT_HEIGHT bzw. CEPNET (3.225/2.15) und rechnet zusaetzlich ein Halbbalken-Verhaeltnis, wenn symbol.height gesetzt ist. Siehe postal.md
+postal.c	zint_daft	ported	daft_code
+postal.c	zint_daft_set_height	missing		LUECKE: keine Entsprechung im Port. Siehe postal.md
+postal.c	zint_fim	ported	fim
+postal.c	zint_flat	ported	flattermarken
+postal.c	zint_japanpost	ported	japan_post
+postal.c	zint_kix	ported	kix_code
+postal.c	zint_koreapost	ported	korea_post
+postal.c	zint_planet	ported	planet_plot
+postal.c	zint_postnet	ported	post_plot
+postal.c	zint_rm4scc	ported	royal_plot
+telepen.c	zint_telepen	ported	telepen
+telepen.c	zint_telepen_num	ported	telepen_num
