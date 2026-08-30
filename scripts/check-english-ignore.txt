@@ -1,0 +1,13 @@
+# Ausnahmen fuer scripts/check-english.ps1 - eine Glob-Zeile je Eintrag.
+#
+# Nur fuer echte Fehltreffer verwenden: Testdaten, in denen deutscher Text
+# Teil des geprueften Falls ist, oder fremder Code. Nicht dafuer, noch nicht
+# uebersetzte Dateien stillzulegen - dann waere die Regel wertlos.
+#
+# Jede Zeile hier braucht einen Grund als Kommentar darueber.
+#
+# Beispiel:
+# # C-Testdaten enthalten absichtlich deutschen Text (test_encode C#4)
+# UnitTests/Test_Beispiel.pas
+
+# (derzeit keine)

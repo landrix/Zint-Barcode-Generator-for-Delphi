@@ -13,6 +13,7 @@ Fachliche Regeln (C-Referenz lesen, Deltas dokumentieren, Commit-Disziplin) steh
 ```
 main                 Release-Linie. Legacy-Stand + README. Bekommt develop erst
                      bei einem bewussten Release-Schnitt, nicht laufend.
+                     Alles auf main ist englisch (Abschnitt 2a).
 
 develop              Integrationsbranch der Portierung. Immer gruen in beiden
                      Gates. Wird nach origin gepusht.
@@ -123,6 +124,55 @@ gelaufen sind.
 
 Der Statuseintrag in `docs/ports/<modul>.md` wird im Feature-Branch gepflegt,
 die Uebersicht in `docs/ports/README.md` **erst beim Merge** auf develop.
+
+---
+
+## 2a) Release: Merge develop nach main
+
+`main` ist die oeffentliche Release-Linie. Waehrend der Portierung wird auf
+`develop` bewusst deutsch dokumentiert - das ist die Arbeitssprache. Was nach
+`main` geht, ist dagegen fuer Fremde bestimmt.
+
+> **Vor jedem Merge nach `main` werden alle deutschsprachigen Inhalte ins
+> Englische uebersetzt.** Kein Release-Schnitt mit deutschem Text im Baum.
+
+Betroffen ist alles Versionierte ausser der C-Referenz und dem Submodul:
+
+| Was | Beispiele |
+|---|---|
+| Markdown | `README.md`, `AGENTS.md`, `docs/**/*.md`, `.github/*.md` |
+| Quelltextkommentare | `*.pas`, `*.inc`, `*.dpr` - auch Alt-Kommentare, die nicht aus der Portierung stammen (z.B. `zint_qr_epc.pas`) |
+| Skripte | `scripts/*.ps1`, Kommentare **und** ausgegebene Meldungen |
+| Testtexte | Assertion-Meldungen, die in einem Fehlerreport landen |
+
+Ausgenommen: `Lib/` (C-Referenz und DUnitX-Submodul, fremder Code) sowie die
+Commit-Historie - Messages sind seit Abschnitt 6 ohnehin englisch und werden
+nicht rueckwirkend angefasst.
+
+**Nicht jeder Treffer ist eine Uebersetzungsaufgabe.** Deutsche Zeichen koennen
+Nutzdaten sein und muessen dann unveraendert bleiben - etwa das Umlaut-Set in
+`zint_qr_epc.pas` (`CharInSet(AValue[i], ['ae', 'oe', 'ue', ...])`, EPC-QR
+erlaubt genau diese Zeichen) oder Testeingaben, deren deutscher Text Teil des
+geprueften C-Falls ist. Solche Stellen kommen mit Begruendung nach
+`scripts/check-english-ignore.txt`, sie werden nicht uebersetzt.
+
+Ablauf:
+
+```powershell
+scripts\check-english.ps1     # meldet verbliebene deutsche Stellen
+# ... uebersetzen, bis das Skript nichts mehr meldet ...
+scripts\gate-all.ps1          # Uebersetzen darf nichts kaputtgemacht haben
+git checkout main
+git merge --no-ff develop
+scripts\gate-all.ps1          # main muss NACH dem Merge gruen sein
+git push
+```
+
+Das Uebersetzen ist eine eigene, reviewpflichtige Aenderung auf `develop` (oder
+einem `chore/`-Branch), kein Nebenschauplatz des Merges - es fasst praktisch
+jede Datei im Projekt an. Dabei gilt dasselbe wie beim Portieren: der Inhalt
+bleibt, insbesondere Zahlenwerte, C-Indizes und Dateiverweise. Eine Uebersetzung
+ist kein Anlass, eine Aussage zu glaetten, zu kuerzen oder zu beschoenigen.
 
 ---
 

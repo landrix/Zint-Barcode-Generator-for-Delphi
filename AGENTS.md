@@ -19,7 +19,9 @@ Die wichtigsten Regeln vorab:
   für Infrastruktur- oder Doku-Branches. Auftragsvorlage:
   [docs/REVIEW_PROMPT.md](docs/REVIEW_PROMPT.md).
 - **Commit-Messages sind auf Englisch** – ausnahmslos, auch Merge- und Doku-Commits.
-  Die Projektdokumentation und Quelltextkommentare bleiben deutsch.
+- Doku und Quelltextkommentare sind auf `develop` deutsch. **Vor jedem Merge nach
+  `main` wird alles Deutsche ins Englische übersetzt** – `main` ist die
+  öffentliche Release-Linie und dort steht kein deutscher Text.
 - Modulspezifischer Status und Deltas gehören nach `docs/ports/<modul>.md`,
   **nicht** in den MIGRATION_PLAN.
 
