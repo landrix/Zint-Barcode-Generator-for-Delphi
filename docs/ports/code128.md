@@ -35,6 +35,28 @@ Code128, Code128B, GS1-128, EAN-14, NVE-18, HIBC-128
 |---|---|---|---|---|
 | | | | | |
 
+## Portierungsluecken (Funktionsinventar)
+
+Alle Eintraege stammen aus dem Funktionsinventar
+(`docs/ports/_functions.tsv`), nicht aus einem Testlauf: C-Funktionen, zu denen
+es im Port keine oder nur eine unvollstaendige Entsprechung gibt. Kein Test
+faellt darueber - wobei `test_code128.c` `symbol->height` durchaus prueft
+(`test_encode`, eine Assertion): auch hier wurde der Fall portiert und die
+Assertion weggelassen.
+
+| C-Funktion | Status | Fehlt im Port |
+|---|---|---|
+| `zint_code128` (`code128.c:396`) | partial | `EXTRA_ESCAPE_MODE`. C deutet `\^C` als manuellen Code-Set-Wechsel; der Port kennt das Flag nicht (`EXTRA_ESCAPE_MODE` kommt in `zint_code128.pas` nicht vor) und verarbeitet die Zeichen als normale Daten |
+| `zint_gs1_128_cc` (`code128.c:622-645`) | partial | Hoehenlogik, siehe [library.md](library.md) |
+| `zint_dpd` (`code128_based.c`) | **missing** | kein Pascal-Gegenstueck. DPD-Symbologie ist nicht portiert |
+| `zint_upu_s10` (`code128_based.c`) | **missing** | kein Pascal-Gegenstueck. UPU S10 ist nicht portiert |
+| `nve18_or_ean14` (`code128_based.c:83`) | partial | `GS1PARENS_MODE` wird nicht ausgewertet. C waehlt den Praefix modusabhaengig (`prefix[idx][!(input_mode & GS1PARENS_MODE)]`): `(01)`/`(00)` mit Flag, sonst `[01]`/`[00]`. `zint_code128.pas:739-744` baut immer die Klammerform. Das ist nicht kosmetisch - `gs1_verify` wertet `GS1PARENS_MODE` aus (`zint_gs1.pas:71`), im Parens-Modus ist `[` kein AI-Trenner mehr. Die Konstante kommt im Port ueberhaupt nur in Testunits vor |
+
+`zint_dpd` und `zint_upu_s10` waren bis zum 2026-08-30 unsichtbar, weil
+`code128_based.c` keinem Modul zugeordnet war. Das Inventar prueft seither, dass
+jede C-Datei einem Modul gehoert oder ausdruecklich ausserhalb des Umfangs
+steht.
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |

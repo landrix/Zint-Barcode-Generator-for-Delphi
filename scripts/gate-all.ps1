@@ -17,11 +17,16 @@
 
 .PARAMETER IncludeWsl
   Zusaetzlich das Linux-Compile-Gate (FPC 3.2.2 unter WSL) ausfuehren.
+
+.PARAMETER SkipInventory
+  Das C-Funktionsinventar auslassen (statische Pruefung, siehe
+  scripts/check-c-inventory.ps1).
 #>
 param(
   [switch]$SkipDelphi,
   [switch]$SkipFpc,
-  [switch]$IncludeWsl
+  [switch]$IncludeWsl,
+  [switch]$SkipInventory
 )
 
 $scripts = $PSScriptRoot
@@ -41,6 +46,11 @@ function Invoke-Gate {
   }
 }
 
+# Zuerst, weil statisch und in Sekunden durch: die Testgates koennen nicht
+# sehen, ob C-Code gar nicht erst portiert wurde.
+if (-not $SkipInventory) {
+  Invoke-Gate "C-Funktionsinventar" { & (Join-Path $scripts "check-c-inventory.ps1") -Quiet }
+}
 if (-not $SkipDelphi) {
   Invoke-Gate "Delphi Win32" { & (Join-Path $scripts "build-delphi-tests.ps1") }
 }
