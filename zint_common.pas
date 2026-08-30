@@ -481,7 +481,7 @@ end;
 { Expands from a width pattern to a bit pattern */ }
 procedure expand(symbol : zint_symbol; data : TArrayOfChar);
 var
-  reader, n : Cardinal;
+  reader, n : Integer;
   writer, i : Integer;
   latch : Char;
 begin

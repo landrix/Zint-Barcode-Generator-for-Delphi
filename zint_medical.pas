@@ -174,7 +174,7 @@ var
   i : Integer;
   tester : Cardinal;
   height_pattern : TArrayOfChar;
-  loopey, h : Cardinal;
+  loopey, h : Integer;
   writer : Integer;
   error_number : Integer;
 begin
