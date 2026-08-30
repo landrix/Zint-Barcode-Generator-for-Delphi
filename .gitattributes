@@ -1,0 +1,3 @@
+# sh-Skripte muessen LF behalten. Mit CRLF liest der Kernel den Shebang als
+# "/bin/sh\r" und WSL meldet "bad interpreter".
+*.sh text eol=lf
