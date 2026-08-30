@@ -59,7 +59,7 @@ try {
   # Rendering, file formats and the CLI - the Delphi side draws its own output.
   $outOfScope = @(
     "raster.c", "vector.c", "output.c", "filemem.c", "png.c", "svg.c", "emf.c",
-    "eps.c", "ps.c", "tif.c", "gif.c", "bmp.c", "pcx.c", "zint.c", "dllversion.c"
+    "ps.c", "tif.c", "gif.c", "bmp.c", "pcx.c", "dllversion.c"
   )
 
   # A C function definition: start of line, return type, name, args, brace.
@@ -153,6 +153,17 @@ try {
     }
   }
 
+  foreach ($r in $rows) {
+    if (-not $assigned.ContainsKey($r.c_datei)) {
+      $problems += "orphan: row $($r.c_datei):$($r.c_funktion) belongs to no module, so the Pascal and documentation checks never see it"
+    }
+  }
+  foreach ($name in $outOfScope) {
+    if (-not (Test-Path (Join-Path $cRoot $name))) {
+      $problems += "out-of-scope list names '$name', which does not exist in the C reference - remove it, or a future file of that name would drop out unnoticed"
+    }
+  }
+
   # --- Stale rows and status values ----------------------------------------
   $cFunctionCache = @{}
   foreach ($r in $rows) {
@@ -197,18 +208,38 @@ try {
     $docPath = Join-Path $repoRoot ("docs\ports\{0}.md" -f $m.modul)
     $docText = if (Test-Path $docPath) { [IO.File]::ReadAllText($docPath) } else { "" }
 
+    # Datei UND Name vergleichen: in einem Mehrdatei-Modul wuerde sonst eine
+    # gleichnamige Funktion der zweiten Datei durch die Zeile der ersten als
+    # klassifiziert gelten.
     $unclassified = @()
-    foreach ($f in $fns) {
-      if (-not ($moduleRows | Where-Object { $_.c_funktion -eq $f })) {
-        $unclassified += $f
+    foreach ($cFile in $cFiles) {
+      $f = Get-CFunctions -CFile $cFile
+      if ($null -eq $f) { continue }
+      foreach ($name in $f) {
+        if (-not ($moduleRows | Where-Object { $_.c_datei -eq $cFile -and $_.c_funktion -eq $name })) {
+          $unclassified += ("{0}:{1}" -f $cFile, $name)
+        }
       }
     }
 
     foreach ($r in $moduleRows) {
       if ($r.status -eq "partial" -or $r.status -eq "missing") {
         # A gap recorded only in the inventory is a gap nobody will read.
-        if ($docText -notmatch [regex]::Escape($r.c_funktion)) {
-          $problems += "$($r.c_datei):$($r.c_funktion) is '$($r.status)' but is not named in docs/ports/$($m.modul).md"
+        # A bare name match is not enough: "zint_telepen" occurs in the link to
+        # zint_telepen.pas, which would satisfy the check without a word of
+        # documentation. The name has to appear on a line that also carries a
+        # gap marker.
+        $documented = $false
+        foreach ($line in ($docText -split "?
+")) {
+          if ($line -match [regex]::Escape($r.c_funktion) -and
+              $line -match '(?i)partial|missing|luecke|fehlt|keine Entsprechung') {
+            $documented = $true
+            break
+          }
+        }
+        if (-not $documented) {
+          $problems += "$($r.c_datei):$($r.c_funktion) is '$($r.status)' but docs/ports/$($m.modul).md has no line naming it together with what is missing"
         }
       }
       if ($r.status -eq "missing" -or $r.status -eq "n/a") { continue }
@@ -219,6 +250,37 @@ try {
       foreach ($name in ($r.pascal -split '\s*,\s*')) {
         if ($routines -notcontains $name.ToLower()) {
           $problems += "$($r.c_datei):$($r.c_funktion) -> '$name' not found in $($m.delphi_unit)"
+        }
+      }
+    }
+
+    # Codex' Einwand: wer einen unvollstaendigen Helfer ruft, ist selbst nicht
+    # vollstaendig. Statt den Status zu kaskadieren - was die Luecke doppelt
+    # zaehlt und Fable zu Recht nicht mittraegt - muss der Aufrufer den Helfer
+    # in seiner Bemerkung nennen. Die Luecke bleibt einmal gezaehlt, ist aber
+    # von jeder Aufrufstelle aus auffindbar.
+    foreach ($cFile in $cFiles) {
+      $src = ""
+      $cPath = Join-Path $cRoot $cFile
+      if (Test-Path $cPath) { $src = [IO.File]::ReadAllText($cPath) }
+      if ($src -eq "") { continue }
+      $defs = @()
+      foreach ($mm in $fnRegex.Matches($src)) { $defs += $mm }
+      $gapRows = @($moduleRows | Where-Object { $_.c_datei -eq $cFile -and ($_.status -eq "partial" -or $_.status -eq "missing") })
+      foreach ($gap in $gapRows) {
+        for ($i = 0; $i -lt $defs.Count; $i++) {
+          $caller = $defs[$i].Groups[1].Value
+          if ($caller -eq $gap.c_funktion) { continue }
+          $bodyStart = $defs[$i].Index + $defs[$i].Length
+          $bodyEnd = if ($i + 1 -lt $defs.Count) { $defs[$i + 1].Index } else { $src.Length }
+          $body = $src.Substring($bodyStart, $bodyEnd - $bodyStart)
+          if ($body -notmatch ('\b' + [regex]::Escape($gap.c_funktion) + '\s*\(')) { continue }
+          $callerRow = @($moduleRows | Where-Object { $_.c_datei -eq $cFile -and $_.c_funktion -eq $caller })
+          if ($callerRow.Count -eq 0) { continue }
+          if ($callerRow[0].status -eq "partial" -or $callerRow[0].status -eq "missing") { continue }
+          if ($callerRow[0].bemerkung -notmatch [regex]::Escape($gap.c_funktion)) {
+            $problems += "$cFile`:$caller is '$($callerRow[0].status)' but calls $($gap.c_funktion), which is '$($gap.status)' - name it in the bemerkung so the gap is findable from the caller"
+          }
         }
       }
     }
@@ -241,6 +303,20 @@ try {
 
   if (-not $Quiet) {
     $stats | Sort-Object Offen -Descending | Format-Table -AutoSize | Out-String | Write-Host
+  }
+
+  # Eine Datei einem nicht-done-Modul zuzuordnen genuegt der Zuordnungspruefung,
+  # klassifiziert aber nichts. Solche Dateien werden benannt, nicht verschwiegen.
+  $noRows = @()
+  foreach ($cFile in ($assigned.Keys | Sort-Object)) {
+    $fns = Get-CFunctions -CFile $cFile
+    if ($null -ne $fns -and $fns.Count -gt 0 -and -not ($rows | Where-Object { $_.c_datei -eq $cFile })) {
+      $noRows += $cFile
+    }
+  }
+  if ($noRows.Count -gt 0 -and -not $Quiet) {
+    Write-Host ("check-c-inventory: {0} C file(s) assigned to a module but not inventoried at all: {1}" -f
+      $noRows.Count, ($noRows -join ", "))
   }
 
   $covered = @($stats | Where-Object { $_.Offen -eq 0 -and $_.Erfasst -gt 0 }).Count

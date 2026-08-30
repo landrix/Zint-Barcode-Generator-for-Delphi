@@ -369,6 +369,11 @@ Das Skript schlaegt an, wenn
 - eine Zeile eine Pascal-Routine nennt, die es in der Unit nicht gibt,
 - eine Zeile mit Status `partial` oder `missing` **in `docs/ports/<modul>.md`
   nicht vorkommt** - eine Luecke, die nur im Inventar steht, liest niemand,
+- eine Zeile mit Status `ported` oder `inline` eine C-Funktion aufruft, die als
+  `partial` oder `missing` gefuehrt wird, ohne sie in der Bemerkung zu nennen
+  (siehe unten),
+- eine Zeile auf eine C-Datei zeigt, die keinem Modul gehoert,
+- die Ausnahmeliste eine Datei nennt, die es nicht gibt,
 - eine Zeile auf eine C-Funktion zeigt, die es nicht mehr gibt (veraltet nach
   einem Referenzwechsel, siehe Abschnitt 2b).
 
@@ -379,6 +384,34 @@ Pruefungen gelten fuer jedes Modul.
 > **Ein Modul darf erst auf `done` gesetzt werden, wenn sein Inventar
 > vollstaendig ist.** Vorher heisst `done` nur "die portierten C-Testfaelle sind
 > gruen" - und das ist eine schwaechere Aussage, als der Status suggeriert.
+
+### Wer eine Luecke aufruft, muss sie nennen
+
+`zint_postnet` ist sauber portiert, ruft aber `usps_set_height`, das es nicht
+ist. Ist die Symbologie damit vollstaendig? Codex sagte ja - also `partial`;
+Fable hielt die Zeile fuer richtig als `ported` klassifiziert.
+
+Entschieden wurde gegen die Kaskade: der Status beschreibt **die Portierung
+dieser einen Funktion**, nicht die ihrer Aufrufkette. Sonst wandert dieselbe
+Luecke durch jede Ebene und wird mehrfach gezaehlt, ohne dass eine neue Aussage
+entsteht. Stattdessen muss ein Aufrufer den lueckenhaften Helfer in seiner
+Bemerkung nennen; das Skript prueft das ueber den C-Quelltext. Die Luecke steht
+damit genau einmal in der Zaehlung und ist trotzdem von jeder Aufrufstelle aus
+auffindbar.
+
+### Blinde Flecken sind nicht immer geerbt
+
+Der erste Entwurf dieses Abschnitts behauptete pauschal, die Hoehenluecken
+faenden keinen Test, weil die C-Suiten die Hoehe nicht pruefen. Fuer telepen,
+medical, code, 2of5, auspost und plessey stimmt das. Fuer **postal und code128
+nicht**: `test_postal.c` prueft `symbol->height` zehnmal, `test_code128.c`
+einmal - und `Test_Postal.pas` hat bei 116 Testmethoden keine einzige
+Hoehen-Assertion. Dort wurden die Faelle portiert und die Assertion
+weggelassen.
+
+Daraus folgt fuer Schritt 2: **`ret` -> `errtxt` -> `rows`/`width` ist die
+Mindestreihenfolge, nicht die Liste.** Was der C-Fall sonst noch prueft, wird
+mitportiert oder als bewusste Auslassung vermerkt.
 
 Was das Inventar **nicht** leistet: Ein `ported` ist ein menschliches Urteil,
 kein Beweis fuer Gleichheit. Es findet Auslassungen, niemals falsches Verhalten.

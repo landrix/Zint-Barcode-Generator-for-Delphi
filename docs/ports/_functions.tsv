@@ -5,7 +5,7 @@ c_datei	c_funktion	status	pascal	bemerkung
 2of5.c	zint_c25logic	ported	logic_two_of_five
 2of5.c	zint_c25standard	ported	matrix_two_of_five	C ruft c25_common mit is_matrix=1
 2of5inter.c	zint_c25_inter_common	partial	c25_inter_common	Hoehenlogik fehlt, siehe 2of5.md
-2of5inter.c	zint_c25inter	ported	interleaved_two_of_five
+2of5inter.c	zint_c25inter	ported	interleaved_two_of_five	delegiert an zint_c25_inter_common (partial); die Luecke liegt dort
 2of5inter_based.c	c25_dp_check_digit	inline	dpleit, dpident	Einzeiler itoc((10 - count mod 10) mod 10); der Port rechnet ihn in beiden Routinen direkt aus
 2of5inter_based.c	zint_dpident	partial	dpident	Hoehenlogik fehlt, siehe 2of5.md
 2of5inter_based.c	zint_dpleit	partial	dpleit	Hoehenlogik fehlt, siehe 2of5.md
@@ -15,7 +15,7 @@ auspost.c	aus_rs_error	ported	rs_error	dito
 auspost.c	zint_auspost	partial	australia_post	Hoehenlogik fehlt, siehe auspost.md
 code.c	zint_code39	partial	c39	Hoehenlogik fehlt, siehe code.md
 code.c	zint_code93	partial	c93	Hoehenlogik fehlt, siehe code.md
-code.c	zint_excode39	ported	ec39
+code.c	zint_excode39	partial	ec39	setzt option_2 nicht zurueck; ruft ausserdem zint_code39 (partial). Siehe code.md
 code.c	zint_vin	ported	vin
 code11.c	zint_code11	ported	code_11
 code128.c	c128_cost	ported	c128_cost
@@ -24,12 +24,12 @@ code128.c	c128_expand	ported	c128_expand
 code128.c	c128_set_priority	ported	c128_set_priority
 code128.c	c128_set_values	ported	c128_set_values
 code128.c	zint_code128	partial	code_128	EXTRA_ESCAPE_MODE (code128.c:396) fehlt, siehe code128.md
-code128.c	zint_gs1_128	ported	ean_128	Upstream hat EAN-128 in GS1-128 umbenannt
+code128.c	zint_gs1_128	ported	ean_128	Einzeiler-Wrapper um zint_gs1_128_cc (partial); Upstream hat EAN-128 in GS1-128 umbenannt
 code128.c	zint_gs1_128_cc	partial	gs1_128_cc	Hoehenlogik fehlt, siehe code128.md
-code128_based.c	nve18_or_ean14	ported	nve18_or_ean14
+code128_based.c	nve18_or_ean14	partial	nve18_or_ean14	GS1PARENS_MODE wird nicht ausgewertet, siehe code128.md
 code128_based.c	zint_dpd	missing		LUECKE: kein Pascal-Gegenstueck. Siehe code128.md
-code128_based.c	zint_ean14	ported	ean_14
-code128_based.c	zint_nve18	ported	nve_18
+code128_based.c	zint_ean14	ported	ean_14	Wrapper um nve18_or_ean14 (partial); die Luecke liegt dort
+code128_based.c	zint_nve18	ported	nve_18	Wrapper um nve18_or_ean14 (partial); die Luecke liegt dort
 code128_based.c	zint_upu_s10	missing		LUECKE: kein Pascal-Gegenstueck. Siehe code128.md
 medical.c	pharma_two_calc	ported	pharma_two_calc
 medical.c	zint_code32	partial	code32	Hoehenlogik fehlt, siehe medical.md
@@ -57,7 +57,7 @@ postal.c	zint_japanpost	partial	japan_post	Hoehenlogik fehlt, siehe postal.md
 postal.c	zint_kix	partial	kix_code	Hoehenlogik fehlt, siehe postal.md
 postal.c	zint_koreapost	ported	korea_post
 postal.c	zint_planet	ported	planet_plot	Hoehe kommt in C aus usps_set_height, dort als eigene Luecke gefuehrt
-postal.c	zint_postnet	ported	post_plot	dito
+postal.c	zint_postnet	ported	post_plot	Hoehe kommt in C aus usps_set_height, dort als eigene Luecke gefuehrt
 postal.c	zint_rm4scc	partial	royal_plot	Hoehenlogik fehlt, siehe postal.md
 telepen.c	zint_telepen	partial	telepen	Hoehenlogik fehlt, siehe telepen.md
 telepen.c	zint_telepen_num	partial	telepen_num	Hoehenlogik fehlt, siehe telepen.md

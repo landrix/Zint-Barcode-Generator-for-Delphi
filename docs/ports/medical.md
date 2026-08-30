@@ -40,7 +40,9 @@ Pharmacode, Code32, PZN
 Alle Eintraege stammen aus dem Funktionsinventar
 (`docs/ports/_functions.tsv`), nicht aus einem Testlauf: C-Funktionen, zu denen
 es im Port keine oder nur eine unvollstaendige Entsprechung gibt. Kein Test
-faellt darueber, weil die portierten C-Testsuiten die Hoehe nicht pruefen.
+faellt darueber: die zugehoerige C-Testsuite prueft `symbol->height` nirgends,
+der blinde Fleck ist also aus C geerbt. (Fuer postal und code128 gilt das
+nicht - dort wurden vorhandene C-Assertions beim Portieren weggelassen.)
 
 | C-Funktion | Status | Fehlt im Port |
 |---|---|---|
