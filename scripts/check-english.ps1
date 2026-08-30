@@ -1,24 +1,29 @@
 <#
-  Sucht deutschsprachige Stellen in allen versionierten Textdateien.
+  Finds German text in all tracked text files.
 
-  Zweck: Vor dem Merge nach main muss alles Deutsche uebersetzt sein
-  (docs/PORTING_WORKFLOW.md, Abschnitt 2a). Dieses Skript findet, was noch
-  offen ist - es ersetzt keine Durchsicht, aber es verhindert, dass eine ganze
-  Datei uebersehen wird.
+  Purpose: before merging into main everything German must be translated
+  (docs/PORTING_WORKFLOW.md, section 2a). This script finds what is left. It
+  does not replace reading the diff - it prevents overlooking a whole file.
 
-  Exitcode 0 = nichts gefunden, 1 = Treffer (oder Fehler).
+  Exit code 0 = nothing found, 1 = hits (or an error).
 
-  Erkannt wird an zwei Signalen:
-    1. Umlaute und Eszett - eindeutig, praktisch keine Fehltreffer.
-    2. Deutsche Funktionswoerter als ganze Woerter. Bewusst konservativ
-       gewaehlt: nur Woerter, die weder englisch noch Pascal-Schluesselwort
-       noch plausibler Bezeichner sind.
+  Two signals:
+    1. Umlauts and eszett - unambiguous, practically no false positives.
+    2. German function and content words, whole words, from
+       scripts/check-english-words.txt.
 
-  Fehltreffer sind moeglich (Barcode-Testdaten, Eigennamen). Dafuer gibt es
-  scripts/check-english-ignore.txt: eine Glob-Zeile je Ausnahme.
+  The word list cannot be complete: a German line built only from unlisted
+  words passes. Treat a clean run as "no whole file was forgotten", not as
+  proof that the repository is English.
 
-  Dieses Skript prueft sich nicht selbst - seine Wortliste besteht
-  naturgemaess aus deutschen Woertern.
+  This file is written in English and is ASCII only on purpose. It scans
+  itself, and PowerShell 5.1 reads a BOM-less file as ANSI - a literal umlaut
+  in the source would break parsing there. Umlauts are therefore built from
+  character codes.
+
+  Only scripts/check-english-words.txt is excluded from the scan; it consists
+  of German words by definition. False positives elsewhere (test data, proper
+  names) belong in scripts/check-english-ignore.txt with a reason.
 #>
 param(
   [string]$Path = "",
@@ -32,66 +37,73 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $repoRoot
 try {
-  # Nur versionierte Dateien - Build-Ausgaben und die C-Referenz bleiben aussen vor.
+  # Tracked files only - build output and the C reference stay out.
   $tracked = & git ls-files
   if ($LASTEXITCODE -ne 0) {
     throw "git ls-files failed - is this a git repository?"
   }
 
+  # Every versioned format that can carry prose. Adding an extension is
+  # cheap; a missing one makes the check silently blind to those files.
   $textExtensions = @(
-    ".md", ".txt", ".tsv", ".csv",
-    ".pas", ".inc", ".dpr", ".lpr", ".dfm",
+    ".md", ".txt", ".tsv", ".csv", ".svg",
+    ".pas", ".inc", ".dpr", ".lpr", ".dfm", ".fmx", ".lfm",
+    ".dproj", ".groupproj", ".bdsproj", ".lpi", ".lps",
     ".ps1", ".psm1", ".bat", ".cmd", ".sh",
-    ".yml", ".yaml", ".json", ".xml", ".lpi", ".gitignore", ".gitmodules"
+    ".yml", ".yaml", ".json", ".xml", ".gitignore", ".gitmodules"
   )
 
-  # Fest ausgenommen: fremder Code und dieses Skript selbst.
+  # Foreign code, and the word list itself.
   $builtinIgnore = @(
     "Lib/*",
-    "scripts/check-english.ps1",
-    "scripts/check-english-ignore.txt"
+    "scripts/check-english-words.txt"
   )
 
   $ignoreFile = Join-Path $PSScriptRoot "check-english-ignore.txt"
   $userIgnore = @()
   if (Test-Path $ignoreFile) {
-    $userIgnore = Get-Content $ignoreFile |
+    $userIgnore = @(Get-Content $ignoreFile |
       Where-Object { $_.Trim() -ne "" -and -not $_.TrimStart().StartsWith("#") } |
-      ForEach-Object { $_.Trim() }
+      ForEach-Object { $_.Trim() })
   }
   $ignore = $builtinIgnore + $userIgnore
 
-  # @() erzwingt ein Array: bei genau einem Treffer liefert die Pipeline sonst
-  # ein Einzelobjekt, dessen .Count nicht die Anzahl der Dateien ist.
+  # @() forces an array: with a single match the pipeline yields one object,
+  # whose .Count is not the number of files.
   $files = @($tracked | Where-Object {
     $f = $_
     $ext = [IO.Path]::GetExtension($f)
-    if ($ext -eq "" ) { $ext = [IO.Path]::GetFileName($f) }
+    if ($ext -eq "") { $ext = [IO.Path]::GetFileName($f) }
     if ($textExtensions -notcontains $ext) { return $false }
     foreach ($pattern in $ignore) { if ($f -like $pattern) { return $false } }
     return $true
   })
 
   if ($Path -ne "") {
-    $files = @($files | Where-Object { $_ -like $Path })
+    $filtered = @($files | Where-Object { $_ -like $Path })
+    if ($filtered.Count -eq 0) {
+      # Silently reporting success for a typo would be the worst outcome.
+      throw ("-Path '{0}' matches none of the {1} scanned files." -f $Path, $files.Count)
+    }
+    $files = $filtered
   }
 
-  # Ganze Woerter, die im Englischen nicht vorkommen und keine Bezeichner sind.
-  $germanWords = @(
-    "und", "oder", "nicht", "kein", "keine", "keinen", "keiner",
-    "wurde", "wurden", "werden", "wird", "muss", "muessen", "soll", "sollen",
-    "dann", "wenn", "weil", "damit", "dass", "ohne", "gegen", "zwischen",
-    "jeder", "jede", "jeden", "alle", "allen", "alles",
-    "eine", "einen", "einem", "eines", "einer",
-    "dieser", "diese", "dieses", "diesem", "diesen",
-    "durch", "beim", "vom", "zum", "zur", "nach", "unter", "ueber",
-    "sich", "ihre", "seine", "noch", "immer", "bereits", "jetzt", "siehe",
-    "hier", "dort", "sind", "haben", "wegen", "bevor", "waehrend",
-    "gruen", "fehlt", "fehlen", "abweichung", "aenderung", "datei", "dateien",
-    "zeile", "zeilen", "zeichen", "laenge", "gilt", "gelten", "erst", "erste"
-  )
+  $wordFile = Join-Path $PSScriptRoot "check-english-words.txt"
+  if (-not (Test-Path $wordFile)) {
+    throw "Word list not found: $wordFile"
+  }
+  $germanWords = @(Get-Content $wordFile |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -ne "" -and -not $_.StartsWith("#") })
+  if ($germanWords.Count -eq 0) {
+    throw "Word list $wordFile is empty - the check would pass on anything."
+  }
   $wordPattern = "(?i)\b(" + ($germanWords -join "|") + ")\b"
-  $umlautPattern = "[äöüÄÖÜß]"
+
+  # Built from code points so this file stays pure ASCII (see header).
+  $umlautChars = @(0xE4, 0xF6, 0xFC, 0xC4, 0xD6, 0xDC, 0xDF) |
+    ForEach-Object { [char]$_ }
+  $umlautPattern = "[" + ($umlautChars -join "") + "]"
 
   $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
   $cp1252 = [System.Text.Encoding]::GetEncoding(1252)
@@ -99,11 +111,19 @@ try {
   $hits = @()
   foreach ($file in $files) {
     $bytes = [IO.File]::ReadAllBytes((Join-Path $repoRoot $file))
-    try {
-      $text = $strictUtf8.GetString($bytes)
-    } catch {
-      # Nicht jede Quelldatei ist UTF-8; zint_qr_epc.pas ist cp1252.
-      $text = $cp1252.GetString($bytes)
+
+    if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+      $text = [System.Text.Encoding]::Unicode.GetString($bytes, 2, $bytes.Length - 2)
+    } elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+      $text = [System.Text.Encoding]::BigEndianUnicode.GetString($bytes, 2, $bytes.Length - 2)
+    } else {
+      try {
+        # Strict: invalid UTF-8 throws instead of yielding replacement chars.
+        $text = $strictUtf8.GetString($bytes)
+      } catch {
+        # Not every source file is UTF-8; zint_qr_epc.pas is cp1252.
+        $text = $cp1252.GetString($bytes)
+      }
     }
 
     $lineNo = 0
@@ -111,9 +131,9 @@ try {
       $lineNo++
       $reason = ""
       if ($line -cmatch $umlautPattern) {
-        $reason = "Umlaut"
+        $reason = "umlaut"
       } elseif ($line -match $wordPattern) {
-        $reason = "Wort '" + $Matches[1] + "'"
+        $reason = "word '" + $Matches[1] + "'"
       }
       if ($reason -ne "") {
         $hits += [pscustomobject]@{
@@ -127,7 +147,7 @@ try {
   }
 
   if ($hits.Count -eq 0) {
-    Write-Host "check-english: no German content found in $($files.Count) tracked text files."
+    Write-Host ("check-english: no German content found in {0} tracked text files." -f $files.Count)
     return
   }
 
@@ -136,7 +156,7 @@ try {
   if (-not $Quiet) {
     foreach ($group in $byFile) {
       Write-Host ""
-      Write-Host ("{0}  ({1} Zeile(n))" -f $group.Name, $group.Count)
+      Write-Host ("{0}  ({1} line(s))" -f $group.Name, $group.Count)
       $shown = if ($All) { $group.Group } else { $group.Group | Select-Object -First $MaxPerFile }
       foreach ($hit in $shown) {
         $snippet = $hit.Text
@@ -144,7 +164,7 @@ try {
         Write-Host ("  {0,5}: [{1}] {2}" -f $hit.Line, $hit.Reason, $snippet)
       }
       if (-not $All -and $group.Count -gt $MaxPerFile) {
-        Write-Host ("        ... {0} weitere (-All zeigt alle)" -f ($group.Count - $MaxPerFile))
+        Write-Host ("        ... {0} more (-All shows every line)" -f ($group.Count - $MaxPerFile))
       }
     }
     Write-Host ""

@@ -150,11 +150,27 @@ Commit-Historie - Messages sind seit Abschnitt 6 ohnehin englisch und werden
 nicht rueckwirkend angefasst.
 
 **Nicht jeder Treffer ist eine Uebersetzungsaufgabe.** Deutsche Zeichen koennen
-Nutzdaten sein und muessen dann unveraendert bleiben - etwa das Umlaut-Set in
-`zint_qr_epc.pas` (`CharInSet(AValue[i], ['ae', 'oe', 'ue', ...])`, EPC-QR
-erlaubt genau diese Zeichen) oder Testeingaben, deren deutscher Text Teil des
-geprueften C-Falls ist. Solche Stellen kommen mit Begruendung nach
-`scripts/check-english-ignore.txt`, sie werden nicht uebersetzt.
+Nutzdaten sein und muessen dann Byte fuer Byte unveraendert bleiben. Der Fall im
+Projekt ist `zint_qr_epc.pas:247`:
+
+```pascal
+if CharInSet(AValue[i], ['Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', 'ß', '&']) then
+```
+
+Das sind die sieben Zeichen, die EPC-QR zusaetzlich erlaubt, in cp1252 kodiert -
+keine Sprache, sondern eine Zeichenmenge. Wer sie beim Uebersetzen durch `ae`,
+`oe`, `ue` ersetzt, aendert die Eingabevalidierung. Dasselbe gilt fuer
+Testeingaben, deren deutscher Text Teil des geprueften C-Falls ist.
+
+Solche Stellen kommen mit Begruendung nach `scripts/check-english-ignore.txt`,
+sie werden nicht uebersetzt.
+
+Das Pruefskript besteht aus drei Dateien: `check-english.ps1` (Logik),
+`check-english-words.txt` (die gesuchten deutschen Woerter) und
+`check-english-ignore.txt` (begruendete Ausnahmen). Es prueft sich selbst mit;
+ausgenommen ist nur die Wortliste, die naturgemaess aus deutschen Woertern
+besteht. Ein gruener Lauf belegt nicht, dass alles englisch ist - die Wortliste
+kann nicht vollstaendig sein. Er belegt, dass keine ganze Datei vergessen wurde.
 
 Ablauf:
 

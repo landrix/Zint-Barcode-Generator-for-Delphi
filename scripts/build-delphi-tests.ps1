@@ -5,6 +5,7 @@ param(
   [string]$ProjectRelativePath = "UnitTests\DUnitXCmdTest.dproj",
   [string]$TestExeRelativePath = "",
   [int]$MinTests = 881,
+  [int]$MaxIgnored = 0,
   [switch]$SkipRun
 )
 
@@ -104,8 +105,11 @@ try {
   # Das FPC-Gate misst aus demselben Grund an "Number of run tests".
   $executedCount = $passedCount + $failedCount + $erroredCount
 
-  if ($ignoredCount -gt 0) {
-    throw ("{0} test(s) were ignored. Ignored tests do not verify anything - remove the [Ignore] or document the reason and lower -MinTests deliberately." -f $ignoredCount)
+  # Der Ausweg muss echt sein: die Meldung darf nicht auf eine Moeglichkeit
+  # verweisen, die es im Code nicht gibt. Wer bewusst ignoriert, hebt
+  # -MaxIgnored an und senkt -MinTests - beides sichtbar im Aufruf.
+  if ($ignoredCount -gt $MaxIgnored) {
+    throw ("{0} test(s) were ignored (allowed: {1}). Ignored tests do not verify anything - remove the [Ignore], or document the reason and raise -MaxIgnored together with lowering -MinTests." -f $ignoredCount, $MaxIgnored)
   }
 
   if ($executedCount -lt $MinTests) {

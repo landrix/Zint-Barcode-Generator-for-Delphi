@@ -15,6 +15,10 @@ Telepen, Telepen Numeric
 ## Portierte C-Indizes
 
 Vollstaendige Abdeckung: alle 49 Faelle aus `test_telepen.c` sind portiert.
+Zu lesen als "jeder C-Fall hat eine Delphi-Entsprechung mit denselben Eingaben
+und Erwartungswerten" - nicht als "jede einzelne C-Assertion ist nachgebildet".
+Zwei Assertionsarten kann der Port strukturell nicht abbilden, beide ohne
+praktische Folge fuer Telepen; sie stehen unter *Offene Deltas Delphi vs C*.
 
 | C-Testblock | Indizes | Anzahl |
 |---|---|---|
@@ -43,9 +47,14 @@ Aufteilung auf die beiden Fixtures:
 
 ## Offene Deltas Delphi vs C
 
+Beide Eintraege sind Querschnittsthemen des Ports, nicht Telepen-spezifisch.
+Gefunden im Codex-Review am 2026-08-30, ausfuehrlich in
+[library.md](library.md), Abschnitt *Querschnittsdeltas*.
+
 | C-Index | Erwartet (C) | Ist (Delphi) | Ursache | Naechster Schritt |
 |---|---|---|---|---|
-| _(keine)_ | | | | |
+| alle (ungetestet) | `telepen.c:133-138` und `:215-218` setzen `symbol.height` auf 32 mit `COMPLIANT_HEIGHT`, sonst 50 | `height` bleibt 0; `zint_telepen.pas` hat keine Entsprechung | Der Port kennt kein `z_set_height`. `test_telepen.c` prueft `height` nirgends, deshalb faellt es in keinem Gate auf | Port-weit loesen, siehe [common.md](common.md) und [library.md](library.md) |
+| `test_hrt` C#0-C#17 | C prueft `symbol->text_length` und vergleicht per `memcmp` | Vergleich ueber `GetText()`, also nullterminiert; `TZintSymbol` hat kein `text_length` | Strukturunterschied von `TZintSymbol` | Ohne Folge fuer Telepen: alle 18 Faelle setzen `expected_length = -1` (= `strlen`), und die Telepen-HRT ersetzt NUL durch ein Leerzeichen. Wird erst relevant, wenn ein Modul NUL in der HRT fuehrt |
 
 ## Offene Deltas FPC vs Delphi
 
@@ -105,6 +114,22 @@ Die uebrigen `StrRepeat`-Aufrufe im Projekt wurden gegengeprueft - die
 Ziellaengen-Semantik entspricht der C-Konvention `{ "muster", laenge }`, der
 Fehler war auf diesen einen Fall beschraenkt. Hinweis dazu jetzt in
 `docs/PORTING_WORKFLOW.md` Abschnitt 4.3a.
+
+### Review-Befunde (Codex, 2026-08-30)
+
+Der zweite Reviewer hat 14 Befunde geliefert, davon vier zu Telepen selbst.
+Alle nachgeprueft; die Telepen-Befunde sind umgesetzt, die uebrigen betreffen
+`qr.md`, die Gate-Skripte und das neue `check-english.ps1`.
+
+| Befund | Ergebnis |
+|---|---|
+| `height` wird nicht gesetzt (siehe Delta-Tabelle) | Bestaetigt am C-Quelltext. Nicht in diesem Branch behoben: der Port hat kein `z_set_height`, das ist Querschnittsarbeit. Als Delta dokumentiert - die Aussage "keine Deltas" war falsch |
+| `text_length` wird nicht geprueft | Bestaetigt, aber ohne Wirkung fuer die 18 HRT-Faelle: C setzt dort durchweg `expected_length = -1`. Als Delta dokumentiert |
+| `content_segs_count = 0` ist schwaecher als Cs `assert_null(content_segs)` | Umgesetzt. Der Zaehler und die Array-Laenge sind zwei Aussagen; `Length(sym.content_segs) = 0` steht jetzt in allen neun Faellen daneben |
+| Bei Erfolg fehlte die Pruefung `errtxt` leer (Cs `assert_equal(errtxt[0] == '\0', ret == 0)`) | Umgesetzt in den acht erfolgreichen `test_large`- und `test_input`-Faellen |
+
+Die Erweiterungen sind ohne Anpassung des Encoders gruen - der Port erfuellt
+die schaerferen Assertionen bereits, sie waren nur nie geprueft.
 
 ### Uebernommen aus MIGRATION_PLAN.md (Stand 2026-03-30)
 

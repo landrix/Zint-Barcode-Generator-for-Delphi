@@ -121,6 +121,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat(#127, 69));
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(1152, sym.width, 'width');
   finally
@@ -155,6 +158,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, ' !"#$%&''()*+,-./0123456789:;<');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(512, sym.width, 'width');
   finally
@@ -172,6 +178,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, 'AZaz' + #126 + #1);
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(144, sym.width, 'width');
   finally
@@ -194,6 +203,9 @@ begin
     b[2] := 0;    // terminator
     ret := TZintTestHelper.EncodeData(sym, b, 2);
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(80, sym.width, 'width');
   finally
@@ -341,7 +353,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABC1234.;$', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -356,7 +371,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('abc1234.;$', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -371,7 +389,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABC1234 ', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -391,7 +412,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABC 1234', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -406,7 +430,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('ABK0', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -423,6 +450,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, TZintTestHelper.StrRepeat('1', 136));
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(1136, sym.width, 'width');
   finally
@@ -457,6 +487,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, '1234567890');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(128, sym.width, 'width');
   finally
@@ -492,6 +525,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, '123456789X');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(128, sym.width, 'width');
   finally
@@ -527,6 +563,9 @@ begin
   try
     ret := TZintTestHelper.EncodeData(sym, '1X34567X9X');
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
+    { C: assert_equal(symbol->errtxt[0] == '\0', ret == 0) - bei Erfolg
+      muss errtxt leer sein. }
+    ZAssert.AreEqual('', TZintTestHelper.GetErrTxt(sym), 'errtxt');
     ZAssert.AreEqual(1, sym.rows, 'rows');
     ZAssert.AreEqual(128, sym.width, 'width');
   finally
@@ -544,7 +583,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('1234', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -559,7 +601,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -574,7 +619,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('123X', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;
@@ -589,7 +637,10 @@ begin
     ZAssert.AreEqual(ZINT_OK, ret, 'ret');
     ZAssert.AreEqual('012345', TZintTestHelper.GetText(sym), 'text');
     { C prueft in den Faellen ohne BARCODE_CONTENT_SEGS zusaetzlich,
-      dass content_segs NULL bleibt (assert_null in test_telepen.c). }
+      dass content_segs NULL bleibt (assert_null in test_telepen.c).
+      Das Gegenstueck zum NULL-Zeiger ist das leere dynamische Array,
+      nicht der Zaehler: Length = 0 und Zaehler = 0 sind zwei Aussagen. }
+    ZAssert.AreEqual(0, Length(sym.content_segs), 'content_segs');
     ZAssert.AreEqual(0, sym.content_segs_count, 'content_segs_count');
   finally sym.Free; end;
 end;

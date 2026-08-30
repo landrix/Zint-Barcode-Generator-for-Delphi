@@ -1,0 +1,168 @@
+# German words that check-english.ps1 looks for, one per line, matched as whole
+# words and case-insensitively. Lines starting with # are comments.
+#
+# This is the only file the check excludes from its own scan - it consists of
+# German words by definition. Everything else, including check-english.ps1
+# itself and check-english-ignore.txt, is scanned like any other file.
+#
+# Selection rule: a word belongs here only if it is neither an English word nor
+# a Pascal keyword nor a plausible identifier. "die" and "fall" are deliberately
+# absent - both are English. Prefer adding a word that actually occurs in this
+# repository over completing a grammar. Words of three or four letters are
+# risky in this codebase: the encoders carry tables of short string literals.
+# "also" (English) and "als" (matches a PDF417 table entry) were removed for
+# exactly that reason.
+#
+# The list cannot be complete. A German sentence made only of words that are not
+# listed will pass. The script is a safety net against overlooking a whole file,
+# not proof that a file is English.
+
+# --- articles, pronouns, conjunctions -------------------------------------
+der
+das
+ein
+eine
+einen
+einem
+eines
+einer
+dieser
+diese
+dieses
+diesem
+diesen
+jeder
+jede
+jeden
+alle
+allen
+alles
+sich
+ihre
+seine
+und
+oder
+aber
+sondern
+sowie
+denn
+weil
+damit
+dass
+wenn
+dann
+statt
+
+# --- verbs, auxiliaries ----------------------------------------------------
+ist
+sind
+haben
+wurde
+wurden
+werden
+wird
+muss
+muessen
+soll
+sollen
+kann
+koennen
+laeuft
+laufen
+liefert
+ergibt
+bleibt
+gilt
+gelten
+fehlt
+fehlen
+entspricht
+setzt
+prueft
+zaehlt
+
+# --- prepositions, adverbs -------------------------------------------------
+auf
+aus
+mit
+von
+bei
+beim
+vom
+zum
+zur
+nach
+unter
+ueber
+durch
+gegen
+ohne
+zwischen
+bevor
+waehrend
+wegen
+noch
+immer
+bereits
+jetzt
+hier
+dort
+siehe
+zusaetzlich
+ausserdem
+jedoch
+allerdings
+gegenueber
+nicht
+kein
+keine
+keinen
+keiner
+nur
+auch
+sehr
+schon
+
+# --- vocabulary of this project's documentation ----------------------------
+portiert
+portierte
+portierung
+uebersetzt
+uebersetzung
+ausgefuehrt
+geprueft
+verhalten
+abdeckung
+indizes
+faelle
+anzahl
+summe
+grund
+gruenden
+hinweis
+ursache
+erwartet
+naechster
+naechste
+schritt
+schritte
+muster
+zaehler
+zeile
+zeilen
+zeichen
+laenge
+datei
+dateien
+aenderung
+aenderungen
+abweichung
+abweichungen
+offen
+offene
+gruen
+moeglich
+notwendig
+erforderlich
+vollstaendig
+unveraendert
