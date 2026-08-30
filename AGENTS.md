@@ -18,6 +18,8 @@ Die wichtigsten Regeln vorab:
 - **Kein Merge nach `develop` ohne Review durch Codex UND Fable 5** – auch nicht
   für Infrastruktur- oder Doku-Branches. Auftragsvorlage:
   [docs/REVIEW_PROMPT.md](docs/REVIEW_PROMPT.md).
+- **Commit-Messages sind auf Englisch** – ausnahmslos, auch Merge- und Doku-Commits.
+  Die Projektdokumentation und Quelltextkommentare bleiben deutsch.
 - Modulspezifischer Status und Deltas gehören nach `docs/ports/<modul>.md`,
   **nicht** in den MIGRATION_PLAN.
 

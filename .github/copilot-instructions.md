@@ -135,6 +135,10 @@ jeden Branch, auch fuer reine Infrastruktur- und Doku-Branches.
 ## 11) Commit- und Aenderungsdisziplin
 
 - Kleine, thematisch saubere Aenderungen.
+- **Commit-Messages sind auf Englisch** - Betreff und Rumpf, ausnahmslos, auch
+  bei Merge-, Doku- und Review-Commits. Nur die Commit-Historie; die
+  Projektdokumentation und Quelltextkommentare bleiben deutsch. Details:
+  [../docs/PORTING_WORKFLOW.md](../docs/PORTING_WORKFLOW.md), Abschnitt 6.
 - Commit/Change-Message soll enthalten:
 	- Was wurde portiert/gefixt?
 	- Welche C-Referenz (Datei/Funktion/Testblock)?

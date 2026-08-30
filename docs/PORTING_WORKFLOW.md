@@ -313,13 +313,22 @@ Vor dem Merge nach develop pruefen:
 
 ## 6) Commit-Konvention
 
-```
-<modul>: <was wurde portiert/gefixt>
+**Commit-Messages sind auf Englisch.** Betreff und Rumpf, ausnahmslos - auch bei
+Merge-, Doku- und Review-Commits. Der portierte Code und die C-Referenz sind
+englisch, die Historie ist es damit auch. Die Projektdokumentation
+(`docs/`, `AGENTS.md`, Quelltextkommentare) bleibt deutsch; die Sprachregel gilt
+nur fuer Commit-Messages.
 
-C-Referenz: backend/<modul>.c <funktion>, backend/tests/test_<modul>.c <block>
-Tests:      Delphi <n>/<n> gruen, FPC <n>/<n> gruen
-Deltas:     <offene Abweichungen, oder "keine">
 ```
+<module>: <what was ported or fixed>
+
+C reference: backend/<module>.c <function>, backend/tests/test_<module>.c <block>
+Tests:       Delphi <n>/<n> green, FPC <n>/<n> green
+Deltas:      <remaining differences, or "none">
+```
+
+Vor `git commit` pruefen: ist der Betreff englisch? Deutsche Messages werden nur
+noch korrigiert, solange der Commit nicht gepusht ist.
 
 ---
 
