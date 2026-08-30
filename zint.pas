@@ -2093,17 +2093,20 @@ var
 begin
   SetLength(to_process, 114); SetLength(temp, 2);
 
+	{ C: library.c:432. Ohne "+" und Pruefzeichen sind es nach HIBC 2.6
+	  hoechstens 110 Zeichen. }
 	if (_length > 110) then
   begin
-		strcpy(symbol.errtxt, 'Data too long for HIBC LIC');
+		strcpy(symbol.errtxt, Format('Error 202: Input length %d too long for HIBC LIC (maximum 110)', [_length]));
 		result := ZERROR_TOO_LONG; exit;
 	end;
 	to_upper(source);
-	error_number := is_sane(TECHNETIUM, source, _length);
-	if (error_number = ZERROR_INVALID_DATA) then
+	{ C: library.c:438. not_sane liefert die Position ab 1, wie z_not_sane. }
+	i := not_sane(TECHNETIUM, source, _length);
+	if i <> 0 then
   begin
-		strcpy(symbol.errtxt, 'Invalid characters in data');
-		result := error_number; exit;
+		strcpy(symbol.errtxt, Format('Error 203: Invalid character at position %d in input (alphanumerics, space and "-.$/+%%" only)', [i]));
+		result := ZERROR_INVALID_DATA; exit;
 	end;
 
 	strcpy(to_process, '+');
@@ -2247,6 +2250,40 @@ begin
 end;
 
 
+{ C: z_is_composite, common.c. }
+function is_composite(const _symbology : Integer) : Boolean;
+begin
+  Result := ((_symbology >= BARCODE_EANX_CC) and (_symbology <= BARCODE_RSS_EXPSTACK_CC));
+  { C prueft zusaetzlich BARCODE_EAN8_CC (148) und BARCODE_EAN13_CC (149);
+    beide Symbologien kennt der Port nicht. }
+end;
+
+{ C: check_force_gs1, library.c. Symbologien, die GS1-Daten haben muessen. }
+function check_force_gs1(const _symbology : Integer) : Boolean;
+begin
+  case _symbology of
+    BARCODE_EAN128, BARCODE_EAN14, BARCODE_NVE18,
+    BARCODE_RSS_EXP, BARCODE_RSS_EXPSTACK:
+      Result := True;
+    else
+      Result := is_composite(_symbology);
+  end;
+end;
+
+{ C: library.c:1009-1021. Die Meldung bei leerer Eingabe haengt von der
+  Symbologie ab; der Port schrieb bis zum 2026-08-30 einheitlich
+  'No input data' ohne Fehlernummer. Gefunden vom Differenztest. }
+procedure set_no_input_data_errtxt(symbol : zint_symbol);
+begin
+  if is_composite(symbol.symbology) and
+     (((symbol.input_mode and $07) = GS1_MODE) or check_force_gs1(symbol.symbology)) then
+    strcpy(symbol.errtxt, 'Error 779: No composite data (2D component)')
+  else if supports_eci(symbol.symbology) then
+    strcpy(symbol.errtxt, 'Error 228: No input data (segment 0 empty)')
+  else
+    strcpy(symbol.errtxt, 'Error 778: No input data');
+end;
+
 function supports_eci(const _symbology: Integer): boolean;
 begin
   {* Returns 1 if symbology can encode the ECI character *}
@@ -2307,7 +2344,14 @@ begin
   case mode_base of
 		DATA_MODE,
 		GS1_MODE:
-			preprocessed := source;
+      { C uebergibt den Encodern einen eigenen, nullterminierten Puffer
+        (library.c). Der Port hat hier bis zum 2026-08-30 nur die Referenz
+        weitergereicht und damit die oben angelegte Reserve von einem Byte
+        verworfen. Encoder, die wie c128_cost bewusst source[i + 1] lesen,
+        lasen dann ueber das Ende hinaus: bei DATA_MODE und "ABC123" kam
+        ABC1231 heraus. Gefunden vom Differenztest. }
+      if _length > 0 then
+        Move(source[0], preprocessed[0], _length);
 		UNICODE_MODE:
     begin
 			error_number := latin1_process(symbol, source, preprocessed, _length);
@@ -2578,7 +2622,7 @@ begin
 
 	if (_length = 0) then
   begin
-		strcpy(symbol.errtxt, 'No input data');
+		set_no_input_data_errtxt(symbol);
 		error_tag(symbol.errtxt, ZERROR_INVALID_DATA);
 		Result := ZERROR_INVALID_DATA; exit;
 	end;
@@ -3342,7 +3386,7 @@ begin
 
   if Length(segs) = 0 then
   begin
-    strcpy(symbol.errtxt, 'No input data');
+    set_no_input_data_errtxt(symbol);
     Result := ZERROR_INVALID_DATA;
     Exit;
   end;

@@ -42,6 +42,7 @@ uses
   Test_2of5,
   Test_Auspost,
   Test_Aztec,
+  Test_CDiff,
   Test_Code,
   Test_Code1,
   Test_Code128,

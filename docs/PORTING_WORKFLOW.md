@@ -508,6 +508,72 @@ abdecken, fuer die es in C gar keinen Test gibt. Noch nicht gebaut.
 
 ---
 
+## 3b) Differenztest gegen die C-Bibliothek
+
+Inventar und Assertions-Abgleich pruefen den Quelltext. Der Differenztest
+prueft **Verhalten**: dieselben Eingaben durch die echte C-Bibliothek und durch
+den Port, Ergebnis gegen Ergebnis.
+
+| Datei | Rolle |
+|---|---|
+| `UnitTests/data/cdiff-corpus.tsv` | die Faelle: Symbologie, `input_mode`, `option_1..3`, `output_options`, Eingabe |
+| `UnitTests/data/cdiff-golden.tsv` | was die C-Bibliothek daraus macht: `ret`, `errtxt`, `rows`, `width`, `height`, `option_1..3`, `text`, Modulmuster |
+| `UnitTests/data/cdiff-ignore.txt` | begruendete Ausnahmen, je Fall und Feld |
+| `UnitTests/Test_CDiff.pas` | schickt den Korpus durch den Port und vergleicht |
+| `scripts/tools/cdump.c` | erzeugt die Referenzwerte, gebaut gegen die C-Referenz |
+| `scripts/build-c-reference.ps1` | uebersetzt `cdump` in WSL mit gcc |
+| `scripts/gen-cdiff-golden.ps1` | Korpus -> Referenzdatei |
+
+**WSL und gcc braucht nur die Neuerzeugung der Referenzdatei.** Die Testgates
+lesen eine Datei; ihre Werkzeugliste bleibt Delphi und FPC.
+
+> **Die Referenzdatei wird nie neu erzeugt, um einen roten Test gruen zu
+> machen.** Ihre Neuerzeugung ist ein eigener Commit mit eigener Begruendung -
+> in gleicher Schaerfe wie "Keine Assertion entfernt, nur um gruen zu werden"
+> (Abschnitt 6). Ein roter Differenztest heisst entweder, dass der Port
+> abweicht, oder dass ein Fall im Korpus steht, der nicht hineingehoert.
+> Beides klaert man am Fall, nicht an der Datei.
+
+Dasselbe gilt fuer `cdiff-ignore.txt`: eine Ausnahme ist eine anderswo
+verfolgte Abweichung, kein Mittel, um Rot loszuwerden. Jede Zeile braucht eine
+Begruendung und einen Verweis. Die Liste prueft sich selbst - eine Ausnahme,
+die nicht mehr noetig ist, laesst den Test fehlschlagen.
+
+### Was er kann, was er nicht kann
+
+Er findet Verhalten, das in C existiert und beim Portieren uebersehen wurde,
+**ohne dass jemand die passende Assertion geschrieben haben muss**. Das ist
+genau die Luecke, die Abschnitt 3a beschreibt.
+
+Er ersetzt die handportierten C-Testfaelle nicht. Deren `C#<n>`-Verweise sind
+die Rueckverfolgbarkeit zur Testabsicht; eine erzeugte Referenzdatei hat keine.
+Beide werden gebraucht.
+
+Er prueft nur, was nach dem Kodieren im Symbol steht. Rendering, Dateiformate
+und CLI bleiben aussen vor - dieselbe Abgrenzung wie beim Inventar.
+
+Er sagt nichts ueber Normkonformitaet. Ist Zint C an einer Stelle falsch, ist
+der Port es nach diesem Test genauso.
+
+### Was der erste Lauf gefunden hat
+
+436 Faelle ueber 43 Symbologien, alle Gates vorher gruen. Gefunden wurden:
+
+| Befund | Art |
+|---|---|
+| `preprocessed := source` reichte in `reduced_charset` nur die Referenz weiter und verwarf die angelegte Reserve von einem Byte. `c128_cost` liest bewusst `source[i + 1]`; bei `DATA_MODE` und `"ABC123"` kodierte der Port **`ABC1231`** | falsche Daten, Lesen ueber das Pufferende |
+| `C93Ctrl` stand noch auf einem aelteren Zint-Stand: `$ % + - . /` wurden umgeschaltet statt direkt kodiert | falsches, laengeres Symbol |
+| Bei leerer Eingabe fehlte die Fehlernummer; C unterscheidet 778, 228 und 779 | Meldung |
+| HIBC LIC: 202 und 203 fehlten, die Meldung nannte weder Position noch Zeichenvorrat | Meldung |
+| Code 128: acht Meldungen ohne Nummer (340, 341, 342, 344, 345, 346, 347, 845) | Meldung |
+| GS1: 252 fehlte | Meldung |
+
+Der erste Befund ist der wichtigste, und er zeigt, warum es diesen Test
+braucht: 930 gruene Tests, zwei statische Gates und zwei Reviewer haben ihn
+nicht gefunden. Er faellt nur auf, wenn der Puffer nicht ueberreserviert ist -
+und der Testhelfer des Ports haengt an jede Zeichenketteneingabe ein NUL an.
+Erst der Differenztest hat mit einem exakt bemessenen Puffer kodiert.
+
 ## 4) Dual-Compiler-Regeln (Delphi + FPC)
 
 Diese Punkte sind der haeufigste Grund, warum Delphi-Code unter FPC bricht.

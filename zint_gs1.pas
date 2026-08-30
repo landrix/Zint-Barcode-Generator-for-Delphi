@@ -137,7 +137,10 @@ begin
 
 	if local_source[0] <> obracket then
   begin
-		strcpy(symbol.errtxt, 'Data does not start with an AI');
+		{ C: gs1.c:2204. Fuer Symbologien mit festem Seitenverhaeltnis (MaxiCode,
+		  Ultracode, gepunktete) meldet C stattdessen 855 und laesst eine
+		  Digital-Link-URI zu; beides kennt der Port nicht. Siehe gs1.md. }
+		strcpy(symbol.errtxt, 'Error 252: Data does not start with an AI');
 		result := ZERROR_INVALID_DATA; exit;
 	end;
 

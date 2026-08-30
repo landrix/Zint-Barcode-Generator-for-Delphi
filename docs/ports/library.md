@@ -145,6 +145,17 @@ diesen Stellen ausgewertet oder gehoeren zu Modulen, die ohnehin nicht auf
 verwerfen, statt sie einzeln nachzureichen. Gefunden im Codex-Review von
 `chore/set-height` am 2026-08-30.
 
+### `symbol.text` ist Latin-1, in C UTF-8 (offen)
+
+`zint.h:135` beschreibt `text` als UTF-8. Der Port schreibt die Quellbytes
+unveraendert hinein: fuer das Eingabebyte `0xFF` steht in C `C3 BF`, im Port
+`FF`.
+
+Aufgefallen im Differenztest (`CODE128.highbyte`, `CODE128B.highbyte`), dort
+als Ausnahme gefuehrt. Es betrifft jedes Modul, das eine HRT schreibt, und die
+Aufloesung gehoert zur HRT-Behandlung des gesamten Ports - zusammen mit dem
+fehlenden `text_length` unten.
+
 ### `TZintSymbol` hat kein `text_length`
 
 Cs `zint_symbol` fuehrt `text` **und** `text_length`; die HRT kann eingebettete

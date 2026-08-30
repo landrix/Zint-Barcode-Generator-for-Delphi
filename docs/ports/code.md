@@ -57,6 +57,16 @@ ueber `UnitTests/Test_Height.pas`, erzeugt aus den Tabellen `test_height` und
 `zint_code11` (`code11.c`) und `zint_vin` sind vollstaendig portiert und
 enthalten in C keine Hoehenlogik.
 
+### Behoben: C93Ctrl stand auf einem aelteren Zint-Stand (2026-08-31)
+
+`$`, `%`, `+`, `-`, `.` und `/` gehoeren zum Grundvorrat von Code 93 und werden
+direkt kodiert. Der Port hatte fuer diese sechs Zeichen noch die
+Umschaltfolgen `cD`, `cE`, `cK`, `cM`, `cN` und `cO` und erzeugte damit ein
+laengeres Symbol als C - bei `A1-/+ %` 136 statt 100 Module.
+
+Kein Test hat das bemerkt: `test_code.c` prueft keinen Fall mit diesen
+Zeichen. Gefunden vom Differenztest (`CODE93.punct`).
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |
