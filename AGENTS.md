@@ -21,7 +21,9 @@ Die wichtigsten Regeln vorab:
 - **Commit-Messages sind auf Englisch** – ausnahmslos, auch Merge- und Doku-Commits.
 - Doku und Quelltextkommentare sind auf `develop` deutsch. **Vor jedem Merge nach
   `main` wird alles Deutsche ins Englische übersetzt** – `main` ist die
-  öffentliche Release-Linie und dort steht kein deutscher Text.
+  öffentliche Release-Linie und soll keinen deutschen Text tragen. Der heutige
+  Stand von `main` erfüllt das noch nicht (Altbestand, u.a. `zint_qr_epc.pas`
+  und die `.dproj`); die Regel greift beim ersten Release-Schnitt.
 - Modulspezifischer Status und Deltas gehören nach `docs/ports/<modul>.md`,
   **nicht** in den MIGRATION_PLAN.
 

@@ -13,7 +13,7 @@ Fachliche Regeln (C-Referenz lesen, Deltas dokumentieren, Commit-Disziplin) steh
 ```
 main                 Release-Linie. Legacy-Stand + README. Bekommt develop erst
                      bei einem bewussten Release-Schnitt, nicht laufend.
-                     Alles auf main ist englisch (Abschnitt 2a).
+                     Alles, was nach main geht, ist englisch (Abschnitt 2a).
 
 develop              Integrationsbranch der Portierung. Immer gruen in beiden
                      Gates. Wird nach origin gepusht.
@@ -154,7 +154,7 @@ Nutzdaten sein und muessen dann Byte fuer Byte unveraendert bleiben. Der Fall im
 Projekt ist `zint_qr_epc.pas:247`:
 
 ```pascal
-if CharInSet(AValue[i], ['Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', 'ß', '&']) then
+if CharInSet(AValue[i],['Ä', 'ä', 'Ö', 'ö', 'Ü', 'ü', 'ß', '&']) then
 ```
 
 Das sind die sieben Zeichen, die EPC-QR zusaetzlich erlaubt, in cp1252 kodiert -
@@ -382,8 +382,9 @@ Vor dem Merge nach develop pruefen:
 **Commit-Messages sind auf Englisch.** Betreff und Rumpf, ausnahmslos - auch bei
 Merge-, Doku- und Review-Commits. Der portierte Code und die C-Referenz sind
 englisch, die Historie ist es damit auch. Die Projektdokumentation
-(`docs/`, `AGENTS.md`, Quelltextkommentare) bleibt deutsch; die Sprachregel gilt
-nur fuer Commit-Messages.
+(`docs/`, `AGENTS.md`, Quelltextkommentare) bleibt **auf `develop`** deutsch;
+vor dem Merge nach `main` wird auch sie uebersetzt (Abschnitt 2a). Diese Regel
+hier gilt unabhaengig davon fuer jede Commit-Message, auf jedem Branch.
 
 ```
 <module>: <what was ported or fixed>

@@ -53,10 +53,16 @@ C setzt am Ende jedes Encoders eine Symbolhoehe, ueber `z_set_height()` aus
 `common.c` - mit und ohne `COMPLIANT_HEIGHT` je einen anderen Wert. Beispiel
 `telepen.c:133-138`: 32 mit `COMPLIANT_HEIGHT`, sonst 50.
 
-Der Delphi-Port hat kein Gegenstueck zu `z_set_height`. `symbol.height` wird
-ausschliesslich in `zint.pas` beim Rendern aus `row_height` aufsummiert
-(`zint.pas:2229`, `:2240`) und in `zint_qr.pas` auf die Modulzahl gesetzt. Nach
-`ZBarcode_Encode` steht dort also nicht der Wert, den C liefert.
+Der Delphi-Port hat kein Gegenstueck zu `z_set_height`. Nach `ZBarcode_Encode`
+bleibt `symbol.height` auf seinem Ausgangswert; einzige Ausnahme ist
+`zint_qr.pas:2653`/`:3006`, wo die Modulzahl eingetragen wird.
+
+`zint.pas` enthaelt zwar eine Summierung aus `row_height` (`:2229`, `:2240`),
+aber sie laeuft nie: sie steht in `check_row_heights` (`:2209`), dessen Rumpf
+mit einem unbedingten `exit` beginnt (`:2216`) - der Rest ist toter Code. Die
+Prozedur wird ohnehin nur aus `ZBarcode_Encode` bei Warnungen 1..5 gerufen
+(`:3057`). Wer hier nach der Hoehenlogik sucht, findet also Code, der aussieht,
+als taete er etwas.
 
 Warum es bisher niemand gemerkt hat: **keine der portierten C-Testsuiten prueft
 `height`** - `test_telepen.c` enthaelt das Wort nicht ein einziges Mal. Das

@@ -73,8 +73,9 @@ try {
   $files = @($tracked | Where-Object {
     $f = $_
     $ext = [IO.Path]::GetExtension($f)
-    if ($ext -eq "") { $ext = [IO.Path]::GetFileName($f) }
-    if ($textExtensions -notcontains $ext) { return $false }
+    # No extension (LICENSE, Makefile, Dockerfile) means "scan it": such files
+    # carry prose more often than not, and a binary one is caught below.
+    if ($ext -ne "" -and $textExtensions -notcontains $ext) { return $false }
     foreach ($pattern in $ignore) { if ($f -like $pattern) { return $false } }
     return $true
   })
@@ -109,8 +110,27 @@ try {
   $cp1252 = [System.Text.Encoding]::GetEncoding(1252)
 
   $hits = @()
+  $binary = @()
   foreach ($file in $files) {
     $bytes = [IO.File]::ReadAllBytes((Join-Path $repoRoot $file))
+
+    # A NUL byte outside UTF-16 means binary (Delphi .dfm can be binary, and an
+    # extensionless file can be anything). Skipping is fine - reporting the
+    # skip is not optional, or the "no file forgotten" claim would be hollow.
+    $hasBom16 = $bytes.Length -ge 2 -and (
+      ($bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) -or
+      ($bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF))
+    if (-not $hasBom16) {
+      $probe = [Math]::Min($bytes.Length, 8192)
+      $isBinary = $false
+      for ($i = 0; $i -lt $probe; $i++) {
+        if ($bytes[$i] -eq 0) { $isBinary = $true; break }
+      }
+      if ($isBinary) {
+        $binary += $file
+        continue
+      }
+    }
 
     if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
       $text = [System.Text.Encoding]::Unicode.GetString($bytes, 2, $bytes.Length - 2)
@@ -146,8 +166,12 @@ try {
     }
   }
 
+  if ($binary.Count -gt 0) {
+    Write-Host ("check-english: skipped {0} binary file(s): {1}" -f $binary.Count, ($binary -join ", "))
+  }
+
   if ($hits.Count -eq 0) {
-    Write-Host ("check-english: no German content found in {0} tracked text files." -f $files.Count)
+    Write-Host ("check-english: no German content found in {0} tracked text files." -f ($files.Count - $binary.Count))
     return
   }
 
@@ -170,7 +194,7 @@ try {
     Write-Host ""
   }
 
-  Write-Host ("check-english: {0} German line(s) in {1} of {2} files." -f $hits.Count, $byFile.Count, $files.Count)
+  Write-Host ("check-english: {0} German line(s) in {1} of {2} files." -f $hits.Count, $byFile.Count, ($files.Count - $binary.Count))
   Write-Host "Translate them before merging into main (docs/PORTING_WORKFLOW.md, section 2a)."
   exit 1
 }

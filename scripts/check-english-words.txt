@@ -5,13 +5,17 @@
 # German words by definition. Everything else, including check-english.ps1
 # itself and check-english-ignore.txt, is scanned like any other file.
 #
-# Selection rule: a word belongs here only if it is neither an English word nor
-# a Pascal keyword nor a plausible identifier. "die" and "fall" are deliberately
-# absent - both are English. Prefer adding a word that actually occurs in this
-# repository over completing a grammar. Words of three or four letters are
-# risky in this codebase: the encoders carry tables of short string literals.
-# "also" (English) and "als" (matches a PDF417 table entry) were removed for
-# exactly that reason.
+# Selection rule: a word belongs here only if it would not plausibly appear in
+# this repository's English prose or in its data. "die" and "fall" are
+# deliberately absent - both are ordinary English. Words of three or four
+# letters are risky here: the encoders carry tables of short string literals.
+# Removed for that reason: "also" (English), "als" (matches a PDF417 table
+# entry in zint_pdf417.pas:395) and "muster" ("pass muster").
+#
+# Knowingly kept despite a rare English reading: "muss" ("no muss, no fuss")
+# and "gilt" ("gilt-edged"). Neither idiom belongs in a barcode library, while
+# both German words are frequent in this project's documentation. A false
+# positive costs one look at the line; a miss ships German text.
 #
 # The list cannot be complete. A German sentence made only of words that are not
 # listed will pass. The script is a safety net against overlooking a whole file,
@@ -146,7 +150,6 @@ naechster
 naechste
 schritt
 schritte
-muster
 zaehler
 zeile
 zeilen

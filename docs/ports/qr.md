@@ -89,8 +89,8 @@ ECI-Auto-Guess erzeugt zusaetzlich eine Warnung.
 
 | Fall | Delphi | FPC | Ursache |
 |---|---|---|---|
-| `TTestQR` (12 Methoden) und `TTestUPNQR` (3) | **stillgelegt**, Registrierung entfernt | n/a (Unit noch nicht im FPC-Gate) | Kein DUnitX-Problem, sondern der oben analysierte Abbruch in `TTestQR` bzw. die UPNQR-ECI-Deltas. `TTestRMQR` (9 Tests) laeuft seit dem 2026-08-30 wieder mit. Aktiv sind damit 9 von 24 Methoden der Unit. |
-| **Gesamte Unit laeuft nicht im FPC-Gate** | 9 aktive Methoden (siehe Zeile darueber) | nicht uebersetzbar | `Test_QR.pas` enthaelt 304 Zeichenliterale > `#$00FF` (z.B. `#$0416`) in typisierten Konstanten-Arrays. Unter FPC ist `String` eine AnsiString: *Unicodechar/string constants cannot be converted to ansi/shortstring at compile-time*. Loesung: betroffene Record-Felder von `String` auf `UnicodeString` umstellen (unter Delphi verhaltensgleich) samt Helper-Signaturen. Danach in `UnitTests/fpc/ZintTests.lpr` wieder eintragen. |
+| `TTestQR` (12 Methoden) und `TTestUPNQR` (3) | **stillgelegt**, Registrierung entfernt | n/a (Unit noch nicht im FPC-Gate) | Kein DUnitX-Problem, sondern der oben analysierte Abbruch in `TTestQR` bzw. die UPNQR-ECI-Deltas. `TTestRMQR` (9 Tests) laeuft seit dem 2026-08-30 wieder mit, `TTestMicroQR` (6) lief immer. Aktiv sind damit 15 der 30 Testmethoden der Unit. |
+| **Gesamte Unit laeuft nicht im FPC-Gate** | 15 aktive Methoden (siehe Zeile darueber) | nicht uebersetzbar | `Test_QR.pas` enthaelt 304 Zeichenliterale > `#$00FF` (z.B. `#$0416`) in typisierten Konstanten-Arrays. Unter FPC ist `String` eine AnsiString: *Unicodechar/string constants cannot be converted to ansi/shortstring at compile-time*. Loesung: betroffene Record-Felder von `String` auf `UnicodeString` umstellen (unter Delphi verhaltensgleich) samt Helper-Signaturen. Danach in `UnitTests/fpc/ZintTests.lpr` wieder eintragen. |
 
 ## Notizen
 
