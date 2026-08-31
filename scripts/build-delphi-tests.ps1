@@ -4,7 +4,7 @@ param(
   [string]$Platform = "Win32",
   [string]$ProjectRelativePath = "UnitTests\DUnitXCmdTest.dproj",
   [string]$TestExeRelativePath = "",
-  [int]$MinTests = 940,
+  [int]$MinTests = 941,
   [int]$MaxIgnored = 0,
   [switch]$SkipRun
 )

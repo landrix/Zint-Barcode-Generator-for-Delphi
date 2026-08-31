@@ -41,6 +41,20 @@ Kern-API, Dispatch, TZintSymbol
 |---|---|---|---|
 | | | | |
 
+## Behoben im Review von chore/cdiff-harness (2026-08-31)
+
+Zwei Stellen, die der Differenztest selbst nicht traf, sondern beide Reviewer
+am Quelltext fanden:
+
+- `ZBarcode_Encode_Segs` meldete bei leerer Segmentliste den symbologie-
+  abhaengigen Text (778, 228 oder 779). C unterscheidet: diese Nummern gelten
+  fuer ein vorhandenes, aber leeres erstes Segment; eine leere Liste ist
+  `Error 205: No input data` (`library.c:1043`).
+- `supports_eci` wich von C ab (`library.c:329`): `BARCODE_UPNQR` stand darin,
+  `BARCODE_CODEONE` fehlte. Das entscheidet unter anderem zwischen Fehler 228
+  und 778 bei leerer Eingabe. Jetzt deckungsgleich, soweit der Port die
+  Symbologien kennt - `BARCODE_HANXIN` und `BARCODE_ULTRA` fehlen ihm ganz.
+
 ## Querschnittsdeltas (betreffen jedes Modul)
 
 Sie stehen hier und nicht bei einem einzelnen Barcode, weil sie den gesamten

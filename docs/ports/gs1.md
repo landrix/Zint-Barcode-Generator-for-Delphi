@@ -38,7 +38,7 @@ GS1-Validierung
 ### Fehlernummern fehlen (offen)
 
 `zint_gs1.pas` schreibt bei den meisten Meldungen keine C-Fehlernummer; von
-den 14 Stellen tragen bisher drei eine. Der Differenztest fuehrt dafuer eine
+den 14 Stellen tragen bisher zwei eine (252 und 253). Der Differenztest fuehrt dafuer eine
 Ausnahme (`EAN128.highbyte:errtxt` in `UnitTests/data/cdiff-ignore.txt`) und
 wird weitere melden, sobald der Korpus mehr GS1-Faelle enthaelt.
 

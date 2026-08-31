@@ -69,6 +69,10 @@ type
       ausdruecklich ausgenommen ist. Genau diese Pruefung haette zint_dpd und
       zint_upu_s10 gemeldet. }
     [Test] procedure CDiff_KorpusVollstaendigZugeordnet;
+    { Umgekehrte Richtung: jede zugeordnete Symbologie braucht Faelle, und
+      jedes Modul braucht einen Testlauf. Ohne das koennte der Korpus auf acht
+      Faelle schrumpfen und alles bliebe gruen. }
+    [Test] procedure CDiff_JedeSymbologieHatFaelle;
     { Eine Ausnahme, die keine mehr noetig ist, muss weg - sonst verrottet die
       Liste unbemerkt und deckt spaeter eine echte Abweichung zu. }
     [Test] procedure CDiff_AusnahmenAlleNochNoetig;
@@ -295,8 +299,14 @@ begin
         Continue;
       cf := SplitTabs(corpus[i]);
       try
-        if (cf.Count < 8) or (cf[0] = 'id') then
+        if (cf.Count > 0) and (cf[0] = 'id') then
           Continue;
+        { Genau acht Felder - eine verstuemmelte Zeile wurde frueher still
+          uebersprungen und der Fall verschwand lautlos aus dem Lauf. cdump
+          verlangt dasselbe (scripts/tools/cdump.c). }
+        if cf.Count <> 8 then
+          raise Exception.Create('Test_CDiff: Korpuszeile ' + IntToStr(i + 1) +
+            ' hat ' + IntToStr(cf.Count) + ' Felder, erwartet 8');
         idx := byId.IndexOf(cf[0]);
         if idx < 0 then
           raise Exception.Create('Test_CDiff: Fall "' + cf[0] +
@@ -459,7 +469,9 @@ begin
         CheckField(c.Id, 'rows', IntToStr(c.Rows), IntToStr(sym.rows));
         CheckField(c.Id, 'width', IntToStr(c.Width), IntToStr(sym.width));
         CheckField(c.Id, 'height', FloatToStr(c.Height, CDiffFmt), FloatToStr(sym.height, CDiffFmt));
+        CheckField(c.Id, 'option_1', IntToStr(c.ExpOption1), IntToStr(sym.option_1));
         CheckField(c.Id, 'option_2', IntToStr(c.ExpOption2), IntToStr(sym.option_2));
+        CheckField(c.Id, 'option_3', IntToStr(c.ExpOption3), IntToStr(sym.option_3));
         CheckField(c.Id, 'text', c.Text, TZintTestHelper.GetText(sym));
         CheckField(c.Id, 'modules', c.Modules, TZintTestHelper.ModulesDump(sym));
       end;
@@ -501,6 +513,57 @@ begin
       '- entweder in SYM_MODULES eintragen oder mit Begruendung aus dem Korpus nehmen');
 end;
 
+{ Die Module, fuer die es oben eine CDiff_<Modul>-Methode gibt. Steht ein
+  Modul in SYM_MODULES, aber nicht hier, laeuft es stumm nie mit. }
+const
+  RUN_MODULES: array[0..7] of String =
+    ('2of5', 'auspost', 'code', 'code128', 'medical', 'plessey', 'postal', 'telepen');
+
+procedure TTestCDiff.CDiff_JedeSymbologieHatFaelle;
+var
+  i, j: Integer;
+  found: Boolean;
+  missing, unrun: String;
+begin
+  LoadCases;
+
+  { Jede zugeordnete Symbologie braucht mindestens einen Fall. }
+  missing := '';
+  for i := Low(SYM_MODULES) to High(SYM_MODULES) do
+  begin
+    found := False;
+    for j := 0 to High(FCases) do
+      if FCases[j].Symbology = SYM_MODULES[i].Symbology then
+      begin
+        found := True;
+        Break;
+      end;
+    if not found then
+      missing := missing + IntToStr(SYM_MODULES[i].Symbology) + ' ';
+  end;
+  if missing <> '' then
+    ZAssert.Fail('Test_CDiff: Symbologien in SYM_MODULES ohne Fall im Korpus: ' +
+      missing + '- entweder Faelle ergaenzen oder den Eintrag streichen');
+
+  { Und jedes zugeordnete Modul braucht eine Testmethode. }
+  unrun := '';
+  for i := Low(SYM_MODULES) to High(SYM_MODULES) do
+  begin
+    found := False;
+    for j := Low(RUN_MODULES) to High(RUN_MODULES) do
+      if RUN_MODULES[j] = SYM_MODULES[i].Modul then
+      begin
+        found := True;
+        Break;
+      end;
+    if (not found) and (Pos(SYM_MODULES[i].Modul + ' ', unrun) = 0) then
+      unrun := unrun + SYM_MODULES[i].Modul + ' ';
+  end;
+  if unrun <> '' then
+    ZAssert.Fail('Test_CDiff: Module in SYM_MODULES ohne CDiff-Testmethode: ' +
+      unrun + '- Methode ergaenzen und in RUN_MODULES eintragen');
+end;
+
 procedure TTestCDiff.CDiff_AusnahmenAlleNochNoetig;
 var
   i: Integer;
@@ -508,8 +571,10 @@ var
 begin
   { Setzt voraus, dass die Modultests vorher liefen - DUnitX und FPC fuehren
     die Methoden einer Fixture in Deklarationsreihenfolge aus, und diese steht
-    zuletzt. Laeuft sie allein, hat noch nichts verglichen; dann ist die
-    Aussage nicht zu treffen und der Test haelt sich zurueck. }
+    zuletzt. Laeuft sie allein oder gefiltert, hat noch nichts verglichen;
+    dann ist die Aussage nicht zu treffen und der Test haelt sich zurueck,
+    statt falsch gruen oder falsch rot zu melden. Der Verrottungsschutz gilt
+    also fuer den vollen Lauf, nicht fuer einen einzeln angestossenen. }
   LoadCases;
   LoadIgnores;
   if not FCompared then

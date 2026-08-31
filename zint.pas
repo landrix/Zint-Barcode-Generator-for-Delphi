@@ -2289,6 +2289,11 @@ begin
   {* Returns 1 if symbology can encode the ECI character *}
   result := false;
 
+  { C: library.c:329. Reihenfolge und Umfang wie dort. BARCODE_PDF417TRUNC
+    heisst upstream PDF417COMP, ist aber dieselbe Nummer 56. BARCODE_HANXIN
+    und BARCODE_ULTRA fehlen dem Port als Symbologie ganz. UPNQR stand hier
+    frueher zu Unrecht, CODEONE fehlte - beides faellt bei leerer Eingabe auf
+    die Wahl zwischen Fehler 228 und 778 durch. }
 	case _symbology of
     BARCODE_AZTEC,
     BARCODE_DATAMATRIX,
@@ -2297,11 +2302,10 @@ begin
     BARCODE_PDF417,
     BARCODE_PDF417TRUNC,
     BARCODE_QRCODE,
-  BARCODE_UPNQR,
-  BARCODE_RMQR,
     BARCODE_DOTCODE,
-    BARCODE_GRIDMATRIX:
-    {BARCODE_HANXIN:}
+    BARCODE_CODEONE,
+    BARCODE_GRIDMATRIX,
+    BARCODE_RMQR:
       Result := True;
   end;
 end;
@@ -3386,7 +3390,10 @@ begin
 
   if Length(segs) = 0 then
   begin
-    set_no_input_data_errtxt(symbol);
+    { C: library.c:1043. Fuer eine leere Segmentliste meldet C 205; die
+      Nummern 778, 228 und 779 gelten nur fuer ein vorhandenes, aber leeres
+      erstes Segment. }
+    strcpy(symbol.errtxt, 'Error 205: No input data');
     Result := ZERROR_INVALID_DATA;
     Exit;
   end;
