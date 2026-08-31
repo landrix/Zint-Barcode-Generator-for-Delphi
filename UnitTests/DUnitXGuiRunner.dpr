@@ -12,6 +12,7 @@ uses
   TestFramework_Zint,
   TestHelper_Zint,
   Test_CommonCore,
+  Test_CDiff,
   Test_Code16k,
   Test_Code49,
   Test_Code1,

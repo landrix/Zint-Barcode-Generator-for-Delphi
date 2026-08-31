@@ -454,7 +454,7 @@ begin
 
   if _length > C128_MAX then
   begin
-    strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, C128_MAX]));
+    strcpy(symbol.errtxt, Format('Error 340: Input length %d too long (maximum %d)', [_length, C128_MAX]));
     Result := ZERROR_TOO_LONG;
     Exit;
   end;
@@ -503,7 +503,7 @@ begin
   { Check if barcode is too long }
   if glyph_count > C128_SYMBOL_MAX then
   begin
-    strcpy(symbol.errtxt, Format('Input too long, requires %d symbol characters (maximum %d)', [glyph_count, C128_SYMBOL_MAX]));
+    strcpy(symbol.errtxt, Format('Error 341: Input too long, requires %d symbol characters (maximum %d)', [glyph_count, C128_SYMBOL_MAX]));
     Result := ZERROR_TOO_LONG;
     Exit;
   end;
@@ -538,7 +538,7 @@ begin
 
   if _length > C128_MAX then
   begin
-    strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, C128_MAX]));
+    strcpy(symbol.errtxt, Format('Error 342: Input length %d too long (maximum %d)', [_length, C128_MAX]));
     Result := ZERROR_TOO_LONG;
     Exit;
   end;
@@ -592,7 +592,7 @@ begin
   { Check length including linkage flag }
   if glyph_count + Ord(cc_mode <> 0) > C128_SYMBOL_MAX then
   begin
-    strcpy(symbol.errtxt, Format('Input too long, requires %d symbol characters (maximum %d)',
+    strcpy(symbol.errtxt, Format('Error 344: Input too long, requires %d symbol characters (maximum %d)',
       [glyph_count + Ord(cc_mode <> 0), C128_SYMBOL_MAX]));
     Result := ZERROR_TOO_LONG;
     Exit;
@@ -683,7 +683,7 @@ begin
   { C: code128.c:647. Nur warnen, wenn sonst nichts gewarnt hat. }
   if (error_number = 0) and ((symbol.output_options and READER_INIT) <> 0) then
   begin
-    strcpy(symbol.errtxt, 'Cannot use Reader Initialisation in GS1 mode, ignoring');
+    strcpy(symbol.errtxt, 'Warning 845: Cannot use Reader Initialisation in GS1 mode, ignoring');
     error_number := ZWARN_INVALID_OPTION;
   end;
 
@@ -746,7 +746,7 @@ begin
 
   if _length > data_len + 1 then
   begin
-    strcpy(symbol.errtxt, Format('Input length %d too long (maximum %d)', [_length, data_len + 1]));
+    strcpy(symbol.errtxt, Format('Error 345: Input length %d too long (maximum %d)', [_length, data_len + 1]));
     Result := ZERROR_TOO_LONG;
     Exit;
   end;
@@ -756,7 +756,7 @@ begin
   begin
     if (source[i] < Ord('0')) or (source[i] > Ord('9')) then
     begin
-      strcpy(symbol.errtxt, Format('Invalid character at position %d in input (digits only)', [i + 1]));
+      strcpy(symbol.errtxt, Format('Error 346: Invalid character at position %d in input (digits only)', [i + 1]));
       Result := ZERROR_INVALID_DATA;
       Exit;
     end;
@@ -787,7 +787,7 @@ begin
 
   if (have_check_digit <> 0) and (have_check_digit <> check_digit) then
   begin
-    strcpy(symbol.errtxt, Format('Invalid check digit ''%s'', expecting ''%s''',
+    strcpy(symbol.errtxt, Format('Error 347: Invalid check digit ''%s'', expecting ''%s''',
       [Chr(have_check_digit), Chr(check_digit)]));
     Result := ZERROR_INVALID_CHECK;
     Exit;

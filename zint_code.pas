@@ -66,10 +66,15 @@ const EC39Ctrl : array[0..127] of String = ('%U', '$A', '$B', '$C', '$D', '$E', 
 	'+P', '+Q', '+R', '+S', '+T', '+U', '+V', '+W', '+X', '+Y', '+Z', '%P', '%Q', '%R', '%S', '%T');
 { Encoding the full ASCII character set in Code 39 (Table A2) }
 
+{ C: C93Ctrl, code.c. "$", "%", "+", "-", "." und "/" gehoeren zum Grundvorrat
+  von Code 93 und werden direkt kodiert; der Port hatte hier bis zum 2026-08-30
+  noch den alten Zint-Stand mit den Umschaltfolgen cD, cE, cK, cM, cN und cO
+  und erzeugte damit fuer diese sechs Zeichen ein laengeres Symbol als C.
+  Gefunden vom Differenztest (Fall CODE93.punct). }
 const C93Ctrl : array[0..127] of String = ('bU', 'aA', 'aB', 'aC', 'aD', 'aE', 'aF', 'aG', 'aH', 'aI', 'aJ', 'aK',
 	'aL', 'aM', 'aN', 'aO', 'aP', 'aQ', 'aR', 'aS', 'aT', 'aU', 'aV', 'aW', 'aX', 'aY', 'aZ',
-	'bA', 'bB', 'bC', 'bD', 'bE', ' ', 'cA', 'cB', 'cC', 'cD', 'cE', 'cF', 'cG', 'cH', 'cI', 'cJ',
-	'cK', 'cL', 'cM', 'cN', 'cO', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'cZ', 'bF',
+	'bA', 'bB', 'bC', 'bD', 'bE', ' ', 'cA', 'cB', 'cC', '$', '%', 'cF', 'cG', 'cH', 'cI', 'cJ',
+	'+', 'cL', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'cZ', 'bF',
 	'bG', 'bH', 'bI', 'bJ', 'bV', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
 	'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'bK', 'bL', 'bM', 'bN', 'bO',
 	'bW', 'dA', 'dB', 'dC', 'dD', 'dE', 'dF', 'dG', 'dH', 'dI', 'dJ', 'dK', 'dL', 'dM', 'dN', 'dO',

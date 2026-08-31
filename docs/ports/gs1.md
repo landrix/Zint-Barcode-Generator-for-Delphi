@@ -35,6 +35,17 @@ GS1-Validierung
 |---|---|---|---|---|
 | | | | | |
 
+### Fehlernummern fehlen (offen)
+
+`zint_gs1.pas` schreibt bei den meisten Meldungen keine C-Fehlernummer; von
+den 14 Stellen tragen bisher zwei eine (252 und 253). Der Differenztest fuehrt dafuer eine
+Ausnahme (`EAN128.highbyte:errtxt` in `UnitTests/data/cdiff-ignore.txt`) und
+wird weitere melden, sobald der Korpus mehr GS1-Faelle enthaelt.
+
+Nachgetragen wurde nur 252 (`gs1.c:2204`), weil der Differenztest ihn traf.
+C meldet an derselben Stelle 855 fuer Symbologien mit festem Seitenverhaeltnis
+und laesst dort eine Digital-Link-URI zu; beides kennt der Port nicht.
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |

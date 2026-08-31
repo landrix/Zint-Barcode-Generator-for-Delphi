@@ -86,6 +86,21 @@ Assertion weggelassen.
 jede C-Datei einem Modul gehoert oder ausdruecklich ausserhalb des Umfangs
 steht.
 
+### Behoben: Kodierung las ueber das Pufferende (2026-08-31)
+
+`c128_cost` liest `source[i + 1]` und verlaesst sich - wie in C - darauf, dass
+hinter der Eingabe ein NUL steht. `reduced_charset` in `zint.pas` reichte bei
+`DATA_MODE` und `GS1_MODE` aber nur die Referenz auf den Aufruferpuffer weiter
+und verwarf die eigens angelegte Reserve von einem Byte. Bei einer exakt
+bemessenen Eingabe las Code 128 damit ueber das Ende hinaus: `"ABC123"` wurde
+zu `ABC1231` kodiert.
+
+Nicht auf Code 128 beschraenkt - jeder Encoder, der ein Zeichen vorausschaut,
+war betroffen. Gefunden vom Differenztest (`CODE128.alnum`).
+
+Ausserdem tragen acht Meldungen jetzt ihre C-Nummer (340, 341, 342, 344, 345,
+346, 347, 845).
+
 ## Offene Deltas FPC vs Delphi
 
 | Fall | Delphi | FPC | Ursache |

@@ -41,6 +41,20 @@ Kern-API, Dispatch, TZintSymbol
 |---|---|---|---|
 | | | | |
 
+## Behoben im Review von chore/cdiff-harness (2026-08-31)
+
+Zwei Stellen, die der Differenztest selbst nicht traf, sondern beide Reviewer
+am Quelltext fanden:
+
+- `ZBarcode_Encode_Segs` meldete bei leerer Segmentliste den symbologie-
+  abhaengigen Text (778, 228 oder 779). C unterscheidet: diese Nummern gelten
+  fuer ein vorhandenes, aber leeres erstes Segment; eine leere Liste ist
+  `Error 205: No input data` (`library.c:1043`).
+- `supports_eci` wich von C ab (`library.c:329`): `BARCODE_UPNQR` stand darin,
+  `BARCODE_CODEONE` fehlte. Das entscheidet unter anderem zwischen Fehler 228
+  und 778 bei leerer Eingabe. Jetzt deckungsgleich, soweit der Port die
+  Symbologien kennt - `BARCODE_HANXIN` und `BARCODE_ULTRA` fehlen ihm ganz.
+
 ## Querschnittsdeltas (betreffen jedes Modul)
 
 Sie stehen hier und nicht bei einem einzelnen Barcode, weil sie den gesamten
@@ -144,6 +158,17 @@ diesen Stellen ausgewertet oder gehoeren zu Modulen, die ohnehin nicht auf
 `b3a3c0d` stehen. Die saubere Loesung ist, die oberen Bits gar nicht erst zu
 verwerfen, statt sie einzeln nachzureichen. Gefunden im Codex-Review von
 `chore/set-height` am 2026-08-30.
+
+### `symbol.text` ist Latin-1, in C UTF-8 (offen)
+
+`zint.h:135` beschreibt `text` als UTF-8. Der Port schreibt die Quellbytes
+unveraendert hinein: fuer das Eingabebyte `0xFF` steht in C `C3 BF`, im Port
+`FF`.
+
+Aufgefallen im Differenztest (`CODE128.highbyte`, `CODE128B.highbyte`), dort
+als Ausnahme gefuehrt. Es betrifft jedes Modul, das eine HRT schreibt, und die
+Aufloesung gehoert zur HRT-Behandlung des gesamten Ports - zusammen mit dem
+fehlenden `text_length` unten.
 
 ### `TZintSymbol` hat kein `text_length`
 

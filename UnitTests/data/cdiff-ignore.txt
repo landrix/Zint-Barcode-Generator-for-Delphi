@@ -1,0 +1,25 @@
+# Ausnahmen fuer UnitTests/Test_CDiff.pas - je Zeile "fall-id:feld".
+#
+# Felder: ret, errtxt, rows, width, height, option_2, text, modules
+#
+# Nur fuer Abweichungen, die bekannt sind und anderswo verfolgt werden. Nie,
+# um einen roten Test loszuwerden. Jede Zeile braucht eine Begruendung im
+# Kommentar darueber und einen Verweis, wo die Abweichung gefuehrt wird.
+#
+# Die Liste wird selbst geprueft: steht ein Fall hier, weicht aber gar nicht
+# mehr ab, ist das ein Fehler. Sonst verrottet sie unbemerkt.
+
+# zint_gs1.pas traegt bei den meisten Meldungen keine C-Fehlernummer. Das ist
+# kein Einzelfall dieses Falles, sondern der Zustand des Moduls: gs1 hat in
+# docs/ports/_modules.tsv den Status legacy, seine Fehlerpfade sind nicht
+# gegen b3a3c0d portiert. Gehoert in den Portierungsvorgang fuer gs1, nicht
+# hierher. Siehe docs/ports/gs1.md.
+EAN128.highbyte:errtxt
+
+# C legt die HRT als UTF-8 in symbol->text ab (zint.h:135); der Port schreibt
+# die Quellbytes unveraendert, also Latin-1. Fuer 0xFF steht in C "C3 BF", im
+# Port "FF". Das betrifft jedes Modul, nicht nur Code 128, und die Aufloesung
+# gehoert zur HRT-Behandlung des gesamten Ports. Siehe docs/ports/library.md,
+# Abschnitt Querschnittsdeltas.
+CODE128.highbyte:text
+CODE128B.highbyte:text

@@ -1,0 +1,214 @@
+/* cdump - Referenzwerte aus der echten Zint-C-Bibliothek ausgeben.
+ *
+ * Liest eine Korpusdatei (TSV) und schreibt je Fall eine Zeile mit dem, was
+ * ZBarcode_Encode im zint_symbol hinterlassen hat. Die Ausgabe ist die
+ * Referenzdatei, gegen die UnitTests/Test_CDiff.pas den Delphi/FPC-Port
+ * vergleicht.
+ *
+ * Gebaut von scripts/build-c-reference.ps1, aufgerufen von
+ * scripts/gen-cdiff-golden.ps1. Nicht Teil der portierten Bibliothek.
+ *
+ * Korpuszeile (Tabulatoren):
+ *   id  symbology  input_mode  option_1  option_2  option_3  output_options  data
+ * Ausgabezeile (Tabulatoren):
+ *   id  ret  errtxt  rows  width  height  option_1  option_2  option_3  text  modules
+ *
+ * -1 heisst in den Korpus-Optionsfeldern "nicht setzen", wie testUtilSetSymbol
+ * in den C-Testsuiten. Zeilenumbrueche in `modules` sind als \n kodiert, weil
+ * die Ausgabe zeilenweise gelesen wird.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "zint.h"
+#include "zintconfig.h"
+#include "common.h" /* wegen z_module_is_set */
+
+#define MAX_LINE  (1 << 20)
+#define MAX_DATA  (1 << 16)
+
+/* "\xNN" und "\\" aufloesen; liefert die Laenge in Bytes. */
+static int unescape(const char *src, unsigned char *dst, int dst_size) {
+    int n = 0;
+    while (*src && n < dst_size) {
+        if (src[0] == '\\' && (src[1] == 'x' || src[1] == 'X') && src[2] && src[3]) {
+            char hex[3];
+            hex[0] = src[2];
+            hex[1] = src[3];
+            hex[2] = '\0';
+            dst[n++] = (unsigned char) strtol(hex, NULL, 16);
+            src += 4;
+        } else if (src[0] == '\\' && src[1] == '\\') {
+            dst[n++] = '\\';
+            src += 2;
+        } else {
+            dst[n++] = (unsigned char) *src++;
+        }
+    }
+    return n;
+}
+
+/* Umkehrung: alles ausserhalb des druckbaren ASCII, plus Backslash. */
+static void print_escaped(FILE *out, const unsigned char *s, int len) {
+    int i;
+    for (i = 0; i < len; i++) {
+        unsigned char c = s[i];
+        if (c == '\\') {
+            fputs("\\\\", out);
+        } else if (c < 0x20 || c > 0x7E) {
+            fprintf(out, "\\x%02X", c);
+        } else {
+            fputc(c, out);
+        }
+    }
+}
+
+static void print_modules(FILE *out, const struct zint_symbol *symbol) {
+    int r, c;
+    for (r = 0; r < symbol->rows; r++) {
+        if (r) {
+            fputs("\\x0A", out);
+        }
+        for (c = 0; c < symbol->width; c++) {
+            fputc(z_module_is_set(symbol, r, c) ? '1' : '0', out);
+        }
+    }
+}
+
+/* Zerlegt eine TSV-Zeile in bis zu `max` Felder; gibt die Anzahl zurueck. */
+static int split_tabs(char *line, char **fields, int max) {
+    int n = 0;
+    char *p = line;
+    fields[n++] = p;
+    while (*p && n < max) {
+        if (*p == '\t') {
+            *p = '\0';
+            fields[n++] = p + 1;
+        }
+        p++;
+    }
+    while (*p) {
+        p++;
+    }
+    return n;
+}
+
+int main(int argc, char **argv) {
+    FILE *in;
+    FILE *out;
+    char *line;
+    unsigned char *data;
+    int line_no = 0;
+    int cases = 0;
+
+    if (argc != 3) {
+        fprintf(stderr, "usage: cdump <corpus.tsv> <golden.tsv>\n");
+        return 2;
+    }
+    in = fopen(argv[1], "rb");
+    if (!in) {
+        fprintf(stderr, "cdump: cannot open %s\n", argv[1]);
+        return 2;
+    }
+    out = fopen(argv[2], "wb");
+    if (!out) {
+        fprintf(stderr, "cdump: cannot write %s\n", argv[2]);
+        fclose(in);
+        return 2;
+    }
+    line = malloc(MAX_LINE);
+    data = malloc(MAX_DATA);
+    if (!line || !data) {
+        fprintf(stderr, "cdump: out of memory\n");
+        return 2;
+    }
+
+    fprintf(out, "# erzeugt von scripts/tools/cdump.c gegen Zint %d.%d.%d.%d\n",
+            ZINT_VERSION_MAJOR, ZINT_VERSION_MINOR, ZINT_VERSION_RELEASE, ZINT_VERSION_BUILD);
+    fprintf(out, "id\tret\terrtxt\trows\twidth\theight\toption_1\toption_2\toption_3\ttext\tmodules\n");
+
+    while (fgets(line, MAX_LINE, in)) {
+        char *fields[8];
+        int nf;
+        int len;
+        int ret;
+        struct zint_symbol *symbol;
+        size_t l = strlen(line);
+
+        line_no++;
+        while (l && (line[l - 1] == '\n' || line[l - 1] == '\r')) {
+            line[--l] = '\0';
+        }
+        if (!l || line[0] == '#') {
+            continue;
+        }
+        nf = split_tabs(line, fields, 8);
+        if (nf != 8) {
+            fprintf(stderr, "cdump: line %d has %d fields, expected 8\n", line_no, nf);
+            return 2;
+        }
+        if (strcmp(fields[0], "id") == 0) { /* Kopfzeile */
+            continue;
+        }
+
+        symbol = ZBarcode_Create();
+        if (!symbol) {
+            fprintf(stderr, "cdump: ZBarcode_Create failed\n");
+            return 2;
+        }
+        symbol->symbology = atoi(fields[1]);
+        if (atoi(fields[2]) >= 0) {
+            symbol->input_mode = atoi(fields[2]);
+        }
+        if (atoi(fields[3]) >= 0) {
+            symbol->option_1 = atoi(fields[3]);
+        }
+        if (atoi(fields[4]) >= 0) {
+            symbol->option_2 = atoi(fields[4]);
+        }
+        if (atoi(fields[5]) >= 0) {
+            symbol->option_3 = atoi(fields[5]);
+        }
+        if (atoi(fields[6]) >= 0) {
+            symbol->output_options = atoi(fields[6]);
+        }
+
+        len = unescape(fields[7], data, MAX_DATA - 1);
+        /* ZBarcode_Encode ersetzt length <= 0 durch strlen(source)
+           (library.c:1006). Ohne NUL am Ende laese es bei leerer Eingabe die
+           Reste des Vorgaengerfalls aus dem Puffer. */
+        data[len] = '\0';
+        ret = ZBarcode_Encode(symbol, data, len);
+
+        fprintf(out, "%s\t%d\t", fields[0], ret);
+        print_escaped(out, (const unsigned char *) symbol->errtxt, (int) strlen(symbol->errtxt));
+        fprintf(out, "\t%d\t%d\t%.9g\t%d\t%d\t%d\t", symbol->rows, symbol->width, symbol->height,
+                symbol->option_1, symbol->option_2, symbol->option_3);
+        /* C fuehrt text_length, weil die HRT eingebettete NULs enthalten darf
+           (zint.h). Hier wird bis zum ersten NUL gelesen; dem Port fehlt das
+           Laengenfeld ohnehin (docs/ports/library.md, Querschnittsdeltas), ein
+           Vergleich waere also gar nicht moeglich. Faellt erst ins Gewicht,
+           wenn beides nachgezogen ist. */
+        print_escaped(out, symbol->text, (int) strlen((const char *) symbol->text));
+        fputc('\t', out);
+        if (ret < ZINT_ERROR) {
+            print_modules(out, symbol);
+        }
+        fputc('\n', out);
+
+        ZBarcode_Delete(symbol);
+        cases++;
+    }
+
+    fclose(in);
+    if (fclose(out) != 0) {
+        fprintf(stderr, "cdump: write error\n");
+        return 2;
+    }
+    fprintf(stderr, "cdump: %d case(s)\n", cases);
+    free(line);
+    free(data);
+    return 0;
+}
