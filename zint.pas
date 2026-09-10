@@ -134,7 +134,8 @@ type
                     zsCHANNEL,
                     zsCODEONE,
                     zsGRIDMATRIX,
-                    zsDOTCODE);
+                    zsDOTCODE,
+                    zsRMQR);
 
   TZintCustomRenderTarget = class;
   TZintSymbol = class;
@@ -317,6 +318,32 @@ type
     property Version : TmqVersion read GetVersion write SetVersion default mqvAuto;
   end;
 
+  { Only the levels M and H are defined for rMQR }
+  TrmqrECCLevel = (rmqreAuto, rmqreM, rmqreH);
+  { The ordinal values match option_2: 0 = automatic, 1..32 = a fixed symbol size,
+    33..38 = a fixed number of rows with an automatic width }
+  TrmqrSize = (rmqrsAuto,
+               rmqrsR7x43, rmqrsR7x59, rmqrsR7x77, rmqrsR7x99, rmqrsR7x139,
+               rmqrsR9x43, rmqrsR9x59, rmqrsR9x77, rmqrsR9x99, rmqrsR9x139,
+               rmqrsR11x27, rmqrsR11x43, rmqrsR11x59, rmqrsR11x77, rmqrsR11x99, rmqrsR11x139,
+               rmqrsR13x27, rmqrsR13x43, rmqrsR13x59, rmqrsR13x77, rmqrsR13x99, rmqrsR13x139,
+               rmqrsR15x43, rmqrsR15x59, rmqrsR15x77, rmqrsR15x99, rmqrsR15x139,
+               rmqrsR17x43, rmqrsR17x59, rmqrsR17x77, rmqrsR17x99, rmqrsR17x139,
+               rmqrsR7xAuto, rmqrsR9xAuto, rmqrsR11xAuto, rmqrsR13xAuto, rmqrsR15xAuto, rmqrsR17xAuto);
+
+  { TZintRMQROptions }
+
+  TZintRMQROptions = class(TCustomZintSymbolOptions)
+  private
+    function GetECCLevel: TrmqrECCLevel;
+    procedure SetECCLevel(AValue: TrmqrECCLevel);
+    function GetSize: TrmqrSize;
+    procedure SetSize(AValue: TrmqrSize);
+  published
+    property ECCLevel : TrmqrECCLevel read GetECCLevel write SetECCLevel default rmqreAuto;
+    property Size : TrmqrSize read GetSize write SetSize default rmqrsAuto;
+  end;
+
   Tc1Version = (c1vAuto, c1vA, c1vB, c1vC, c1vD, c1vE, c1vF, c1vG, c1vH, c1vS);
 
   { TZintCode1Options }
@@ -347,6 +374,7 @@ type
     FMicroQROptions : TZintMicroQROptions;
     FCode1Options : TZintCode1Options;
     FQRCodeOptions : TZintQRCodeOptions;
+    FRMQROptions : TZintRMQROptions;
 
     function GetSymbology: TZintSymbology; virtual;
     procedure SetSymbology(const Value: TZintSymbology); virtual;
@@ -400,6 +428,7 @@ type
     property MicroQROptions : TZintMicroQROptions read FMicroQROptions;
     property Code1Option : TZintCode1Options read FCode1Options;
     property QRCodeOptions : TZintQRCodeOptions read FQRCodeOptions;
+    property RMQROptions : TZintRMQROptions read FRMQROptions;
     /// <summary>If True avoids the correction for the minimal height ==> barcode can be out of specs !</summary>
     property NoMinHeightCheck: Boolean read FNoMinHeightCheck write SetNoMinHeightCheck;
   end;
@@ -708,6 +737,7 @@ const
   BARCODE_CHANNEL = 140;
   BARCODE_CODEONE = 141;
   BARCODE_GRIDMATRIX = 142;
+  BARCODE_RMQR = 145;
 
   { Output Options  }
   GS1_GS_SEPARATOR  = 512;
@@ -720,7 +750,7 @@ type
   end;
 
 const
-  ZintSymbologyInfos : array[0..84] of TZintSymbologyInfoEntry =
+  ZintSymbologyInfos : array[0..85] of TZintSymbologyInfoEntry =
      ((DisplayName : 'Code 11'; Symbology : zsCODE11),
       (DisplayName : 'Standard Code 2 of 5'; Symbology : zsC25MATRIX),
       (DisplayName : 'Interleaved 2 of 5'; Symbology : zsC25INTER),
@@ -805,7 +835,8 @@ const
       (DisplayName : 'Channel Code'; Symbology : zsCHANNEL),
       (DisplayName : 'Code One'; Symbology : zsCODEONE),
       (DisplayName : 'Grid Matrix'; Symbology : zsGRIDMATRIX),
-      (DisplayName : 'Dotcode'; Symbology : zsDOTCODE));
+      (DisplayName : 'Dotcode'; Symbology : zsDOTCODE),
+      (DisplayName : 'Rectangular Micro QR Code (rMQR)'; Symbology : zsRMQR));
 
 
   BARCODE_BIND = 2;
@@ -949,6 +980,7 @@ begin
     zsCODEONE : Result := BARCODE_CODEONE;
     zsGRIDMATRIX : Result := BARCODE_GRIDMATRIX;
     zsDOTCODE : Result := BARCODE_DOTCODE;
+    zsRMQR : Result := BARCODE_RMQR;
     else raise Exception.Create('unknown barcode IntToSymbology');
   end;
 end;
@@ -1041,6 +1073,7 @@ begin
     BARCODE_CODEONE : Result := zsCODEONE;
     BARCODE_GRIDMATRIX : Result := zsGRIDMATRIX;
     BARCODE_DOTCODE : Result := zsDOTCODE;
+    BARCODE_RMQR : Result := zsRMQR;
     else raise Exception.Create('unknown barcode IntToSymbology');
   end;
 end;
@@ -1411,6 +1444,46 @@ begin
     qrs173 : FSymbol.option_2 := 39;
     qrs177 : FSymbol.option_2 := 40;
   end;
+  Changed;
+end;
+
+{ TZintRMQROptions }
+
+function TZintRMQROptions.GetECCLevel: TrmqrECCLevel;
+begin
+  case FSymbol.option_1 of
+    2 : Result := rmqreM;
+    4 : Result := rmqreH;
+    else
+      Result := rmqreAuto;
+  end;
+end;
+
+procedure TZintRMQROptions.SetECCLevel(AValue: TrmqrECCLevel);
+begin
+  case AValue of
+    rmqreAuto : FSymbol.option_1 := DEFAULTVALUE_OPTION_1;
+    rmqreM : FSymbol.option_1 := 2;
+    rmqreH : FSymbol.option_1 := 4;
+  end;
+  Changed;
+end;
+
+function TZintRMQROptions.GetSize: TrmqrSize;
+begin
+  { The enum ordinals are the option_2 values }
+  if (FSymbol.option_2 > Ord(rmqrsAuto)) and (FSymbol.option_2 <= Ord(High(TrmqrSize))) then
+    Result := TrmqrSize(FSymbol.option_2)
+  else
+    Result := rmqrsAuto;
+end;
+
+procedure TZintRMQROptions.SetSize(AValue: TrmqrSize);
+begin
+  if AValue = rmqrsAuto then
+    FSymbol.option_2 := DEFAULTVALUE_OPTION_2
+  else
+    FSymbol.option_2 := Ord(AValue);
   Changed;
 end;
 
@@ -1901,6 +1974,7 @@ begin
   FMicroQROptions := TZintMicroQROptions.Create(Self);
   FCode1Options := TZintCode1Options.Create(Self);
   FQRCodeOptions := TZintQRCodeOptions.Create(Self);
+  FRMQROptions := TZintRMQROptions.Create(Self);
 end;
 
 procedure TZintSymbol.DefineProperties(Filer: TFiler);
@@ -1926,6 +2000,7 @@ begin
   FMicroQROptions.Free;
   FCode1Options.Free;
   FQRCodeOptions.Free;
+  FRMQROptions.Free;
   
   inherited;
 end;
@@ -2157,6 +2232,7 @@ begin
 		BARCODE_CODEONE,
 		BARCODE_CODE49,
 		BARCODE_QRCODE,
+		BARCODE_RMQR,
     BARCODE_DOTCODE:
 			result := True;
 	end;
@@ -2193,6 +2269,7 @@ begin
 	case symbol.symbology of
 	  BARCODE_QRCODE: error_number := qr_code(symbol, source, _length);
 	 	BARCODE_MICROQR: error_number := microqr(symbol, source, _length);
+	 	BARCODE_RMQR: error_number := rmqr(symbol, source, _length);
 		BARCODE_GRIDMATRIX: error_number := grid_matrix(symbol, source, _length);
 	end;
 
@@ -2351,7 +2428,7 @@ begin
   Changed;
 end;
 
-function escape_char_process(symbol: zint_symbol; input_string: TArrayOfByte; var _length: Integer): integer;
+function escape_char_process(symbol: zint_symbol; var input_string: TArrayOfByte; var _length: Integer): integer;
 var
 //  error_number: integer;
   in_posn, out_posn: integer;
@@ -2365,7 +2442,7 @@ var
 
   escaped_string: TArrayOfByte;
 begin
-  SetLength(escaped_string, _Length);
+  SetLength(escaped_string, _Length + 1);
   in_posn := 0;
   out_posn := 0;
 
@@ -2455,9 +2532,8 @@ begin
     inc(out_posn);
   until in_posn >= _Length;  { while (in_posn < *length) }
 
+  escaped_string[out_posn] := 0;
   input_string := escaped_string;
-//    memcpy(input_string, escaped_string, out_posn);
-//    input_string[out_posn] = '\0';
   _length := out_posn;
 
   result := 0;
@@ -2467,8 +2543,15 @@ end;
 function ZBarcode_Encode(symbol : zint_symbol; source : TArrayOfByte; _length : Integer) : Integer;
 var
   error_number, error_buffer, i : Integer;
-  local_source : TArrayOfByte;
+  local_source, reduced_source : TArrayOfByte;
+  saved_input_mode : Integer;
 begin
+  { This routine rewrites symbol.input_mode as it goes (range reset + the eci
+    reset further down). Those rewrites are meant to be local to one encode,
+    but they used to persist, so a reused symbol silently lost GS1_MODE /
+    UNICODE_MODE after the first call. Restore it on the way out. }
+  saved_input_mode := symbol.input_mode;
+  try
   error_number := 0;
 
   if _length = 0 then
@@ -2607,7 +2690,7 @@ begin
   end
 
 	{ Everything from 128 up is Zint-specific }
-	else if (symbol.symbology >= 143) then begin
+	else if (symbol.symbology >= 143) and (symbol.symbology <> BARCODE_RMQR) then begin
     strcpy(symbol.errtxt, 'Symbology out of range, using Code 128');
     symbol.symbology := BARCODE_CODE128;
     error_number := ZWARN_INVALID_OPTION;
@@ -2626,16 +2709,37 @@ begin
   else
 		error_buffer := error_number;
 
-  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 3) then
+  if (not supports_eci(symbol.symbology)) and (symbol.eci <> 0) and (symbol.eci <> 3) then
   begin
     strcpy(symbol.errtxt, '217: Symbology does not support ECI switching');
     //comment out never used error_number := ZERROR_INVALID_OPTION;
   end;
 
-  if (symbol.eci < 3) or (symbol.eci > 999999) then
+  if (symbol.eci <> 0) and ((symbol.eci < 3) or (symbol.eci > 999999)) then
   begin
     strcpy(symbol.errtxt, '218: Invalid ECI mode');
     //comment out never used error_number := ZERROR_INVALID_OPTION;
+  end;
+
+  { C keeps local_source as a private NUL-terminated copy. Aliasing the caller's
+    array instead drops the terminator, and escape_char_process / latin1_process /
+    utf8toutf16 all legitimately read one byte past the last character. }
+  for i := 0 to _length - 1 do
+    local_source[i] := source[i];
+  local_source[_length] := 0;
+
+  { De-escaping comes BEFORE the GS1 reduction, as in C: the escapes are a transport
+    encoding of the raw input, so '\x5B' has to become a real '[' before gs1_verify
+    looks for AI brackets. }
+  if (symbol.input_mode and ESCAPE_MODE) > 0 then
+  begin
+    error_number := escape_char_process(symbol, local_source, _length);
+    if (error_number <> 0) then
+    begin
+      error_tag(symbol.errtxt, error_number);
+      Exit(error_number);
+    end;
+    dec(symbol.input_mode, ESCAPE_MODE);
   end;
 
   {* Start acting on input mode *}
@@ -2643,7 +2747,7 @@ begin
   begin
 		for i := 0 to _length - 1 do
     begin
-			if (source[i] = 0) then
+			if (local_source[i] = 0) then
       begin
 				strcpy(symbol.errtxt, 'NULL characters not permitted in GS1 mode');
 				exit(ZERROR_INVALID_DATA);
@@ -2651,10 +2755,13 @@ begin
 		end;
 		if gs1_compliant(symbol.symbology) then
     begin
-			error_number := ugs1_verify(symbol, source, _length, local_source);
+      { ugs1_verify cannot read and write the same array, so reduce into a fresh one }
+      SetLength(reduced_source, _length + 1);
+			error_number := ugs1_verify(symbol, local_source, _length, reduced_source);
 			if (error_number <> 0) then
         exit(error_number);
 
+      local_source := reduced_source;
 			_length := ustrlen(local_source);
 		end
     else
@@ -2662,23 +2769,17 @@ begin
 			strcpy(symbol.errtxt, 'Selected symbology does not support GS1 mode');
 			exit(ZERROR_INVALID_OPTION);
     end;
-  end
-  else
-		local_source := source;
-
-  if (symbol.input_mode and ESCAPE_MODE) > 0 then begin
-      error_number := escape_char_process(symbol, local_source, _length);
-      if error_number <> 0 then
-          error_tag(symbol.errtxt, error_number);
-          Exit(error_number);
-      dec(symbol.input_mode, ESCAPE_MODE);
   end;
 
 
 	if (symbol.input_mode < 0) or (symbol.input_mode > 2) then
     symbol.input_mode := DATA_MODE;
 
-  if (symbol.eci <> 3) and (symbol.eci <> 26) then
+  { Only an explicitly selected ECI that is neither Latin-1 (3) nor UTF-8 (26)
+    forces the raw-byte path. eci = 0 means "not set" - C defaults it to 3 -
+    so treating 0 as "not 3" here used to reset input_mode on every single
+    encode, which silently disabled UNICODE_MODE for the whole library. }
+  if (symbol.eci <> 0) and (symbol.eci <> 3) and (symbol.eci <> 26) then
     symbol.input_mode := DATA_MODE;
 
 //  if (symbol.input_mode = UNICODE_MODE) then
@@ -2694,6 +2795,7 @@ begin
 	case symbol.symbology of
 		BARCODE_QRCODE,
 		BARCODE_MICROQR,
+		BARCODE_RMQR,
 		BARCODE_GRIDMATRIX:
 			error_number := extended_charset(symbol, local_source, _length);
     else
@@ -2721,6 +2823,9 @@ begin
     check_row_heights(symbol);
 
 	result := error_number;
+  finally
+    symbol.input_mode := saved_input_mode;
+  end;
 end;
 
 { TZintCustomRenderTarget }

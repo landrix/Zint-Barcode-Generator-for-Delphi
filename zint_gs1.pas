@@ -169,9 +169,13 @@ begin
 		if (ai_value[i] >= 100) then Inc(data_location[i]);
 		if (ai_value[i] >= 1000) then Inc(data_location[i]);
 		data_length[i] := 0;
+		{ NB: source is NOT NUL-terminated here (unlike the C original), so the
+		  scan must stop at src_len or it reads past the end of the array }
 		repeat
 			Inc(data_length[i]);
-		until not ((source[data_location[i] + data_length[i] - 1] <> Ord('[')) and (source[data_location[i] + data_length[i] - 1] <> 0));
+		until (data_location[i] + data_length[i] - 1 >= src_len)
+		      or (source[data_location[i] + data_length[i] - 1] = Ord('['))
+		      or (source[data_location[i] + data_length[i] - 1] = 0);
 		Dec(data_length[i]);
 	end;
 
